@@ -1,6 +1,7 @@
 import 'dart:ui';
 import 'package:drawing_app/domain/models/draw_command/draw_command.dart';
-import 'package:drawing_app/domain/draw_tools/draw_tool.dart';
+import 'package:drawing_app/domain/models/draw_tools/draw_tool.dart';
+import 'package:drawing_app/domain/models/recordable_action/recorable_controller.dart';
 
 class FreehandTool extends DrawTool {
   const FreehandTool({required super.toolName, required super.toolIcon});
@@ -25,10 +26,11 @@ class FreehandTool extends DrawTool {
   }
 
   @override
-  DrawCommand onDrawStart(Offset startPoint, Paint strokeSettings, Paint fillSettings) {
+  DrawCommand onDrawStart(Offset startPoint, Paint strokeSettings, Paint fillSettings, String layerId) {
     // Generate a fresh Freezed data block instantly
     return DrawCommand.data(
       toolName: toolName,
+      layerId: layerId,
       points: [startPoint],
       strokeSettings: strokeSettings,
       fillSettings: fillSettings,
@@ -46,5 +48,15 @@ class FreehandTool extends DrawTool {
   @override
   DrawCommand onDrawEnd(DrawCommand currentCommand) {
     return currentCommand; // Freehand doesn't need end-of-stroke processing adjustments
+  }
+
+  @override
+  void execute(RecorableController rController) {
+    // TODO: implement execute
+  }
+
+  @override
+  void undo(RecorableController rController) {
+    // TODO: implement undo
   }
 }

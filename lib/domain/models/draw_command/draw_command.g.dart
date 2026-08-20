@@ -9,6 +9,7 @@ part of 'draw_command.dart';
 _DrawCommandData _$DrawCommandDataFromJson(Map<String, dynamic> json) =>
     _DrawCommandData(
       toolName: json['toolName'] as String,
+      layerId: json['layerId'] as String,
       points: (json['points'] as List<dynamic>)
           .map(
             (e) => const OffsetConverter().fromJson(e as Map<String, dynamic>),
@@ -29,6 +30,7 @@ Map<String, dynamic> _$DrawCommandDataToJson(_DrawCommandData instance) =>
       'strokeSettings': const PaintConverter().toJson(instance.strokeSettings),
       'fillSettings': const PaintConverter().toJson(instance.fillSettings),
       'toolName': instance.toolName,
+      'layerId': instance.layerId,
       'points': instance.points.map(const OffsetConverter().toJson).toList(),
     };
 

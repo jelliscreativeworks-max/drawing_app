@@ -1,7 +1,7 @@
 import 'dart:ui';
 
+import 'package:drawing_app/domain/models/draw_tools/draw_tool.dart';
 import 'package:drawing_app/utils/converters.dart';
-import 'package:drawing_app/domain/draw_tools/draw_tool.dart';
 import 'package:freezed_annotation/freezed_annotation.dart';
 
 part 'draw_command.freezed.dart';  
@@ -12,6 +12,7 @@ sealed class DrawCommand with _$DrawCommand {
   DrawCommand._({Paint? strokeSettings, Paint? fillSettings}) : strokeSettings = strokeSettings ?? Paint(), fillSettings = fillSettings ?? Paint() ;
   factory DrawCommand.data({
       required String toolName,
+      required String layerId,
       @OffsetConverter() required List<Offset> points,
       @PaintConverter() Paint? strokeSettings,
       @PaintConverter() Paint? fillSettings,
