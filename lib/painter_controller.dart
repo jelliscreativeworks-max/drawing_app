@@ -1,8 +1,7 @@
-import 'package:drawing_app/draw_command.dart';
-import 'package:drawing_app/draw_layer.dart';
-import 'package:drawing_app/draw_line_data.dart';
-import 'package:drawing_app/draw_tool.dart';
-import 'package:drawing_app/freehand_tool.dart';
+import 'package:drawing_app/domain/models/draw_command/draw_command.dart';
+import 'package:drawing_app/domain/models/draw_layer/draw_layer.dart';
+import 'package:drawing_app/domain/draw_tools/draw_tool.dart';
+import 'package:drawing_app/domain/draw_tools/freehand_tool.dart';
 import 'package:flutter/material.dart';
 class PainterController extends ChangeNotifier {
   final List<DrawLayer> _layers = [DrawLayer(id: 'l_0', name: 'Layer 1')];

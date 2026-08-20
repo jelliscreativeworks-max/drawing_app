@@ -1,4 +1,4 @@
-import 'package:drawing_app/draw_command.dart';
+import 'package:drawing_app/domain/models/draw_command/draw_command.dart';
 import 'package:freezed_annotation/freezed_annotation.dart';
 
 part 'draw_layer.freezed.dart';  

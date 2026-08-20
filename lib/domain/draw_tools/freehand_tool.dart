@@ -1,6 +1,6 @@
 import 'dart:ui';
-import 'package:drawing_app/draw_command.dart';
-import 'package:drawing_app/draw_tool.dart';
+import 'package:drawing_app/domain/models/draw_command/draw_command.dart';
+import 'package:drawing_app/domain/draw_tools/draw_tool.dart';
 
 class FreehandTool extends DrawTool {
   const FreehandTool({required super.toolName, required super.toolIcon});
