@@ -1,4 +1,7 @@
+import 'dart:typed_data';
+
 import 'package:drawing_app/domain/models/draw_command/draw_command.dart';
+import 'package:drawing_app/utils/converters.dart';
 import 'package:freezed_annotation/freezed_annotation.dart';
 
 part 'draw_layer.freezed.dart';  
@@ -8,11 +11,16 @@ part 'draw_layer.g.dart';
 @freezed
 abstract class DrawLayer with _$DrawLayer {
 
-  const factory DrawLayer({
+  factory DrawLayer({
+    required int zIndex,
     required String id,
     required String name,
-    @Default([]) List<DrawCommand> layerDrawHistory,
-    @Default(true) bool isVisible
+    required String canvasId,
+    @Default(true) bool isDirty,
+    @Uint8ListConverter() Uint8List? layerSnapShot,
+    @Default(<DrawCommand>[]) List<DrawCommand> layerDrawHistory,
+    @Default(true) bool isVisible,
+
       
 }) = _DrawLayer;
 

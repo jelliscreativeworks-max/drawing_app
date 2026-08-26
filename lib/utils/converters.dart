@@ -1,4 +1,7 @@
 
+import 'dart:convert';
+import 'dart:typed_data';
+
 import 'package:flutter/material.dart';
 import 'package:freezed_annotation/freezed_annotation.dart';
 
@@ -22,7 +25,23 @@ class OffsetConverter implements JsonConverter<Offset, Map<String, dynamic>>{
   }
 }
 
+class Uint8ListConverter implements JsonConverter<Uint8List,String>{
+  const Uint8ListConverter();
+  @override
+  Uint8List fromJson(String json) {
+    String base64String = json;
 
+    return base64Decode(base64String);
+  }
+
+  @override
+  String toJson(Uint8List object) {
+    String base64String = base64Encode(object);
+
+    return base64String;
+  }
+  
+}
 
 class PaintConverter implements JsonConverter<Paint, Map<String, dynamic>>{
   const PaintConverter();

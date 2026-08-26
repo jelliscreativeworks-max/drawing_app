@@ -1,3 +1,4 @@
+import 'package:drawing_app/router/router.dart';
 import 'package:drawing_app/ui/screens/paint_screen.dart';
 import 'package:drawing_app/config/provider.dart';
 import 'package:flutter/material.dart';
@@ -15,8 +16,8 @@ class MainApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return  MaterialApp(
-      home: PaintScreen()
+    return  MaterialApp.router(
+      routerConfig: router(),
     );
   }
 }
