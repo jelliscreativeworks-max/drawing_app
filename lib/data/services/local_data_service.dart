@@ -57,7 +57,7 @@ class LocalDataService {
 
   Future<List<CanvasData>> loadCanvasDataList() async {
     final List<CanvasData> loadedData = [];
-    final dir = Directory('${await _localPath}/projects');
+    final dir = Directory('${await _localPath}\\projects');
 
     if (!await dir.exists()) return loadedData;
 
@@ -65,12 +65,13 @@ class LocalDataService {
     await for (final FileSystemEntity projectDir in dir.list()) {
       if (projectDir is Directory) {
         // 2. Point directly to the explicit metadata file path
-        final metaFile = File('${projectDir.path}/project_meta.json');
+        final metaFile = File('${projectDir.path}\\project_meta.json');
 
         // 3. Only read if the metadata file actually exists
         if (await metaFile.exists()) {
           try {
-            final json = await _loadJsonFromFile(metaFile.path);
+                final data = await metaFile.readAsString();
+              final json = jsonDecode(data) as Map<String, dynamic>;
             loadedData.add(CanvasData.fromJson(json));
           } catch (e) {
             // Prevent one corrupted file from breaking the entire app load
@@ -80,20 +81,20 @@ class LocalDataService {
       }
     }
 
-    // Optional: Sort by newest project first
+    // Optional: Sort by newest project firstz
     return loadedData;
   }
 
   Future<void> deleteCanvas(String canvasId) async {
     final file = File(
-      '${await _localPath}/projects/$canvasId/project_meta.json',
+      '${await _localPath}\\projects\\$canvasId\\project_meta.json',
     );
 
     if (await file.exists()) {
       await file.delete();
     }
 
-    final projectDir = Directory('${await _localPath}/projects/$canvasId');
+    final projectDir = Directory('${await _localPath}\\projects\\$canvasId');
     if (await projectDir.exists() && (await projectDir.list().isEmpty)) {
       await projectDir.delete();
     }
@@ -102,13 +103,13 @@ class LocalDataService {
   Future<void> saveCanvasData(CanvasData data) async {
     final mappedData = data.toJson();
 
-    await _writeJsonToFile(mappedData, 'projects/${data.id}/project_meta.json');
+    await _writeJsonToFile(mappedData, 'projects\\${data.id}\\project_meta.json');
   }
 
 
   Future<void> deleteAllLayersForProject(String canvasId) async {
     final layersDir = Directory(
-      '${await _localPath}/projects/$canvasId/layers',
+      '${await _localPath}\\projects\\$canvasId\\layers',
     );
 
     if (await layersDir.exists()) {
@@ -120,7 +121,7 @@ class LocalDataService {
   Future<List<DrawLayer>> loadDrawLayers(String canvasId) async {
     final List<DrawLayer> loadedLayers = [];
     final layersDir = Directory(
-      '${await _localPath}/projects/$canvasId/layers',
+      '${await _localPath}\\projects\\$canvasId\\layers',
     );
 
     // 1. If the folder doesn't exist (e.g., brand new project), return empty list
@@ -172,7 +173,7 @@ class LocalDataService {
 
       final future = _writeJsonToFile(
         mappedData,
-        'projects/${data[i].canvasId}/layers/${data[i].id}.json',
+        'projects\\${data[i].canvasId}\\layers\\${data[i].id}.json',
       );
       futures.add(future);
     }
@@ -181,7 +182,7 @@ class LocalDataService {
   }
 
   Future<void> deleteDrawLayer(DrawLayer layer) async {
-        final path = 'projects/${layer.canvasId}/layers/${layer.id}.json';
+        final path = 'projects\\${layer.canvasId}\\layers\\${layer.id}.json';
         final file = await _getlocalFile(path); 
 
         if(await file.exists()){

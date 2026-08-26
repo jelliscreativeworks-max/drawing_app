@@ -42,34 +42,29 @@ class Uint8ListConverter implements JsonConverter<Uint8List,String>{
   }
   
 }
-
-class PaintConverter implements JsonConverter<Paint, Map<String, dynamic>>{
+class PaintConverter implements JsonConverter<Paint, Map<String, dynamic>> {
   const PaintConverter();
+
   @override
   Paint fromJson(Map<String, dynamic> json) {
     return Paint()
-    ..blendMode = json['blendMode']
-    ..color = json['color']
-    ..style = json['style']
-    ..strokeWidth = json['strokeWidth']
-    ..strokeCap = json['strokeCap']
-    ..strokeJoin = json['strokeJoin'];
+      ..color = Color(json['color'] as int)
+      ..strokeWidth = (json['strokeWidth'] as num).toDouble()
+      ..blendMode = BlendMode.values[json['blendMode'] as int]
+      ..style = PaintingStyle.values[json['style'] as int]; // Handles style internally
   }
 
   @override
   Map<String, dynamic> toJson(Paint object) {
-    return{
-      'blendMode' : object.blendMode,
-      'color' : object.color.toARGB32(),
-      // 'colorFilter'
-      'style' : object.style,
-      'strokeWidth' : object.strokeWidth,
-      'strokeCap' : object.strokeCap,
-      'strokeJoin' : object.strokeJoin,
+    return {
+      'color': object.color.toARGB32(),
+      'strokeWidth': object.strokeWidth,
+      'blendMode': object.blendMode.index,
+      'style': object.style.index, // Serializes style internally
     };
   }
-
 }
+
 
 class ColorConverter implements JsonConverter<Color, int> {
   const ColorConverter();

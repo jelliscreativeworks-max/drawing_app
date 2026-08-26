@@ -9,8 +9,10 @@ class FreehandTool extends DrawTool {
   @override
   void draw(Canvas canvas, DrawCommand drawCommand) {
     if (drawCommand.points.isEmpty) return;
-  
-    _drawIndividualLine(canvas, drawCommand.points, drawCommand.strokeSettings);
+
+    if(drawCommand.strokeSettings != null){
+    _drawIndividualLine(canvas, drawCommand.points, drawCommand.strokeSettings!);
+    }
   }
 
   void _drawIndividualLine(Canvas canvas, List<Offset> points, Paint paint) {

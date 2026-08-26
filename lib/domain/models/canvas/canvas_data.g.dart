@@ -10,7 +10,7 @@ _CanvasData _$CanvasDataFromJson(Map<String, dynamic> json) => _CanvasData(
   id: json['id'] as String,
   name: json['name'] as String,
   layerIds: (json['layerIds'] as List<dynamic>)
-      .map((e) => (e as num).toInt())
+      .map((e) => e as String)
       .toList(),
 );
 

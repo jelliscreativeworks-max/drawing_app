@@ -22,7 +22,7 @@ DrawCommand _$DrawCommandFromJson(
 /// @nodoc
 mixin _$DrawCommand {
 
- Paint get strokeSettings; Paint get fillSettings; String get toolName; String get layerId;@OffsetConverter() List<Offset> get points;
+ String get toolName; String get layerId;@OffsetConverter() List<Offset> get points;@PaintConverter() Paint? get strokeSettings;@PaintConverter() Paint? get fillSettings;
 /// Create a copy of DrawCommand
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -35,16 +35,16 @@ $DrawCommandCopyWith<DrawCommand> get copyWith => _$DrawCommandCopyWithImpl<Draw
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is DrawCommand&&(identical(other.strokeSettings, strokeSettings) || other.strokeSettings == strokeSettings)&&(identical(other.fillSettings, fillSettings) || other.fillSettings == fillSettings)&&(identical(other.toolName, toolName) || other.toolName == toolName)&&(identical(other.layerId, layerId) || other.layerId == layerId)&&const DeepCollectionEquality().equals(other.points, points));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is DrawCommand&&(identical(other.toolName, toolName) || other.toolName == toolName)&&(identical(other.layerId, layerId) || other.layerId == layerId)&&const DeepCollectionEquality().equals(other.points, points)&&(identical(other.strokeSettings, strokeSettings) || other.strokeSettings == strokeSettings)&&(identical(other.fillSettings, fillSettings) || other.fillSettings == fillSettings));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,strokeSettings,fillSettings,toolName,layerId,const DeepCollectionEquality().hash(points));
+int get hashCode => Object.hash(runtimeType,toolName,layerId,const DeepCollectionEquality().hash(points),strokeSettings,fillSettings);
 
 @override
 String toString() {
-  return 'DrawCommand(strokeSettings: $strokeSettings, fillSettings: $fillSettings, toolName: $toolName, layerId: $layerId, points: $points)';
+  return 'DrawCommand(toolName: $toolName, layerId: $layerId, points: $points, strokeSettings: $strokeSettings, fillSettings: $fillSettings)';
 }
 
 
@@ -77,8 +77,8 @@ class _$DrawCommandCopyWithImpl<$Res>
 toolName: null == toolName ? _self.toolName : toolName // ignore: cast_nullable_to_non_nullable
 as String,layerId: null == layerId ? _self.layerId : layerId // ignore: cast_nullable_to_non_nullable
 as String,points: null == points ? _self.points : points // ignore: cast_nullable_to_non_nullable
-as List<Offset>,strokeSettings: freezed == strokeSettings ? _self.strokeSettings! : strokeSettings // ignore: cast_nullable_to_non_nullable
-as Paint?,fillSettings: freezed == fillSettings ? _self.fillSettings! : fillSettings // ignore: cast_nullable_to_non_nullable
+as List<Offset>,strokeSettings: freezed == strokeSettings ? _self.strokeSettings : strokeSettings // ignore: cast_nullable_to_non_nullable
+as Paint?,fillSettings: freezed == fillSettings ? _self.fillSettings : fillSettings // ignore: cast_nullable_to_non_nullable
 as Paint?,
   ));
 }
@@ -126,7 +126,10 @@ return data(_that);case _:
 final _that = this;
 switch (_that) {
 case _DrawCommandData():
-return data(_that);}
+return data(_that);case _:
+  throw StateError('Unexpected subclass');
+
+}
 }
 /// A variant of `map` that fallback to returning `null`.
 ///
@@ -185,7 +188,10 @@ return data(_that.toolName,_that.layerId,_that.points,_that.strokeSettings,_that
 @optionalTypeArgs TResult when<TResult extends Object?>({required TResult Function( String toolName,  String layerId, @OffsetConverter()  List<Offset> points, @PaintConverter()  Paint? strokeSettings, @PaintConverter()  Paint? fillSettings)  data,}) {final _that = this;
 switch (_that) {
 case _DrawCommandData():
-return data(_that.toolName,_that.layerId,_that.points,_that.strokeSettings,_that.fillSettings);}
+return data(_that.toolName,_that.layerId,_that.points,_that.strokeSettings,_that.fillSettings);case _:
+  throw StateError('Unexpected subclass');
+
+}
 }
 /// A variant of `when` that fallback to returning `null`
 ///
@@ -214,7 +220,7 @@ return data(_that.toolName,_that.layerId,_that.points,_that.strokeSettings,_that
 @JsonSerializable()
 
 class _DrawCommandData extends DrawCommand {
-   _DrawCommandData({required this.toolName, required this.layerId, @OffsetConverter() required final  List<Offset> points, @PaintConverter() final  Paint? strokeSettings, @PaintConverter() final  Paint? fillSettings}): _points = points,super._(strokeSettings: strokeSettings, fillSettings: fillSettings);
+   _DrawCommandData({required this.toolName, required this.layerId, @OffsetConverter() required final  List<Offset> points, @PaintConverter() this.strokeSettings, @PaintConverter() this.fillSettings}): _points = points,super._();
   factory _DrawCommandData.fromJson(Map<String, dynamic> json) => _$DrawCommandDataFromJson(json);
 
 @override final  String toolName;
@@ -226,6 +232,8 @@ class _DrawCommandData extends DrawCommand {
   return EqualUnmodifiableListView(_points);
 }
 
+@override@PaintConverter() final  Paint? strokeSettings;
+@override@PaintConverter() final  Paint? fillSettings;
 
 /// Create a copy of DrawCommand
 /// with the given fields replaced by the non-null parameter values.

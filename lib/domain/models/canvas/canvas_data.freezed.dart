@@ -15,7 +15,7 @@ T _$identity<T>(T value) => value;
 /// @nodoc
 mixin _$CanvasData {
 
- String get id; String get name; List<int> get layerIds;
+ String get id; String get name; List<String> get layerIds;
 /// Create a copy of CanvasData
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -48,7 +48,7 @@ abstract mixin class $CanvasDataCopyWith<$Res>  {
   factory $CanvasDataCopyWith(CanvasData value, $Res Function(CanvasData) _then) = _$CanvasDataCopyWithImpl;
 @useResult
 $Res call({
- String id, String name, List<int> layerIds
+ String id, String name, List<String> layerIds
 });
 
 
@@ -70,7 +70,7 @@ class _$CanvasDataCopyWithImpl<$Res>
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,name: null == name ? _self.name : name // ignore: cast_nullable_to_non_nullable
 as String,layerIds: null == layerIds ? _self.layerIds : layerIds // ignore: cast_nullable_to_non_nullable
-as List<int>,
+as List<String>,
   ));
 }
 
@@ -155,7 +155,7 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id,  String name,  List<int> layerIds)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id,  String name,  List<String> layerIds)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _CanvasData() when $default != null:
 return $default(_that.id,_that.name,_that.layerIds);case _:
@@ -176,7 +176,7 @@ return $default(_that.id,_that.name,_that.layerIds);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id,  String name,  List<int> layerIds)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id,  String name,  List<String> layerIds)  $default,) {final _that = this;
 switch (_that) {
 case _CanvasData():
 return $default(_that.id,_that.name,_that.layerIds);case _:
@@ -196,7 +196,7 @@ return $default(_that.id,_that.name,_that.layerIds);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id,  String name,  List<int> layerIds)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id,  String name,  List<String> layerIds)?  $default,) {final _that = this;
 switch (_that) {
 case _CanvasData() when $default != null:
 return $default(_that.id,_that.name,_that.layerIds);case _:
@@ -211,13 +211,13 @@ return $default(_that.id,_that.name,_that.layerIds);case _:
 @JsonSerializable()
 
 class _CanvasData implements CanvasData {
-   _CanvasData({required this.id, required this.name, required final  List<int> layerIds}): _layerIds = layerIds;
+   _CanvasData({required this.id, required this.name, required final  List<String> layerIds}): _layerIds = layerIds;
   factory _CanvasData.fromJson(Map<String, dynamic> json) => _$CanvasDataFromJson(json);
 
 @override final  String id;
 @override final  String name;
- final  List<int> _layerIds;
-@override List<int> get layerIds {
+ final  List<String> _layerIds;
+@override List<String> get layerIds {
   if (_layerIds is EqualUnmodifiableListView) return _layerIds;
   // ignore: implicit_dynamic_type
   return EqualUnmodifiableListView(_layerIds);
@@ -257,7 +257,7 @@ abstract mixin class _$CanvasDataCopyWith<$Res> implements $CanvasDataCopyWith<$
   factory _$CanvasDataCopyWith(_CanvasData value, $Res Function(_CanvasData) _then) = __$CanvasDataCopyWithImpl;
 @override @useResult
 $Res call({
- String id, String name, List<int> layerIds
+ String id, String name, List<String> layerIds
 });
 
 
@@ -279,7 +279,7 @@ class __$CanvasDataCopyWithImpl<$Res>
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,name: null == name ? _self.name : name // ignore: cast_nullable_to_non_nullable
 as String,layerIds: null == layerIds ? _self._layerIds : layerIds // ignore: cast_nullable_to_non_nullable
-as List<int>,
+as List<String>,
   ));
 }
 

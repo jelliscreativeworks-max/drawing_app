@@ -14,7 +14,7 @@ abstract class CanvasData with _$CanvasData {
   factory CanvasData({
     required String id,
     required String name,
-    required List<int> layerIds
+    required List<String> layerIds
 
       
 }) = _CanvasData;

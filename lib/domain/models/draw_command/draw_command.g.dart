@@ -27,14 +27,25 @@ _DrawCommandData _$DrawCommandDataFromJson(Map<String, dynamic> json) =>
 
 Map<String, dynamic> _$DrawCommandDataToJson(_DrawCommandData instance) =>
     <String, dynamic>{
-      'strokeSettings': const PaintConverter().toJson(instance.strokeSettings),
-      'fillSettings': const PaintConverter().toJson(instance.fillSettings),
       'toolName': instance.toolName,
       'layerId': instance.layerId,
       'points': instance.points.map(const OffsetConverter().toJson).toList(),
+      'strokeSettings': _$JsonConverterToJson<Map<String, dynamic>, Paint>(
+        instance.strokeSettings,
+        const PaintConverter().toJson,
+      ),
+      'fillSettings': _$JsonConverterToJson<Map<String, dynamic>, Paint>(
+        instance.fillSettings,
+        const PaintConverter().toJson,
+      ),
     };
 
 Value? _$JsonConverterFromJson<Json, Value>(
   Object? json,
   Value? Function(Json json) fromJson,
 ) => json == null ? null : fromJson(json as Json);
+
+Json? _$JsonConverterToJson<Json, Value>(
+  Value? value,
+  Json? Function(Value value) toJson,
+) => value == null ? null : toJson(value);

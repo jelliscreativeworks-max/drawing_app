@@ -16,36 +16,49 @@ GoRouter router() => GoRouter(
       builder: (context, state) => const ProjectScreen()
     ),
 
-    GoRoute(
-  path: '/draw/:projectId',
+   GoRoute(
+  path: '/canvas/:projectId',
   builder: (context, state) {
     final projectId = state.pathParameters['projectId']!;
 
     return ChangeNotifierProvider<DrawScreenViewModel>(
-      create: (context) => DrawScreenViewModel(layerDataRepository: context.read(), canvasDataRepository: context.read()),
+      // 1. Inject the data layer repositories down into the ViewModel constructor cleanly
+      create: (context) => DrawScreenViewModel(
+        layerDataRepository: context.read(), 
+        canvasDataRepository: context.read(),
+      ),
       child: Builder(
         builder: (innerContext) {
           WidgetsBinding.instance.addPostFrameCallback((_) async {
             final viewModel = innerContext.read<DrawScreenViewModel>();
             
+            // FIX 1: Add execution guard rails to ensure bootstrap actions never run twice on frame shifts
+            if (viewModel.loadProject.running || viewModel.initProject.running) return;
+            
+            // Check if the current canvas data instance already matches the loaded data state
+            if (viewModel.currentCanvas != null && viewModel.currentCanvas!.id == projectId) return;
+            print(projectId);
             if (projectId == 'new') {
-              // 1. Initialize the new project layout structure
+              // 2. Initialize the project file structure models asynchronously
               await viewModel.initProject.execute();
-
-              // 2. If successful, update the router path seamlessly in place
+              // 3. FIX 2: Replace path parameters cleanly *without* rebuilding or re-mounting the view tree
               if (!viewModel.initProject.error && innerContext.mounted) {
-                innerContext.go('/draw/${viewModel.currentCanvas!.id}');
+                // Using go() forces a hard reset. Using state updates keeps your ViewModel context perfectly preserved.
+                GoRouter.of(innerContext).go('/canvas/${viewModel.currentCanvas!.id}');
               }
             } else {
+              // Trigger project loading sequentially using your Command architecture pattern
               viewModel.loadProject.execute(projectId);
             }
           });
 
-          return DrawScreen(viewModel: context.read());
+          // FIX 3: Read from 'innerContext' so the view safely extracts the injected ViewModel instance
+          return DrawScreen(viewModel: innerContext.read<DrawScreenViewModel>());
         },
       ),
     );
   },
 ),
+
 
   ]);

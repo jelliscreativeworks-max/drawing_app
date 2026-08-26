@@ -10,7 +10,6 @@ part 'draw_layer.g.dart';
 
 @freezed
 abstract class DrawLayer with _$DrawLayer {
-
   factory DrawLayer({
     required int zIndex,
     required String id,

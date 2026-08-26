@@ -24,20 +24,21 @@ _DrawLayer _$DrawLayerFromJson(Map<String, dynamic> json) => _DrawLayer(
   isVisible: json['isVisible'] as bool? ?? true,
 );
 
-Map<String, dynamic> _$DrawLayerToJson(_DrawLayer instance) =>
-    <String, dynamic>{
-      'zIndex': instance.zIndex,
-      'id': instance.id,
-      'name': instance.name,
-      'canvasId': instance.canvasId,
-      'isDirty': instance.isDirty,
-      'layerSnapShot': _$JsonConverterToJson<String, Uint8List>(
-        instance.layerSnapShot,
-        const Uint8ListConverter().toJson,
-      ),
-      'layerDrawHistory': instance.layerDrawHistory,
-      'isVisible': instance.isVisible,
-    };
+Map<String, dynamic> _$DrawLayerToJson(
+  _DrawLayer instance,
+) => <String, dynamic>{
+  'zIndex': instance.zIndex,
+  'id': instance.id,
+  'name': instance.name,
+  'canvasId': instance.canvasId,
+  'isDirty': instance.isDirty,
+  'layerSnapShot': _$JsonConverterToJson<String, Uint8List>(
+    instance.layerSnapShot,
+    const Uint8ListConverter().toJson,
+  ),
+  'layerDrawHistory': instance.layerDrawHistory.map((e) => e.toJson()).toList(),
+  'isVisible': instance.isVisible,
+};
 
 Value? _$JsonConverterFromJson<Json, Value>(
   Object? json,
