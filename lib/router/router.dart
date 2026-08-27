@@ -1,8 +1,9 @@
 import 'package:drawing_app/config/provider.dart';
 import 'package:drawing_app/router/routes.dart';
-import 'package:drawing_app/ui/draw_page/view_models/draw_screen_view_model.dart';
-import 'package:drawing_app/ui/projects/widgets.dart';
-import 'package:drawing_app/ui/screens/draw_screen.dart';
+import 'package:drawing_app/ui/draw_screen/view_models/draw_screen_view_model.dart';
+import 'package:drawing_app/ui/projects/view_models/project_screen_view_model.dart';
+import 'package:drawing_app/ui/projects/widgets/project_screen.dart';
+import 'package:drawing_app/ui/draw_screen/widgets/draw_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
@@ -11,10 +12,22 @@ GoRouter router() => GoRouter(
   initialLocation: Routes.home,
   routes: [
     // HomeScreen Route
-    GoRoute(
-      path: Routes.home, 
-      builder: (context, state) => const ProjectScreen()
-    ),
+GoRoute(
+  path: Routes.home, 
+  builder: (context, state) {
+    // 1. Create the view model using the outer context to read your repository
+    final viewModel = ProjectScreenViewModel(
+      canvasDataRepository: context.read(),
+    );
+
+    // 2. Pass that exact instance into both the provider and the screen
+    return ChangeNotifierProvider<ProjectScreenViewModel>.value(
+      value: viewModel,
+      child: ProjectScreen(projectScreenViewModel: viewModel),
+    );
+  },
+),
+
 
    GoRoute(
   path: '/canvas/:projectId',

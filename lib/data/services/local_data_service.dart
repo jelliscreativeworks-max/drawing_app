@@ -155,7 +155,12 @@ class LocalDataService {
   // Helper method to safely read and parse a single layer file
   Future<DrawLayer?> _readLayerFile(String absolutePath) async {
     try {
-      final json = await _loadJsonFromFile(absolutePath);
+        File file = File(absolutePath);
+          if (!await file.exists()) {
+      return null;
+    }
+    final data = await file.readAsString();
+    final json = jsonDecode(data) as Map<String, dynamic>;
       return DrawLayer.fromJson(
         json,
       ).copyWith(isDirty: false); // Loaded layers are clean!

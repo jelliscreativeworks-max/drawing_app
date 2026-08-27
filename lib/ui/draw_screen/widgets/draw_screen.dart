@@ -1,9 +1,9 @@
 import 'package:drawing_app/painter.dart';
-import 'package:drawing_app/ui/draw_page/view_models/draw_screen_view_model.dart';
+import 'package:drawing_app/ui/draw_screen/view_models/draw_screen_view_model.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
-import 'package:drawing_app/ui/draw_page/view_models/draw_screen_view_model.dart';
+import 'package:drawing_app/ui/draw_screen/view_models/draw_screen_view_model.dart';
 import 'package:flutter/material.dart';
 
 class DrawScreen extends StatelessWidget {

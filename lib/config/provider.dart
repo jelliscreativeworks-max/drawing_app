@@ -6,7 +6,7 @@ import 'package:drawing_app/data/services/local_data_service.dart';
 import 'package:drawing_app/domain/models/draw_command/draw_command.dart';
 import 'package:drawing_app/domain/models/draw_layer/draw_layer.dart';
 import 'package:drawing_app/painter_controller.dart';
-import 'package:drawing_app/ui/draw_page/view_models/draw_screen_view_model.dart';
+import 'package:drawing_app/ui/draw_screen/view_models/draw_screen_view_model.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:provider/single_child_widget.dart';
