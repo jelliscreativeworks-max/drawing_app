@@ -179,6 +179,16 @@ class DrawScreenViewModel extends ChangeNotifier {
     }
   }
 
+  void setActiveLayer(String layerId){
+    if(activeLayerId == layerId) return;
+
+    _activeLayerId = layerId;
+
+    _activeCommand = null;
+
+    notifyListeners();
+  }
+
   void executeRedo() {
     if (_redoHistory.isEmpty) return;
 

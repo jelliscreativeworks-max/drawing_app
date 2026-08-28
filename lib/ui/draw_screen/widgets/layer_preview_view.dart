@@ -5,11 +5,13 @@ import 'package:flutter/material.dart';
 class LayerPreviewWidget extends StatefulWidget {
   final String layerId;
   final DrawScreenViewModel viewModel;
+  final VoidCallback? onTap;
 
   const LayerPreviewWidget({
     super.key,
     required this.layerId,
     required this.viewModel,
+    this.onTap
   });
 
   @override
@@ -62,35 +64,39 @@ class _LayerPreviewWidgetState extends State<LayerPreviewWidget> {
         final cachedBytes = widget.viewModel.layerSnapshots[widget.layerId];
         final isThisLayerProcessing = layerCommand.running;
 
-        return Container(
-          width: 60,
-          height: 60,
-          clipBehavior: Clip.antiAlias,
-          decoration: BoxDecoration(
-            color: Colors.black12,
-            borderRadius: BorderRadius.circular(4),
-          ),
-          child: Stack(
-            alignment: Alignment.center,
-            children: [
-              if (cachedBytes != null && cachedBytes.isNotEmpty)
-                Image.memory(
-                  cachedBytes, 
-                  fit: BoxFit.contain, 
-                  gaplessPlayback: true, // Prevents white flashes on brush strokes
-                )
-              else
-                const Icon(Icons.image, color: Colors.grey),
-
-              if (isThisLayerProcessing)
-                const Center(
-                  child: SizedBox(
-                    width: 12, 
-                    height: 12, 
-                    child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+        return GestureDetector(
+          onTap: widget.onTap,
+          child: Container(
+            width: 60,
+            height: 60,
+            clipBehavior: Clip.antiAlias,
+            decoration: BoxDecoration(
+              color: DrawScreenViewModel.canvasBackgroundColor,
+              borderRadius: BorderRadius.circular(4),
+              border: widget.viewModel.activeLayerId == widget.layerId ? BoxBorder.all(color: Colors.blueAccent) : null
+            ),
+            child: Stack(
+              alignment: Alignment.center,
+              children: [
+                if (cachedBytes != null && cachedBytes.isNotEmpty)
+                  Image.memory(
+                    cachedBytes, 
+                    fit: BoxFit.contain, 
+                    gaplessPlayback: true, // Prevents white flashes on brush strokes
+                  )
+                else
+                  const Icon(Icons.image, color: Colors.grey),
+          
+                if (isThisLayerProcessing)
+                  const Center(
+                    child: SizedBox(
+                      width: 12, 
+                      height: 12, 
+                      child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                    ),
                   ),
-                ),
-            ],
+              ],
+            ),
           ),
         );
       },

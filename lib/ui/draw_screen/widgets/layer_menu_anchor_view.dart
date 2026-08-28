@@ -29,7 +29,7 @@ class _LayerMenuAnchorState extends State<LayerMenuAnchor> {
         menuChildren: widget._viewModel.layers.map((layer) {
                                 return Padding(
                                   padding: EdgeInsets.all(0),
-                                  child: LayerPreviewWidget(layerId: layer.id, viewModel: widget._viewModel,)
+                                  child: LayerPreviewWidget(layerId: layer.id, viewModel: widget._viewModel, onTap: () => widget._viewModel.setActiveLayer(layer.id,))
                                 );
                               }).toList(),
       ),
