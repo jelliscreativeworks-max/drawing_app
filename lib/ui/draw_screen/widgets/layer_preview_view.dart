@@ -2,10 +2,9 @@ import 'dart:typed_data';
 import 'package:drawing_app/ui/draw_screen/view_models/draw_screen_view_model.dart';
 import 'package:drawing_app/utils/result.dart';
 import 'package:flutter/material.dart';
-
-class LayerPreviewWidget extends StatelessWidget {
+class LayerPreviewWidget extends StatefulWidget {
   final String layerId;
-  final DrawScreenViewModel viewModel; // Pass viewModel to read cached map data
+  final DrawScreenViewModel viewModel;
 
   const LayerPreviewWidget({
     super.key,
@@ -14,60 +13,82 @@ class LayerPreviewWidget extends StatelessWidget {
   });
 
   @override
+  State<LayerPreviewWidget> createState() => _LayerPreviewWidgetState();
+}
+
+class _LayerPreviewWidgetState extends State<LayerPreviewWidget> {
+  @override
+  void initState() {
+    super.initState();
+    _checkAndScheduleSnapshot();
+  }
+
+  @override
+  void didUpdateWidget(covariant LayerPreviewWidget oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    // If the layer changes, check if we need to load data for the new ID
+    if (oldWidget.layerId != widget.layerId) {
+      _checkAndScheduleSnapshot();
+    }
+  }
+
+  void _checkAndScheduleSnapshot() {
+    // 🟢 HOT RESTART & COLD BOOT FIX: If memory cache is empty when this widget mounts,
+    // look up its unique command instance and request an isolated snapshot pass.
+    if (widget.viewModel.layerSnapshots[widget.layerId] == null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) async {
+        if (!mounted) return;
+        
+        // Give the main canvas painter one tiny engine event loop tick 
+        // to render its vector paths cleanly before we capture its pixels.
+        await Future.delayed(Duration.zero);
+        
+        if (mounted) {
+          widget.viewModel
+              .getSnapshotCommandForLayer(widget.layerId)
+              .execute(widget.layerId);
+        }
+      });
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
-    // 🟢 FIX: Fetch the isolated command instance dedicated exclusively to THIS layer
-    final layerCommand = viewModel.getSnapshotCommandForLayer(layerId);
+    final layerCommand = widget.viewModel.getSnapshotCommandForLayer(widget.layerId);
 
     return ListenableBuilder(
-      // 🟢 FIX: Listen ONLY to this layer's individual command changes
       listenable: layerCommand,
       builder: (context, child) {
-        // Read the processed snapshot bytes safely from your public getter map
-        final cachedBytes = viewModel.layerSnapshots[layerId];
-        
-        // Check if THIS specific layer is currently running a background capture task
-        final isThisLayerProcessing = layerCommand.running; 
+        final cachedBytes = widget.viewModel.layerSnapshots[widget.layerId];
+        final isThisLayerProcessing = layerCommand.running;
 
         return Container(
           width: 60,
           height: 60,
+          clipBehavior: Clip.antiAlias,
           decoration: BoxDecoration(
             color: Colors.black12,
             borderRadius: BorderRadius.circular(4),
           ),
-          clipBehavior: Clip.antiAlias,
           child: Stack(
             alignment: Alignment.center,
             children: [
-              // 1. Display the background snapshot pixels if cached
               if (cachedBytes != null && cachedBytes.isNotEmpty)
                 Image.memory(
-                  cachedBytes,
-                  fit: BoxFit.contain,
-                  gaplessPlayback: true, // Crucial: Stops flash flickering on updates
+                  cachedBytes, 
+                  fit: BoxFit.contain, 
+                  gaplessPlayback: true, // Prevents white flashes on brush strokes
                 )
               else
                 const Icon(Icons.image, color: Colors.grey),
 
-              // 2. Display an isolated loader on top of the old image while capturing updates
               if (isThisLayerProcessing)
-                Container(
-                  color: Colors.black26,
-                  child: const Center(
-                    child: SizedBox(
-                      width: 12,
-                      height: 12,
-                      child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
-                    ),
+                const Center(
+                  child: SizedBox(
+                    width: 12, 
+                    height: 12, 
+                    child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
                   ),
-                ),
-                
-              // 3. Fallback visual check for errors
-              if (layerCommand.error)
-                const Positioned(
-                  top: 2,
-                  right: 2,
-                  child: Icon(Icons.error, size: 12, color: Colors.red),
                 ),
             ],
           ),

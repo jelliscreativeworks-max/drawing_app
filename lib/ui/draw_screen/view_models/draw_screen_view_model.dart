@@ -33,6 +33,8 @@ class DrawScreenViewModel extends ChangeNotifier {
     // saveLayerSnapshot = Command1(_getLayerSnapshot);
   }
 
+  static const canvasBackgroundColor = Colors.white;
+
   Logger log = Logger();
 
   final LayerDataRepository _layerDataRepository;
@@ -47,13 +49,16 @@ class DrawScreenViewModel extends ChangeNotifier {
 
   // late final Command1<void, String> generateSnapshot;
   final Map<String, Command1<void, String>> _layerSnapshotCommands = {};
+  
+  Command1<void, String> getSnapshotCommandForLayer(String layerId) {
+  return _layerSnapshotCommands.putIfAbsent(layerId, () {
+    return Command1<void, String>(
+      _getLayerSnapshot,
+      allowConcurrent: true, // 🟢 Allows multiple layers to process at once!
+    );
+  });
+}
 
-    Command1<void, String> getSnapshotCommandForLayer(String layerId) {
-    return _layerSnapshotCommands.putIfAbsent(layerId, () {
-      // Create a brand new, isolated command instance bound to this specific layer
-      return Command1<void, String>(_getLayerSnapshot);
-    });
-  }
 
   CanvasData? _currentCanvas;
   List<DrawLayer> _layers = [];
@@ -194,7 +199,7 @@ class DrawScreenViewModel extends ChangeNotifier {
     }
   }
 
-  Future<Result<void>> _loadProject(String canvasId) async {
+   Future<Result<void>> _loadProject(String canvasId) async {
     // 1. Fetch the primary canvas aggregate meta-data container file
     final loadedCanvasResult = await _canvasDataRepository.getCanvasData(
       canvasId,
@@ -219,42 +224,45 @@ class DrawScreenViewModel extends ChangeNotifier {
         // Safety Fallback: Ensure active cursor assignment handles empty layer bounds gracefully
         _activeLayerId = _layers.isNotEmpty ? _layers.last.id : null;
 
-        // 3. Purge operational runtime memory tracks before reconstruction
+        // 3. Clean out temporary state memory tracks before reconstruction
         _cachedLayerHistories.clear();
         _drawHistory.clear();
         _redoHistory.clear();
         _layerSnapshots.clear();
 
-        // 4. Reconstruct structural histories layer by layer
+              // 4. Reconstruct structural histories layer by layer
         for (var layer in _layers) {
-          // Unpack persistent array models safely into fast memory buckets
           _cachedLayerHistories[layer.id] = List<DrawCommand>.from(
             layer.layerDrawHistory,
           );
-          
-          // Seed the master global unified command history track 
           _drawHistory.addAll(layer.layerDrawHistory);
         }
 
-        // 5. Commit all structural changes to the widget tree to force an initial render cycle
+            // ... (steps 1 to 4 loading and sorting layer arrays in _loadProject)
+
+        // 5. Commit structural data vectors to screen
         notifyListeners();
 
-        // 6. Capture separate thumbnails for EACH layer after they finish rendering to screen
+        // 🟢 MENU FIX: Force background pre-warm on project loads
         for (var layer in _layers) {
           final currentLoopId = layer.id;
           
-              final targetLayerId = currentLoopId;
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-        getSnapshotCommandForLayer(targetLayerId).execute(targetLayerId); 
-    });
+          WidgetsBinding.instance.addPostFrameCallback((_) async {
+            // Give Flutter one engine loop tick to paint layout bounding boxes 
+            // before we attempt to snapshot them
+            await Future.delayed(Duration.zero);
+            
+            // Warm up the snapshot map cache instantly in the background!
+            getSnapshotCommandForLayer(currentLoopId).execute(currentLoopId);
+          });
         }
 
       case Error():
         return Result.error(loadedLayersResult.error);
     }
-    
     return Result.ok(null);
   }
+
 
 
 Future<Result<void>> _saveDirtyProgress() async {
@@ -311,22 +319,23 @@ Future<Result<void>> _saveDirtyProgress() async {
     switch (addResult) {
       case Ok():
         _layers = [..._layers, addResult.value];
-        _activeLayerId = addResult.value.id; // Focus the cursor onto the added drawing target
-        _cachedLayerHistories[addResult.value.id] = []; // Deploy a clean caching bucket map track
+        _activeLayerId = addResult.value.id;
+        _cachedLayerHistories[addResult.value.id] = [];
         
         await _canvasDataRepository.modifyCanvasData(
           _currentCanvas!.copyWith(layerIds: [..._currentCanvas!.layerIds, addResult.value.id])
         );
         
-        // 1. Inflate the new layer's widget tree layout onto the active viewport first
+        // 1. Inflate layer onto view tree
         notifyListeners();
 
-        // 2. Safely query the newly drawn widget bounds on the next post-frame slot
+        // 🟢 MENU FIX: Force background pre-warm on new layer additions
         final targetLayerId = _activeLayerId!;
-        WidgetsBinding.instance.addPostFrameCallback((_) {
-
-            getSnapshotCommandForLayer(targetLayerId).execute(targetLayerId); 
+        WidgetsBinding.instance.addPostFrameCallback((_) async {
+          await Future.delayed(Duration.zero);
+          getSnapshotCommandForLayer(targetLayerId).execute(targetLayerId);
         });
+
 
       case Error():
         return Result.error(addResult.error);
@@ -394,7 +403,6 @@ Future<Result<void>> _saveDirtyProgress() async {
 
       // Update your cache map array directly
       _layerSnapshots[layerId] = snapshot;
-      log.d('Added Layer: $layerId snapshot to _layerSnapshots, there are now ${_layerSnapshots.length} snapshots in total');
       // Notify so any UI components reading 'layerSnapshots' know data changed
       notifyListeners(); 
       

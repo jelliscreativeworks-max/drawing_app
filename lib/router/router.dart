@@ -7,71 +7,64 @@ import 'package:drawing_app/ui/draw_screen/widgets/draw_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
-
 GoRouter router() => GoRouter(
   initialLocation: Routes.home,
   routes: [
-    // HomeScreen Route
-GoRoute(
-  path: Routes.home, 
-  builder: (context, state) {
-    // 1. Create the view model using the outer context to read your repository
-    final viewModel = ProjectScreenViewModel(
-      canvasDataRepository: context.read(),
-    );
+    GoRoute(
+      path: Routes.home, 
+      builder: (context, state) {
+        final viewModel = ProjectScreenViewModel(
+          canvasDataRepository: context.read(),
+        );
+        return ChangeNotifierProvider<ProjectScreenViewModel>.value(
+          value: viewModel,
+          child: ProjectScreen(projectScreenViewModel: viewModel),
+        );
+      },
+    ),
 
-    // 2. Pass that exact instance into both the provider and the screen
-    return ChangeNotifierProvider<ProjectScreenViewModel>.value(
-      value: viewModel,
-      child: ProjectScreen(projectScreenViewModel: viewModel),
-    );
-  },
-),
+    GoRoute(
+      path: '/canvas/:projectId',
+      builder: (context, state) {
+        final projectId = state.pathParameters['projectId']!;
 
-
-   GoRoute(
-  path: '/canvas/:projectId',
-  builder: (context, state) {
-    final projectId = state.pathParameters['projectId']!;
-
-    return ChangeNotifierProvider<DrawScreenViewModel>(
-      // 1. Inject the data layer repositories down into the ViewModel constructor cleanly
-      create: (context) => DrawScreenViewModel(
-        layerDataRepository: context.read(), 
-        canvasDataRepository: context.read(),
-      ),
-      child: Builder(
-        builder: (innerContext) {
-          WidgetsBinding.instance.addPostFrameCallback((_) async {
-            final viewModel = innerContext.read<DrawScreenViewModel>();
+        return ChangeNotifierProvider<DrawScreenViewModel>(
+          // 🟢 FIXED: Move the bootstrap initialization directly into the ViewModel's creation lifecycle block.
+          // This guarantees it executes exactly ONCE when entering the screen, and NEVER runs on a Hot Reload.
+          create: (context) {
+            final vm = DrawScreenViewModel(
+              layerDataRepository: context.read(), 
+              canvasDataRepository: context.read(),
+            );
             
-            // FIX 1: Add execution guard rails to ensure bootstrap actions never run twice on frame shifts
-            if (viewModel.loadProject.running || viewModel.initProject.running) return;
-            
-            // Check if the current canvas data instance already matches the loaded data state
-            if (viewModel.currentCanvas != null && viewModel.currentCanvas!.id == projectId) return;
-            print(projectId);
+            // Execute the initial data load safely exactly once
             if (projectId == 'new') {
-              // 2. Initialize the project file structure models asynchronously
-              await viewModel.initProject.execute();
-              // 3. FIX 2: Replace path parameters cleanly *without* rebuilding or re-mounting the view tree
-              if (!viewModel.initProject.error && innerContext.mounted) {
-                // Using go() forces a hard reset. Using state updates keeps your ViewModel context perfectly preserved.
-                GoRouter.of(innerContext).go('/canvas/${viewModel.currentCanvas!.id}');
-              }
+              vm.initProject.execute();
             } else {
-              // Trigger project loading sequentially using your Command architecture pattern
-              viewModel.loadProject.execute(projectId);
+              vm.loadProject.execute(projectId);
             }
-          });
+            return vm;
+          },
+          child: Consumer<DrawScreenViewModel>(
+            builder: (context, viewModel, child) {
+              // 🟢 FIXED: Listen to the initProject command state declaratively inside your view tree builder.
+              // If a new project successfully resolves its true UUID, redirect smoothly without breaking memory tracks.
+              if (projectId == 'new' && 
+                  viewModel.currentCanvas != null && 
+                  viewModel.currentCanvas!.id != 'temp' &&
+                  !viewModel.initProject.running) {
+                
+                WidgetsBinding.instance.addPostFrameCallback((_) {
+                  // Use pushReplacementName or go without rebuilding the active view model context state
+                  context.go('/canvas/${viewModel.currentCanvas!.id}');
+                });
+              }
 
-          // FIX 3: Read from 'innerContext' so the view safely extracts the injected ViewModel instance
-          return DrawScreen(viewModel: innerContext.read<DrawScreenViewModel>());
-        },
-      ),
-    );
-  },
-),
-
-
-  ]);
+              return DrawScreen(viewModel: viewModel);
+            },
+          ),
+        );
+      },
+    ),
+  ],
+);

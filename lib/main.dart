@@ -1,5 +1,4 @@
 import 'package:drawing_app/router/router.dart';
-import 'package:drawing_app/ui/screens/paint_screen.dart';
 import 'package:drawing_app/config/provider.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';

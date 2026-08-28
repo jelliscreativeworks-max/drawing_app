@@ -10,36 +10,26 @@ typedef CommandAction3<T, A, B, C> = Future<Result<T>> Function(A, B, C);
 typedef CommandAction4<T, A, B, C, D> = Future<Result<T>> Function(A, B, C, D);
 typedef CommandAction5<T, A, B, C, D, E> = Future<Result<T>> Function(A, B, C, D, E);
 typedef CommandAction6<T, A, B, C, D, E, F> = Future<Result<T>> Function(A, B, C, D, E, F);
+abstract class Command<T> extends ChangeNotifier {
+  // Add a configuration property to toggle the lock behavior
+  final bool allowConcurrent;
 
-abstract class Command<T> extends ChangeNotifier{
-  Command();
+  Command({this.allowConcurrent = false});
 
   bool _running = false;
-
   bool get running => _running;
-
   Result<T>? _result;
+  // ...
 
-  bool get error => _result is Error;
-
-  bool get completed => _result is Ok;
-
-  Result? get result => _result;
-
-  void clearResult(){
-    _result = null;
-    notifyListeners();
-  }
-
-
-  Future<void> _execute(CommandAction0<T> action) async{
-    if(_running) return;
+  Future<void> _execute(CommandAction0<T> action) async {
+    // 🟢 Fix: Only block if concurrency is turned off
+    if (_running && !allowConcurrent) return;
 
     _running = true;
     _result = null;
     notifyListeners();
 
-    try{
+    try {
       _result = await action();
     } finally {
       _running = false;
@@ -47,8 +37,9 @@ abstract class Command<T> extends ChangeNotifier{
     }
   }
 }
+
 class Command0<T> extends Command<T>{
-  Command0(this._action);
+  Command0(this._action, {super.allowConcurrent});
 
   final CommandAction0<T> _action;
 
@@ -58,7 +49,7 @@ class Command0<T> extends Command<T>{
 }
 
 class Command1<T, A> extends Command<T>{
-  Command1(this._action);
+  Command1(this._action, {super.allowConcurrent});
 
   final CommandAction1<T, A> _action;
 
@@ -68,7 +59,7 @@ class Command1<T, A> extends Command<T>{
 }
 
 class Command2<T, A, B> extends Command<T>{
-  Command2(this._action);
+  Command2(this._action, {super.allowConcurrent});
 
   final CommandAction2<T, A, B> _action;
 
@@ -78,7 +69,7 @@ class Command2<T, A, B> extends Command<T>{
 }
 
 class Command3<T, A, B, C> extends Command<T>{
-  Command3(this._action);
+  Command3(this._action, {super.allowConcurrent});
 
   final CommandAction3<T, A, B, C> _action;
 
@@ -88,7 +79,7 @@ class Command3<T, A, B, C> extends Command<T>{
 }
 
 class Command4<T, A, B, C, D> extends Command<T>{
-  Command4(this._action);
+  Command4(this._action, {super.allowConcurrent});
 
   final CommandAction4<T, A, B, C, D> _action;
 
@@ -98,7 +89,7 @@ class Command4<T, A, B, C, D> extends Command<T>{
 }
 
 class Command5<T, A, B, C, D, E> extends Command<T>{
-  Command5(this._action);
+  Command5(this._action, {super.allowConcurrent});
 
   final CommandAction5<T, A, B, C, D, E> _action;
 
@@ -108,7 +99,7 @@ class Command5<T, A, B, C, D, E> extends Command<T>{
 }
 
 class Command6<T, A, B, C, D, E, F> extends Command<T>{
-  Command6(this._action);
+  Command6(this._action, {super.allowConcurrent});
 
   final CommandAction6<T, A, B, C, D, E, F> _action;
 

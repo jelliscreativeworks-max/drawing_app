@@ -21,7 +21,6 @@ class _LayerMenuAnchorState extends State<LayerMenuAnchor> {
       listenable: widget._viewModel.createLayer,
       builder: (context, child) => 
       MenuAnchor(
-        
         builder: (context, controller, child) {
           return IconButton(onPressed: () {
             controller.isOpen ? controller.close() : controller.open();
@@ -29,7 +28,7 @@ class _LayerMenuAnchorState extends State<LayerMenuAnchor> {
         },
         menuChildren: widget._viewModel.layers.map((layer) {
                                 return Padding(
-                                  padding: const EdgeInsets.symmetric(horizontal: 4.0),
+                                  padding: EdgeInsets.all(0),
                                   child: LayerPreviewWidget(layerId: layer.id, viewModel: widget._viewModel,)
                                 );
                               }).toList(),

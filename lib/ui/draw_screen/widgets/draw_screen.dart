@@ -8,7 +8,7 @@ import 'package:provider/provider.dart';
 
 class DrawScreen extends StatelessWidget {
   final DrawScreenViewModel viewModel;
-
+  
   const DrawScreen({
     super.key,
     required this.viewModel,
@@ -26,7 +26,7 @@ class DrawScreen extends StatelessWidget {
       ]),
       builder: (context, child) {
         return Scaffold(
-          backgroundColor: Colors.grey, // Artboard canvas background wrapper
+          backgroundColor: DrawScreenViewModel.canvasBackgroundColor, // Artboard canvas background wrapper
           body: Stack(
             children: [
               // --- Layer 1: Global Workspace Canvas Gesture Grid ---
