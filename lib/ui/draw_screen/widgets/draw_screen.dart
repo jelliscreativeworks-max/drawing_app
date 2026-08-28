@@ -1,10 +1,10 @@
 import 'package:drawing_app/painter.dart';
+import 'package:drawing_app/ui/draw_screen/widgets/layer_preview_view.dart'; // Retained your project paths
+import 'package:drawing_app/ui/draw_screen/widgets/layer_menu_anchor_view.dart';
 import 'package:drawing_app/ui/draw_screen/view_models/draw_screen_view_model.dart';
+import 'package:drawing_app/utils/result.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-
-import 'package:drawing_app/ui/draw_screen/view_models/draw_screen_view_model.dart';
-import 'package:flutter/material.dart';
 
 class DrawScreen extends StatelessWidget {
   final DrawScreenViewModel viewModel;
@@ -16,8 +16,6 @@ class DrawScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // FIX: Merge the main view model AND the async commands into a single listener.
-    // This guarantees a rebuild whenever a drawing gesture happens OR any command state shifts!
     return ListenableBuilder(
       listenable: Listenable.merge([
         viewModel,
@@ -37,23 +35,21 @@ class DrawScreen extends StatelessWidget {
                   onPanStart: (details) => viewModel.handlePanStart(details.localPosition),
                   onPanUpdate: (details) => viewModel.handlePanUpdate(details.localPosition),
                   onPanEnd: (_) => viewModel.handlePanEnd(),
-                  
                   child: Stack(
                     children: viewModel.layers.map((layer) {
-                      // High-performance O(1) array memory lookups
                       final filteredLayerHistory = viewModel.getHistoryForLayer(layer.id);
 
+                      // Avoid drawing or painting widgets if they are hidden
                       if (!layer.isVisible) return const SizedBox.shrink();
 
                       return Positioned.fill(
                         child: RepaintBoundary(
+                          key: viewModel.getGlobalLayerKey(layer.id),
                           child: CustomPaint(
-                            // Dynamic tracking key forces redraw ticks synchronously on undo/redo steps
                             key: ValueKey('${layer.id}_${filteredLayerHistory.length}'),
                             painter: MyPainter(
                               drawHistory: filteredLayerHistory,
                               drawTools: viewModel.tools,
-                              // Render preview vectors exclusively on the focused active layer
                               activeCommand: layer.id == viewModel.activeLayerId
                                   ? viewModel.activeCommand
                                   : null,
@@ -72,7 +68,7 @@ class DrawScreen extends StatelessWidget {
                 child: SafeArea(
                   child: Container(
                     margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                     decoration: BoxDecoration(
                       color: Colors.white.withOpacity(0.95),
                       borderRadius: BorderRadius.circular(30),
@@ -93,26 +89,45 @@ class DrawScreen extends StatelessWidget {
                           icon: const Icon(Icons.undo),
                           color: Colors.black87,
                         ),
-                        const SizedBox(width: 16),
+                        const SizedBox(width: 8),
                         // Redo action trigger hook
                         IconButton(
                           onPressed: viewModel.canRedo ? viewModel.executeRedo : null,
                           icon: const Icon(Icons.redo),
                           color: Colors.black87,
                         ),
-                        const SizedBox(width: 16),
+                        const SizedBox(width: 12),
+                        LayerMenuAnchor(viewModel: viewModel),
+                        // --- Scrollable Horizontal Layer Previews ---
+                        // Replaced the broken Column layout with a bounded, clean list view
+                        // SizedBox(
+                        //   height: 50,
+                        //   child: SingleChildScrollView(
+                        //     scrollDirection: Axis.horizontal,
+                        //     child: Row(
+                        //       children: viewModel.layers.map((layer) {
+                        //         return Padding(
+                        //           padding: const EdgeInsets.symmetric(horizontal: 4.0),
+                        //           child: LayerPreviewWidget(layerId: layer.id, viewModel: viewModel,)
+                        //         );
+                        //       }).toList(),
+                        //     ),
+                        //   ),
+                        // ),
+                        const SizedBox(width: 8),
+
                         // Shortcut hook to add a new layer instantly
                         IconButton(
                           onPressed: () => viewModel.createLayer.execute(),
                           icon: viewModel.createLayer.running 
                               ? const SizedBox(
-                                  width: 24,
-                                  height: 24,
+                                  width: 20,
+                                  height: 20,
                                   child: CircularProgressIndicator(strokeWidth: 2),
                                 )
-                              : const Icon(Icons.layers_outlined),
+                              : const Icon(Icons.layers,
                           color: Colors.blueAccent,
-                        ),
+                        ),)
                       ],
                     ),
                   ),
@@ -120,7 +135,6 @@ class DrawScreen extends StatelessWidget {
               ),
               
               // --- Layer 3: Dynamic Sync Saving Progress Overlay ---
-              // Now updates immediately because Listenable.merge listens to saveDirtyProgress changes!
               if (viewModel.saveDirtyProgress.running)
                 Positioned(
                   top: 50,
@@ -159,8 +173,9 @@ class DrawScreen extends StatelessWidget {
                   ),
                 ),
             ],
-          ));
-        },
+          ),
+        );
+      },
     );
   }
 }

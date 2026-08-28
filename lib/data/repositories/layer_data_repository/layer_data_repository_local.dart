@@ -1,8 +1,10 @@
-
 import 'package:drawing_app/data/repositories/layer_data_repository/layer_data_repository.dart';
 import 'package:drawing_app/data/services/local_data_service.dart';
 import 'package:drawing_app/domain/models/draw_layer/draw_layer.dart';
+import 'package:drawing_app/utils/image_conversion.dart';
 import 'package:drawing_app/utils/result.dart';
+import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
 
 class LayerDataRepositoryLocal implements LayerDataRepository {
   LayerDataRepositoryLocal({required LocalDataService localDataService}) 
@@ -10,8 +12,11 @@ class LayerDataRepositoryLocal implements LayerDataRepository {
 
   final LocalDataService _localDataService;
 
+
   // In-memory layer cache scoped to the currently active project
   final List<DrawLayer> _cachedLayers = List<DrawLayer>.empty(growable: true);
+
+
   String? _cachedProjectId;
 
   /// Private helper to ensure the correct project's layers are loaded into memory cache
@@ -149,4 +154,6 @@ class LayerDataRepositoryLocal implements LayerDataRepository {
       return Result.error(Exception('Failed to delete layers directory for project $projectId: $e'));
     }
   }
+
+
 }

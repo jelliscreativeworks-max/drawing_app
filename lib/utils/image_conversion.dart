@@ -1,4 +1,4 @@
-
+import 'dart:async';
 import 'dart:typed_data';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -9,8 +9,8 @@ import 'package:image/image.dart' as img; // Import the image package
 class ImageProcessingPayload {
   final int width;
   final int height;
-  final Uint8List rawRgbaBytes;   // e.g., 1.0 = normal, 1.5 = high contrast
-  final double transparencyFactor;  // e.g., 0.5 = 50% opacity reduction
+  final Uint8List rawRgbaBytes; // e.g., 1.0 = normal, 1.5 = high contrast
+  final double transparencyFactor; // e.g., 0.5 = 50% opacity reduction
 
   ImageProcessingPayload({
     required this.width,
@@ -19,15 +19,20 @@ class ImageProcessingPayload {
     required this.transparencyFactor,
   });
 }
+
 class CanvasToImageProcessor {
   bool isProcessing = false;
 
   // Background Isolate function handling the heavy image package logic
-  static Future<Uint8List> _manipulateAndEncodePng(ImageProcessingPayload payload) async {
+  static Future<Uint8List> _manipulateAndEncodePng(
+    ImageProcessingPayload payload,
+  ) async {
+    // 1. Reconstruct the image package structure from raw RGBA bytes
     // 1. Reconstruct the image package structure from raw RGBA bytes
     final img.Image image = img.Image.fromBytes(
       width: payload.width,
       height: payload.height,
+      // Using .sublist ensures a clean copy of the byte array safe for Isolate transfer
       bytes: payload.rawRgbaBytes.buffer,
       order: img.ChannelOrder.rgba,
     );
@@ -44,7 +49,6 @@ class CanvasToImageProcessor {
     // 3. Compress and encode the structural data to a standard PNG format
     return Uint8List.fromList(img.encodePng(image));
   }
-
   Future<Uint8List?> processLayerSnapshotInBackground({
     required GlobalKey layerKey,
     required double transparency,
@@ -59,8 +63,25 @@ class CanvasToImageProcessor {
       return null;
     }
 
-    // Capture the view into raw Flutter ui.Image object
-    final ui.Image image = await boundary.toImage();
+    // 🟢 THE BULLETPROOF CURE: Yield the execution thread to the framework 
+    // if the layer is currently locked in a paint cycle.
+    int paintSyncRetries = 0;
+    while (boundary.debugNeedsPaint && paintSyncRetries < 5) {
+      // Puts this execution at the back of the event queue, 
+      // allowing Flutter to complete its ongoing layout and paint cycles.
+      await Future.delayed(Duration.zero); 
+      paintSyncRetries++;
+    }
+
+    // Secondary fallback guard if the frame is permanently locked
+    if (boundary.debugNeedsPaint) {
+      debugPrint("Snapshot skipped: Repaint boundary is currently unavailable.");
+      isProcessing = false;
+      return null;
+    }
+
+    // Frame is guaranteed clean and safe now. Capture at a lower resolution for performance!
+    final ui.Image image = await boundary.toImage(pixelRatio: 0.25);
 
     // Get uncompressed raw byte arrays (crucial for Isolate communication)
     final ByteData? rawByteData = await image.toByteData(format: ui.ImageByteFormat.rawRgba);

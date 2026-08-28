@@ -4,6 +4,7 @@ import 'package:drawing_app/domain/models/canvas/canvas_data.dart';
 import 'package:drawing_app/utils/result.dart';
 import 'package:flutter/material.dart';
 import 'package:freezed_annotation/freezed_annotation.dart';
+import 'package:logger/logger.dart';
 import 'package:uuid/uuid.dart';
 
 const Uuid uuid = Uuid();

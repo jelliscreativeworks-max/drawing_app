@@ -2,8 +2,11 @@ import 'dart:ui';
 import 'package:drawing_app/domain/models/draw_command/draw_command.dart';
 import 'package:drawing_app/domain/models/draw_tools/draw_tool.dart';
 import 'package:flutter/material.dart';
+import 'package:logger/web.dart';
+
 
 class MyPainter extends CustomPainter {
+  Logger log = Logger();
   final List<DrawCommand> drawHistory;
   final Map<String, DrawTool> drawTools;
   
@@ -18,10 +21,12 @@ class MyPainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
+    log.d('Starting paint operations');
     // 2. Draw all completed historical items sequentially
     for (DrawCommand command in drawHistory) {
       final tool = drawTools[command.toolName];
       if (tool != null) {
+        // log.d('Drawing history command on canvas with tool: $tool');
         command.draw(canvas, tool);
       }
     }
@@ -30,6 +35,7 @@ class MyPainter extends CustomPainter {
     if (activeCommand != null) {
       final tool = drawTools[activeCommand!.toolName];
       if (tool != null) {
+        // log.d('Drawing active tool: ${activeCommand!.toolName}');
         activeCommand!.draw(canvas, tool);
       }
     }

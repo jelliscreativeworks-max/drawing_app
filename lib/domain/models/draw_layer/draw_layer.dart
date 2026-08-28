@@ -16,7 +16,6 @@ abstract class DrawLayer with _$DrawLayer {
     required String name,
     required String canvasId,
     @Default(true) bool isDirty,
-    @Uint8ListConverter() Uint8List? layerSnapShot,
     @Default(<DrawCommand>[]) List<DrawCommand> layerDrawHistory,
     @Default(true) bool isVisible,
 
