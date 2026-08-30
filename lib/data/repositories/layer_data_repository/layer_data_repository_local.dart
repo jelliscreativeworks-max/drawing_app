@@ -1,10 +1,8 @@
 import 'package:drawing_app/data/repositories/layer_data_repository/layer_data_repository.dart';
 import 'package:drawing_app/data/services/local_data_service.dart';
 import 'package:drawing_app/domain/models/draw_layer/draw_layer.dart';
-import 'package:drawing_app/utils/image_conversion.dart';
 import 'package:drawing_app/utils/result.dart';
-import 'package:flutter/foundation.dart';
-import 'package:flutter/material.dart';
+
 
 class LayerDataRepositoryLocal implements LayerDataRepository {
   LayerDataRepositoryLocal({required LocalDataService localDataService}) 
@@ -77,30 +75,30 @@ class LayerDataRepositoryLocal implements LayerDataRepository {
       return Result.error(Exception('Failed to write and add new layer to disk: $e'));
     }
   }
-  @override
-  Future<Result<DrawLayer>> modifyLayer(DrawLayer modifiedLayer) async {
-    final loadCheck = await _ensureLoaded(modifiedLayer.canvasId);
-    if (loadCheck is Error) return Result.error((loadCheck).error);
+  // @override
+  // Future<Result<DrawLayer>> modifyLayer(DrawLayer modifiedLayer) async {
+  //   final loadCheck = await _ensureLoaded(modifiedLayer.canvasId);
+  //   if (loadCheck is Error) return Result.error((loadCheck).error);
 
-    int index = _cachedLayers.indexWhere((l) => l.id == modifiedLayer.id);
-    if (index == -1) return Result.error(Exception('Layer not found for modification'));
+  //   int index = _cachedLayers.indexWhere((l) => l.id == modifiedLayer.id);
+  //   if (index == -1) return Result.error(Exception('Layer not found for modification'));
 
-    // 1. Keep original cache entry in case disk operations fail (Rollback Strategy)
-    final originalLayer = _cachedLayers[index];
+  //   // 1. Keep original cache entry in case disk operations fail (Rollback Strategy)
+  //   final originalLayer = _cachedLayers[index];
     
-    try {
-      // 2. Optimistically update the memory cache for immediate UI snap
-      _cachedLayers[index] = modifiedLayer;
+  //   try {
+  //     // 2. Optimistically update the memory cache for immediate UI snap
+  //     _cachedLayers[index] = modifiedLayer;
       
-      // 3. Attempt to write the modified layer onto its explicit isolated file slot
-      await _localDataService.saveDrawLayers([modifiedLayer]);
-      return Result.ok(modifiedLayer);
-    } catch (e) {
-      // 4. FIXED: Roll back memory cache state using our saved reference if the file system fails
-      _cachedLayers[index] = originalLayer; 
-      return Result.error(Exception('Failed to modify layer on disk: $e'));
-    }
-  }
+  //     // 3. Attempt to write the modified layer onto its explicit isolated file slot
+  //     await _localDataService.saveDrawLayers([modifiedLayer]);
+  //     return Result.ok(modifiedLayer);
+  //   } catch (e) {
+  //     // 4. FIXED: Roll back memory cache state using our saved reference if the file system fails
+  //     _cachedLayers[index] = originalLayer; 
+  //     return Result.error(Exception('Failed to modify layer on disk: $e'));
+  //   }
+  // }
 
 
   @override

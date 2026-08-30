@@ -21,7 +21,6 @@ class MyPainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
-    log.d('Starting paint operations');
     // 2. Draw all completed historical items sequentially
     for (DrawCommand command in drawHistory) {
       final tool = drawTools[command.toolName];

@@ -8,11 +8,8 @@ import 'package:provider/provider.dart';
 
 class DrawScreen extends StatelessWidget {
   final DrawScreenViewModel viewModel;
-  
-  const DrawScreen({
-    super.key,
-    required this.viewModel,
-  });
+
+  const DrawScreen({super.key, required this.viewModel});
 
   @override
   Widget build(BuildContext context) {
@@ -22,22 +19,27 @@ class DrawScreen extends StatelessWidget {
         viewModel.saveDirtyProgress,
         viewModel.loadProject,
         viewModel.createLayer,
-        viewModel.initProject
+        viewModel.initProject,
       ]),
       builder: (context, child) {
         return Scaffold(
-          backgroundColor: DrawScreenViewModel.canvasBackgroundColor, // Artboard canvas background wrapper
+          backgroundColor: DrawScreenViewModel
+              .canvasBackgroundColor, // Artboard canvas background wrapper
           body: Stack(
             children: [
               // --- Layer 1: Global Workspace Canvas Gesture Grid ---
               Positioned.fill(
                 child: GestureDetector(
-                  onPanStart: (details) => viewModel.handlePanStart(details.localPosition),
-                  onPanUpdate: (details) => viewModel.handlePanUpdate(details.localPosition),
+                  onPanStart: (details) =>
+                      viewModel.handlePanStart(details.localPosition),
+                  onPanUpdate: (details) =>
+                      viewModel.handlePanUpdate(details.localPosition),
                   onPanEnd: (_) => viewModel.handlePanEnd(),
                   child: Stack(
                     children: viewModel.layers.map((layer) {
-                      final filteredLayerHistory = viewModel.getHistoryForLayer(layer.id);
+                      final filteredLayerHistory = viewModel.getHistoryForLayer(
+                        layer.id,
+                      );
 
                       // Avoid drawing or painting widgets if they are hidden
                       if (!layer.isVisible) return const SizedBox.shrink();
@@ -46,7 +48,9 @@ class DrawScreen extends StatelessWidget {
                         child: RepaintBoundary(
                           key: viewModel.getGlobalLayerKey(layer.id),
                           child: CustomPaint(
-                            key: ValueKey('${layer.id}_${filteredLayerHistory.length}'),
+                            key: ValueKey(
+                              '${layer.id}_${filteredLayerHistory.length}',
+                            ),
                             painter: MyPainter(
                               drawHistory: filteredLayerHistory,
                               drawTools: viewModel.tools,
@@ -67,8 +71,14 @@ class DrawScreen extends StatelessWidget {
                 alignment: Alignment.bottomCenter,
                 child: SafeArea(
                   child: Container(
-                    margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    margin: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 12,
+                    ),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 8,
+                    ),
                     decoration: BoxDecoration(
                       color: Colors.white.withOpacity(0.95),
                       borderRadius: BorderRadius.circular(30),
@@ -77,7 +87,7 @@ class DrawScreen extends StatelessWidget {
                           color: Colors.black.withOpacity(0.15),
                           blurRadius: 12,
                           offset: const Offset(0, 6),
-                        )
+                        ),
                       ],
                     ),
                     child: Row(
@@ -85,19 +95,23 @@ class DrawScreen extends StatelessWidget {
                       children: [
                         // Undo action trigger hook
                         IconButton(
-                          onPressed: viewModel.canUndo ? viewModel.executeUndo : null,
+                          onPressed: viewModel.canUndo
+                              ? viewModel.executeUndo
+                              : null,
                           icon: const Icon(Icons.undo),
                           color: Colors.black87,
                         ),
                         const SizedBox(width: 8),
                         // Redo action trigger hook
                         IconButton(
-                          onPressed: viewModel.canRedo ? viewModel.executeRedo : null,
+                          onPressed: viewModel.canRedo
+                              ? viewModel.executeRedo
+                              : null,
                           icon: const Icon(Icons.redo),
                           color: Colors.black87,
                         ),
                         const SizedBox(width: 12),
-                        LayerMenuAnchor(viewModel: viewModel),
+                        IconButton(onPressed: () => viewModel.toggleLayerMenu(), icon: Icon(Icons.layers))
                         // --- Scrollable Horizontal Layer Previews ---
                         // Replaced the broken Column layout with a bounded, clean list view
                         // SizedBox(
@@ -114,26 +128,12 @@ class DrawScreen extends StatelessWidget {
                         //     ),
                         //   ),
                         // ),
-                        const SizedBox(width: 8),
-
-                        // Shortcut hook to add a new layer instantly
-                        IconButton(
-                          onPressed: () => viewModel.createLayer.execute(),
-                          icon: viewModel.createLayer.running 
-                              ? const SizedBox(
-                                  width: 20,
-                                  height: 20,
-                                  child: CircularProgressIndicator(strokeWidth: 2),
-                                )
-                              : const Icon(Icons.layers,
-                          color: Colors.blueAccent,
-                        ),)
                       ],
                     ),
                   ),
                 ),
               ),
-              
+
               // --- Layer 3: Dynamic Sync Saving Progress Overlay ---
               if (viewModel.saveDirtyProgress.running)
                 Positioned(
@@ -141,7 +141,10 @@ class DrawScreen extends StatelessWidget {
                   left: 20,
                   child: SafeArea(
                     child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 6,
+                      ),
                       decoration: BoxDecoration(
                         color: Colors.white.withOpacity(0.9),
                         borderRadius: BorderRadius.circular(20),
@@ -152,10 +155,19 @@ class DrawScreen extends StatelessWidget {
                           SizedBox(
                             width: 14,
                             height: 14,
-                            child: CircularProgressIndicator(strokeWidth: 2, color: Colors.blue),
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              color: Colors.blue,
+                            ),
                           ),
                           SizedBox(width: 8),
-                          Text('Saving...', style: TextStyle(color: Colors.black54, fontSize: 12)),
+                          Text(
+                            'Saving...',
+                            style: TextStyle(
+                              color: Colors.black54,
+                              fontSize: 12,
+                            ),
+                          ),
                         ],
                       ),
                     ),
@@ -171,6 +183,13 @@ class DrawScreen extends StatelessWidget {
                       child: CircularProgressIndicator(color: Colors.white),
                     ),
                   ),
+                ),
+
+              if (viewModel.isLayerMenuOpen == true)
+                Positioned(
+                  right: 16, // Distance from right screen frame edges
+                  top: 70, // Placed right below the navigation AppBar
+                  child: FloatingLayerPanel(viewModel: viewModel),
                 ),
             ],
           ),

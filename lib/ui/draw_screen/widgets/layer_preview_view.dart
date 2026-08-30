@@ -5,13 +5,12 @@ import 'package:flutter/material.dart';
 class LayerPreviewWidget extends StatefulWidget {
   final String layerId;
   final DrawScreenViewModel viewModel;
-  final VoidCallback? onTap;
+
 
   const LayerPreviewWidget({
     super.key,
     required this.layerId,
     required this.viewModel,
-    this.onTap
   });
 
   @override
@@ -64,38 +63,41 @@ class _LayerPreviewWidgetState extends State<LayerPreviewWidget> {
         final cachedBytes = widget.viewModel.layerSnapshots[widget.layerId];
         final isThisLayerProcessing = layerCommand.running;
 
-        return GestureDetector(
-          onTap: widget.onTap,
-          child: Container(
+        return Material(
+          type: MaterialType.button,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadiusGeometry.circular(4),
+            side: widget.viewModel.activeLayerId == widget.layerId ? BorderSide(color: Colors.blueAccent) : BorderSide.none),
+          color: DrawScreenViewModel.canvasBackgroundColor,
+          child: Ink(
+
             width: 60,
             height: 60,
-            clipBehavior: Clip.antiAlias,
-            decoration: BoxDecoration(
-              color: DrawScreenViewModel.canvasBackgroundColor,
-              borderRadius: BorderRadius.circular(4),
-              border: widget.viewModel.activeLayerId == widget.layerId ? BoxBorder.all(color: Colors.blueAccent) : null
-            ),
-            child: Stack(
-              alignment: Alignment.center,
-              children: [
-                if (cachedBytes != null && cachedBytes.isNotEmpty)
-                  Image.memory(
-                    cachedBytes, 
-                    fit: BoxFit.contain, 
-                    gaplessPlayback: true, // Prevents white flashes on brush strokes
-                  )
-                else
-                  const Icon(Icons.image, color: Colors.grey),
-          
-                if (isThisLayerProcessing)
-                  const Center(
-                    child: SizedBox(
-                      width: 12, 
-                      height: 12, 
-                      child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
-                    ),
-                  ),
-              ],
+            child: InkWell(
+              splashFactory: NoSplash.splashFactory,
+              onTap: () => widget.viewModel.activeLayerId == widget.layerId ? widget.viewModel.deleteLayer.execute(widget.layerId) :widget.viewModel.setActiveLayer(widget.layerId),
+              child: Stack(
+                alignment: Alignment.center,
+                children: [
+                  if (cachedBytes != null && cachedBytes.isNotEmpty)
+                    Image.memory(
+                      cachedBytes, 
+                      fit: BoxFit.contain, 
+                      gaplessPlayback: true, // Prevents white flashes on brush strokes
+                    )
+                  // else
+                  //   const Icon(Icons.image, color: Colors.grey),
+                      
+                  // if (isThisLayerProcessing)
+                  //   const Center(
+                  //     child: SizedBox(
+                  //       width: 12, 
+                  //       height: 12, 
+                  //       child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                  //     ),
+                  //   ),
+                ],
+              ),
             ),
           ),
         );

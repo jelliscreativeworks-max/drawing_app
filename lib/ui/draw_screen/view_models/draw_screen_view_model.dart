@@ -24,6 +24,7 @@ class DrawScreenViewModel extends ChangeNotifier {
        _canvasDataRepository = canvasDataRepository {
     _currentTool = tools.values.first;
 
+    deleteLayer = Command1(_deleteLayer);
     loadProject = Command1(_loadProject);
     initProject = Command0(_initializeNewProject);
     createLayer = Command0(_createAndAddLayer);
@@ -46,6 +47,9 @@ class DrawScreenViewModel extends ChangeNotifier {
   late final Command0 initProject;
   late final Command0 createLayer;
   late final Command0 saveDirtyProgress;
+  late final Command1<void, String> deleteLayer;
+
+  bool isLayerMenuOpen = false;
 
   // late final Command1<void, String> generateSnapshot;
   final Map<String, Command1<void, String>> _layerSnapshotCommands = {};
@@ -96,7 +100,8 @@ class DrawScreenViewModel extends ChangeNotifier {
 
   final Map<String, List<DrawCommand>> _cachedLayerHistories = {};
 
-  Color _strokeColor = Colors.black;
+
+  Color _strokeColor = Colors.green;
   double _strokeWidth = 5.0;
 
   DrawLayer? get activeLayer =>
@@ -122,6 +127,11 @@ class DrawScreenViewModel extends ChangeNotifier {
       Paint(),
       _activeLayerId!,
     );
+    notifyListeners();
+  }
+
+  void toggleLayerMenu(){
+    isLayerMenuOpen = isLayerMenuOpen == true ? false : true;
     notifyListeners();
   }
 
@@ -209,6 +219,8 @@ class DrawScreenViewModel extends ChangeNotifier {
     }
   }
 
+
+
    Future<Result<void>> _loadProject(String canvasId) async {
     // 1. Fetch the primary canvas aggregate meta-data container file
     final loadedCanvasResult = await _canvasDataRepository.getCanvasData(
@@ -229,10 +241,19 @@ class DrawScreenViewModel extends ChangeNotifier {
 
     switch (loadedLayersResult) {
       case Ok():
-        _layers = loadedLayersResult.value;
+          final loadedLayers = loadedLayersResult.value;
+
+           final Map<String, int> orderMap = {
+      for (int i = 0; i < _currentCanvas!.layerIds.length; i++) 
+        _currentCanvas!.layerIds[i]: i
+    };
+
+        loadedLayers.sort((a, b) => (orderMap[a.id] ?? 0).compareTo(orderMap[b.id] ?? 0));
+
+        _layers = loadedLayers;
         
         // Safety Fallback: Ensure active cursor assignment handles empty layer bounds gracefully
-        _activeLayerId = _layers.isNotEmpty ? _layers.last.id : null;
+        _activeLayerId = _layers.lastOrNull?.id;
 
         // 3. Clean out temporary state memory tracks before reconstruction
         _cachedLayerHistories.clear();
@@ -272,7 +293,37 @@ class DrawScreenViewModel extends ChangeNotifier {
     }
     return Result.ok(null);
   }
+void reorderLayers(int oldIndex, int newIndex) {
+  if(currentCanvas == null) return;
+  // Flutter's internal adjustment for dragging downward
+  if (oldIndex < newIndex) {
+    newIndex -= 1;
+  }
+  
+  // Guard bounds just in case
+  if (oldIndex == newIndex || newIndex < 0 || newIndex >= layers.length) return;
 
+    // 1. Get a mutable copy of the current visible layers array to keep the UI in sync
+    final updatedLayers = List<DrawLayer>.from(_layers);
+    
+    // Move the actual layer object in the runtime memory list
+    final DrawLayer movedLayer = updatedLayers.removeAt(oldIndex);
+    updatedLayers.insert(newIndex, movedLayer);
+    _layers = updatedLayers;
+
+
+        // 2. EXTRACT THE NEW ID TIMELINE ORDER FOR PERSISTENCE
+    final List<String> newLayerIds = _layers.map((l) => l.id).toList();
+
+    // 3. Update the parent canvas metadata model cleanly
+    _currentCanvas = _currentCanvas!.copyWith(
+      layerIds: newLayerIds,
+    );
+  
+  _canvasDataRepository.modifyCanvasData(currentCanvas!.copyWith(layerIds: newLayerIds));
+  
+  notifyListeners(); // Triggers the 'viewModel' listenable
+}
 
 
 Future<Result<void>> _saveDirtyProgress() async {
@@ -309,6 +360,31 @@ Future<Result<void>> _saveDirtyProgress() async {
   }
   return Result.ok(null);
 }
+
+Future<Result<void>> _deleteLayer(String layerId) async{
+  if(_currentCanvas == null){
+    return Result.error(Exception("Canvas must not be null before deleting layers"));
+  }
+
+  if(_layers.length <= 1) return Result.ok(null); //So we don't delete the last layer
+
+  final deleteResult = await _layerDataRepository.deleteLayer(layerId);
+
+  switch(deleteResult){
+    case Ok():
+      _layers.removeWhere((layer) => layer.id == layerId);
+      _activeLayerId = layerId == _activeLayerId ? _layers.last.id : _activeLayerId;
+      _cachedLayerHistories.remove(layerId);
+
+      await _canvasDataRepository.modifyCanvasData(_currentCanvas!.copyWith(layerIds: _currentCanvas!.layerIds.where((id) => id != layerId).toList()));
+      notifyListeners();
+      return Result.ok(null);
+    case Error():
+      return Result.error(deleteResult.error);
+  }
+
+}
+
   Future<Result<void>> _createAndAddLayer() async {
     if (_currentCanvas == null){
       return Result.error(
@@ -320,8 +396,7 @@ Future<Result<void>> _saveDirtyProgress() async {
       id: uuid.v4(),
       name: 'Layer ${_layers.length}',
       canvasId: _currentCanvas!.id,
-      zIndex: _layers.length,
-      isDirty: false, // Starts fresh on disk
+      isDirty: false,
     );
 
     final addResult = await _layerDataRepository.addLayer(newLayer);

@@ -3,10 +3,6 @@ import 'dart:io';
 
 import 'package:drawing_app/domain/models/canvas/canvas_data.dart';
 import 'package:drawing_app/domain/models/draw_layer/draw_layer.dart';
-import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
-import 'package:provider/provider.dart';
-
 import 'package:path_provider/path_provider.dart';
 
 const String materialFile = 'material_data.json';
@@ -37,22 +33,6 @@ class LocalDataService {
     // 2. Encode and write the data safely
     String json = jsonEncode(data);
     await file.writeAsString(json);
-  }
-
-  
- Future<Map<String, dynamic>> _loadJsonFromFile(String pathOrRelPath) async {
-    final File file;
-    if (pathOrRelPath.startsWith('/')) {
-      file = File(pathOrRelPath); // It's already an absolute path
-    } else {
-      file = await _getlocalFile(pathOrRelPath); // It's relative
-    }
-
-    if (!await file.exists()) {
-      return {};
-    }
-    final data = await file.readAsString();
-    return jsonDecode(data) as Map<String, dynamic>;
   }
 
   Future<List<CanvasData>> loadCanvasDataList() async {
@@ -140,7 +120,7 @@ class LocalDataService {
 
     // 4. Read all layer files from disk simultaneously
     final List<DrawLayer?> results = await Future.wait(readTasks);
-
+    
     // 5. Filter out any corrupted null results and add to our list
     for (var layer in results) {
       if (layer != null) {
@@ -148,8 +128,7 @@ class LocalDataService {
       }
     }
 
-    // 6. CRITICAL: Sort layers by zIndex so they render in the correct stack order
-    return loadedLayers..sort((a, b) => a.zIndex.compareTo(b.zIndex));
+    return loadedLayers;
   }
 
   // Helper method to safely read and parse a single layer file

@@ -15,7 +15,7 @@ T _$identity<T>(T value) => value;
 /// @nodoc
 mixin _$DrawLayer {
 
- int get zIndex; String get id; String get name; String get canvasId; bool get isDirty;@Uint8ListConverter() Uint8List? get layerSnapShot; List<DrawCommand> get layerDrawHistory; bool get isVisible;
+ String get id; String get name; String get canvasId; bool get isDirty; List<DrawCommand> get layerDrawHistory; bool get isVisible;
 /// Create a copy of DrawLayer
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -28,16 +28,16 @@ $DrawLayerCopyWith<DrawLayer> get copyWith => _$DrawLayerCopyWithImpl<DrawLayer>
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is DrawLayer&&(identical(other.zIndex, zIndex) || other.zIndex == zIndex)&&(identical(other.id, id) || other.id == id)&&(identical(other.name, name) || other.name == name)&&(identical(other.canvasId, canvasId) || other.canvasId == canvasId)&&(identical(other.isDirty, isDirty) || other.isDirty == isDirty)&&const DeepCollectionEquality().equals(other.layerSnapShot, layerSnapShot)&&const DeepCollectionEquality().equals(other.layerDrawHistory, layerDrawHistory)&&(identical(other.isVisible, isVisible) || other.isVisible == isVisible));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is DrawLayer&&(identical(other.id, id) || other.id == id)&&(identical(other.name, name) || other.name == name)&&(identical(other.canvasId, canvasId) || other.canvasId == canvasId)&&(identical(other.isDirty, isDirty) || other.isDirty == isDirty)&&const DeepCollectionEquality().equals(other.layerDrawHistory, layerDrawHistory)&&(identical(other.isVisible, isVisible) || other.isVisible == isVisible));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,zIndex,id,name,canvasId,isDirty,const DeepCollectionEquality().hash(layerSnapShot),const DeepCollectionEquality().hash(layerDrawHistory),isVisible);
+int get hashCode => Object.hash(runtimeType,id,name,canvasId,isDirty,const DeepCollectionEquality().hash(layerDrawHistory),isVisible);
 
 @override
 String toString() {
-  return 'DrawLayer(zIndex: $zIndex, id: $id, name: $name, canvasId: $canvasId, isDirty: $isDirty, layerSnapShot: $layerSnapShot, layerDrawHistory: $layerDrawHistory, isVisible: $isVisible)';
+  return 'DrawLayer(id: $id, name: $name, canvasId: $canvasId, isDirty: $isDirty, layerDrawHistory: $layerDrawHistory, isVisible: $isVisible)';
 }
 
 
@@ -48,7 +48,7 @@ abstract mixin class $DrawLayerCopyWith<$Res>  {
   factory $DrawLayerCopyWith(DrawLayer value, $Res Function(DrawLayer) _then) = _$DrawLayerCopyWithImpl;
 @useResult
 $Res call({
- int zIndex, String id, String name, String canvasId, bool isDirty,@Uint8ListConverter() Uint8List? layerSnapShot, List<DrawCommand> layerDrawHistory, bool isVisible
+ String id, String name, String canvasId, bool isDirty, List<DrawCommand> layerDrawHistory, bool isVisible
 });
 
 
@@ -65,15 +65,13 @@ class _$DrawLayerCopyWithImpl<$Res>
 
 /// Create a copy of DrawLayer
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? zIndex = null,Object? id = null,Object? name = null,Object? canvasId = null,Object? isDirty = null,Object? layerSnapShot = freezed,Object? layerDrawHistory = null,Object? isVisible = null,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? name = null,Object? canvasId = null,Object? isDirty = null,Object? layerDrawHistory = null,Object? isVisible = null,}) {
   return _then(_self.copyWith(
-zIndex: null == zIndex ? _self.zIndex : zIndex // ignore: cast_nullable_to_non_nullable
-as int,id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
+id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,name: null == name ? _self.name : name // ignore: cast_nullable_to_non_nullable
 as String,canvasId: null == canvasId ? _self.canvasId : canvasId // ignore: cast_nullable_to_non_nullable
 as String,isDirty: null == isDirty ? _self.isDirty : isDirty // ignore: cast_nullable_to_non_nullable
-as bool,layerSnapShot: freezed == layerSnapShot ? _self.layerSnapShot : layerSnapShot // ignore: cast_nullable_to_non_nullable
-as Uint8List?,layerDrawHistory: null == layerDrawHistory ? _self.layerDrawHistory : layerDrawHistory // ignore: cast_nullable_to_non_nullable
+as bool,layerDrawHistory: null == layerDrawHistory ? _self.layerDrawHistory : layerDrawHistory // ignore: cast_nullable_to_non_nullable
 as List<DrawCommand>,isVisible: null == isVisible ? _self.isVisible : isVisible // ignore: cast_nullable_to_non_nullable
 as bool,
   ));
@@ -160,10 +158,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( int zIndex,  String id,  String name,  String canvasId,  bool isDirty, @Uint8ListConverter()  Uint8List? layerSnapShot,  List<DrawCommand> layerDrawHistory,  bool isVisible)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id,  String name,  String canvasId,  bool isDirty,  List<DrawCommand> layerDrawHistory,  bool isVisible)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _DrawLayer() when $default != null:
-return $default(_that.zIndex,_that.id,_that.name,_that.canvasId,_that.isDirty,_that.layerSnapShot,_that.layerDrawHistory,_that.isVisible);case _:
+return $default(_that.id,_that.name,_that.canvasId,_that.isDirty,_that.layerDrawHistory,_that.isVisible);case _:
   return orElse();
 
 }
@@ -181,10 +179,10 @@ return $default(_that.zIndex,_that.id,_that.name,_that.canvasId,_that.isDirty,_t
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( int zIndex,  String id,  String name,  String canvasId,  bool isDirty, @Uint8ListConverter()  Uint8List? layerSnapShot,  List<DrawCommand> layerDrawHistory,  bool isVisible)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id,  String name,  String canvasId,  bool isDirty,  List<DrawCommand> layerDrawHistory,  bool isVisible)  $default,) {final _that = this;
 switch (_that) {
 case _DrawLayer():
-return $default(_that.zIndex,_that.id,_that.name,_that.canvasId,_that.isDirty,_that.layerSnapShot,_that.layerDrawHistory,_that.isVisible);case _:
+return $default(_that.id,_that.name,_that.canvasId,_that.isDirty,_that.layerDrawHistory,_that.isVisible);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -201,10 +199,10 @@ return $default(_that.zIndex,_that.id,_that.name,_that.canvasId,_that.isDirty,_t
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( int zIndex,  String id,  String name,  String canvasId,  bool isDirty, @Uint8ListConverter()  Uint8List? layerSnapShot,  List<DrawCommand> layerDrawHistory,  bool isVisible)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id,  String name,  String canvasId,  bool isDirty,  List<DrawCommand> layerDrawHistory,  bool isVisible)?  $default,) {final _that = this;
 switch (_that) {
 case _DrawLayer() when $default != null:
-return $default(_that.zIndex,_that.id,_that.name,_that.canvasId,_that.isDirty,_that.layerSnapShot,_that.layerDrawHistory,_that.isVisible);case _:
+return $default(_that.id,_that.name,_that.canvasId,_that.isDirty,_that.layerDrawHistory,_that.isVisible);case _:
   return null;
 
 }
@@ -216,15 +214,13 @@ return $default(_that.zIndex,_that.id,_that.name,_that.canvasId,_that.isDirty,_t
 @JsonSerializable()
 
 class _DrawLayer implements DrawLayer {
-   _DrawLayer({required this.zIndex, required this.id, required this.name, required this.canvasId, this.isDirty = true, @Uint8ListConverter() this.layerSnapShot, final  List<DrawCommand> layerDrawHistory = const <DrawCommand>[], this.isVisible = true}): _layerDrawHistory = layerDrawHistory;
+   _DrawLayer({required this.id, required this.name, required this.canvasId, this.isDirty = true, final  List<DrawCommand> layerDrawHistory = const <DrawCommand>[], this.isVisible = true}): _layerDrawHistory = layerDrawHistory;
   factory _DrawLayer.fromJson(Map<String, dynamic> json) => _$DrawLayerFromJson(json);
 
-@override final  int zIndex;
 @override final  String id;
 @override final  String name;
 @override final  String canvasId;
 @override@JsonKey() final  bool isDirty;
-@override@Uint8ListConverter() final  Uint8List? layerSnapShot;
  final  List<DrawCommand> _layerDrawHistory;
 @override@JsonKey() List<DrawCommand> get layerDrawHistory {
   if (_layerDrawHistory is EqualUnmodifiableListView) return _layerDrawHistory;
@@ -247,16 +243,16 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _DrawLayer&&(identical(other.zIndex, zIndex) || other.zIndex == zIndex)&&(identical(other.id, id) || other.id == id)&&(identical(other.name, name) || other.name == name)&&(identical(other.canvasId, canvasId) || other.canvasId == canvasId)&&(identical(other.isDirty, isDirty) || other.isDirty == isDirty)&&const DeepCollectionEquality().equals(other.layerSnapShot, layerSnapShot)&&const DeepCollectionEquality().equals(other._layerDrawHistory, _layerDrawHistory)&&(identical(other.isVisible, isVisible) || other.isVisible == isVisible));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _DrawLayer&&(identical(other.id, id) || other.id == id)&&(identical(other.name, name) || other.name == name)&&(identical(other.canvasId, canvasId) || other.canvasId == canvasId)&&(identical(other.isDirty, isDirty) || other.isDirty == isDirty)&&const DeepCollectionEquality().equals(other._layerDrawHistory, _layerDrawHistory)&&(identical(other.isVisible, isVisible) || other.isVisible == isVisible));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,zIndex,id,name,canvasId,isDirty,const DeepCollectionEquality().hash(layerSnapShot),const DeepCollectionEquality().hash(_layerDrawHistory),isVisible);
+int get hashCode => Object.hash(runtimeType,id,name,canvasId,isDirty,const DeepCollectionEquality().hash(_layerDrawHistory),isVisible);
 
 @override
 String toString() {
-  return 'DrawLayer(zIndex: $zIndex, id: $id, name: $name, canvasId: $canvasId, isDirty: $isDirty, layerSnapShot: $layerSnapShot, layerDrawHistory: $layerDrawHistory, isVisible: $isVisible)';
+  return 'DrawLayer(id: $id, name: $name, canvasId: $canvasId, isDirty: $isDirty, layerDrawHistory: $layerDrawHistory, isVisible: $isVisible)';
 }
 
 
@@ -267,7 +263,7 @@ abstract mixin class _$DrawLayerCopyWith<$Res> implements $DrawLayerCopyWith<$Re
   factory _$DrawLayerCopyWith(_DrawLayer value, $Res Function(_DrawLayer) _then) = __$DrawLayerCopyWithImpl;
 @override @useResult
 $Res call({
- int zIndex, String id, String name, String canvasId, bool isDirty,@Uint8ListConverter() Uint8List? layerSnapShot, List<DrawCommand> layerDrawHistory, bool isVisible
+ String id, String name, String canvasId, bool isDirty, List<DrawCommand> layerDrawHistory, bool isVisible
 });
 
 
@@ -284,15 +280,13 @@ class __$DrawLayerCopyWithImpl<$Res>
 
 /// Create a copy of DrawLayer
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? zIndex = null,Object? id = null,Object? name = null,Object? canvasId = null,Object? isDirty = null,Object? layerSnapShot = freezed,Object? layerDrawHistory = null,Object? isVisible = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? name = null,Object? canvasId = null,Object? isDirty = null,Object? layerDrawHistory = null,Object? isVisible = null,}) {
   return _then(_DrawLayer(
-zIndex: null == zIndex ? _self.zIndex : zIndex // ignore: cast_nullable_to_non_nullable
-as int,id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
+id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,name: null == name ? _self.name : name // ignore: cast_nullable_to_non_nullable
 as String,canvasId: null == canvasId ? _self.canvasId : canvasId // ignore: cast_nullable_to_non_nullable
 as String,isDirty: null == isDirty ? _self.isDirty : isDirty // ignore: cast_nullable_to_non_nullable
-as bool,layerSnapShot: freezed == layerSnapShot ? _self.layerSnapShot : layerSnapShot // ignore: cast_nullable_to_non_nullable
-as Uint8List?,layerDrawHistory: null == layerDrawHistory ? _self._layerDrawHistory : layerDrawHistory // ignore: cast_nullable_to_non_nullable
+as bool,layerDrawHistory: null == layerDrawHistory ? _self._layerDrawHistory : layerDrawHistory // ignore: cast_nullable_to_non_nullable
 as List<DrawCommand>,isVisible: null == isVisible ? _self.isVisible : isVisible // ignore: cast_nullable_to_non_nullable
 as bool,
   ));
