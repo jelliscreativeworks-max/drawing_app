@@ -32,6 +32,14 @@ class FloatingLayerPanel extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
+            
+            const Divider(height: 12, thickness: 1),
+            IconButton(
+              onPressed: () => viewModel.createLayer.execute(),
+              icon: const Icon(Icons.add),
+            
+            ),
+            SizedBox(height: 5,),
             // 1. Wrap ONLY the ReorderableListView in the ListenableBuilder
 ListenableBuilder(
   listenable: Listenable.merge([
@@ -64,7 +72,7 @@ ListenableBuilder(
             padding: EdgeInsets.only(
               left: 4,
               right: 4,
-              top: index == 0 ? 0 : 6,
+              bottom: index == 0 ? 0 : 6,
             ),
             child: LayerPreviewWidget(
               layerId: layer.id,
@@ -76,12 +84,7 @@ ListenableBuilder(
     );
   },
 )
-,
-            const Divider(height: 12, thickness: 1),
-            IconButton(
-              onPressed: () => viewModel.createLayer.execute(),
-              icon: const Icon(Icons.add),
-            ),
+
           ],
         ),
       ),

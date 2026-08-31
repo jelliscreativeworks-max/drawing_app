@@ -25,6 +25,21 @@ class DrawScreen extends StatelessWidget {
         return Scaffold(
           backgroundColor: DrawScreenViewModel
               .canvasBackgroundColor, // Artboard canvas background wrapper
+          appBar: AppBar(
+            title: (Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                IconButton(onPressed: (){}, icon: Icon(Icons.arrow_back_rounded)),
+
+                 IconButton(onPressed: () => viewModel.toggleLayerMenu(), icon: Icon(Icons.layers)),
+                IconButton(
+                  onPressed: () {},
+                  icon: Icon(Icons.add_photo_alternate_outlined),
+                ),
+                IconButton(onPressed: () {}, icon: Icon(Icons.more_vert)),
+              ],
+            )),
+          ),
           body: Stack(
             children: [
               // --- Layer 1: Global Workspace Canvas Gesture Grid ---
@@ -68,113 +83,33 @@ class DrawScreen extends StatelessWidget {
 
               // --- Layer 2: Floating Functional Action Toolbar Panel ---
               Align(
-                alignment: Alignment.bottomCenter,
-                child: SafeArea(
-                  child: Container(
-                    margin: const EdgeInsets.symmetric(
-                      horizontal: 16,
-                      vertical: 12,
+                alignment: Alignment.bottomRight,
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    // Undo action trigger hook
+                    IconButton(
+                      onPressed: viewModel.canUndo
+                          ? viewModel.executeUndo
+                          : null,
+                      icon: const Icon(Icons.undo),
+                      color: Colors.black87,
                     ),
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 16,
-                      vertical: 8,
+                    const SizedBox(width: 8),
+                    // Redo action trigger hook
+                    IconButton(
+                      onPressed: viewModel.canRedo
+                          ? viewModel.executeRedo
+                          : null,
+                      icon: const Icon(Icons.redo),
+                      color: Colors.black87,
                     ),
-                    decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.95),
-                      borderRadius: BorderRadius.circular(30),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withOpacity(0.15),
-                          blurRadius: 12,
-                          offset: const Offset(0, 6),
-                        ),
-                      ],
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        // Undo action trigger hook
-                        IconButton(
-                          onPressed: viewModel.canUndo
-                              ? viewModel.executeUndo
-                              : null,
-                          icon: const Icon(Icons.undo),
-                          color: Colors.black87,
-                        ),
-                        const SizedBox(width: 8),
-                        // Redo action trigger hook
-                        IconButton(
-                          onPressed: viewModel.canRedo
-                              ? viewModel.executeRedo
-                              : null,
-                          icon: const Icon(Icons.redo),
-                          color: Colors.black87,
-                        ),
-                        const SizedBox(width: 12),
-                        IconButton(onPressed: () => viewModel.toggleLayerMenu(), icon: Icon(Icons.layers))
-                        // --- Scrollable Horizontal Layer Previews ---
-                        // Replaced the broken Column layout with a bounded, clean list view
-                        // SizedBox(
-                        //   height: 50,
-                        //   child: SingleChildScrollView(
-                        //     scrollDirection: Axis.horizontal,
-                        //     child: Row(
-                        //       children: viewModel.layers.map((layer) {
-                        //         return Padding(
-                        //           padding: const EdgeInsets.symmetric(horizontal: 4.0),
-                        //           child: LayerPreviewWidget(layerId: layer.id, viewModel: viewModel,)
-                        //         );
-                        //       }).toList(),
-                        //     ),
-                        //   ),
-                        // ),
-                      ],
-                    ),
-                  ),
+                    // const SizedBox(width: 12),
+                    // IconButton(onPressed: () => viewModel.toggleLayerMenu(), icon: Icon(Icons.layers))
+                  ],
                 ),
               ),
 
-              // --- Layer 3: Dynamic Sync Saving Progress Overlay ---
-              if (viewModel.saveDirtyProgress.running)
-                Positioned(
-                  top: 50,
-                  left: 20,
-                  child: SafeArea(
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 12,
-                        vertical: 6,
-                      ),
-                      decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.9),
-                        borderRadius: BorderRadius.circular(20),
-                      ),
-                      child: const Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          SizedBox(
-                            width: 14,
-                            height: 14,
-                            child: CircularProgressIndicator(
-                              strokeWidth: 2,
-                              color: Colors.blue,
-                            ),
-                          ),
-                          SizedBox(width: 8),
-                          Text(
-                            'Saving...',
-                            style: TextStyle(
-                              color: Colors.black54,
-                              fontSize: 12,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ),
-
-              // --- Layer 4: Fullscreen Project Loading Block ---
               if (viewModel.loadProject.running)
                 Positioned.fill(
                   child: Container(
@@ -188,10 +123,30 @@ class DrawScreen extends StatelessWidget {
               if (viewModel.isLayerMenuOpen == true)
                 Positioned(
                   right: 16, // Distance from right screen frame edges
-                  top: 70, // Placed right below the navigation AppBar
+                  top: 20, // Placed right below the navigation AppBar
                   child: FloatingLayerPanel(viewModel: viewModel),
                 ),
             ],
+          ),
+
+          bottomNavigationBar: BottomAppBar(
+            height: 56.0,
+            padding: const EdgeInsets.symmetric(horizontal: 12.0),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceAround,
+              children: [
+                IconButton(
+                  splashRadius: 24.0,
+                  icon: const Icon(Icons.near_me, size: 24.0),
+                  onPressed: () {},
+                ),
+                IconButton(
+                  splashRadius: 24.0,
+                  icon: const Icon(Icons.draw, size: 24.0),
+                  onPressed: () {},
+                ),
+              ],
+            ),
           ),
         );
       },
