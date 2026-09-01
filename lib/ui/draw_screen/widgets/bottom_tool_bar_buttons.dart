@@ -1,6 +1,4 @@
 import 'package:drawing_app/domain/models/draw_tools/draw_tools_list.dart';
-import 'package:drawing_app/domain/models/draw_tools/freehand_tool.dart';
-import 'package:drawing_app/domain/models/draw_tools/pan_tool.dart';
 import 'package:drawing_app/ui/draw_screen/view_models/draw_screen_view_model.dart';
 import 'package:flutter/material.dart';
 
@@ -21,15 +19,21 @@ class _BottomToolBarButtonsState extends State<BottomToolBarButtons> {
       children: [
         IconButton(
           splashRadius: 24,
-          icon: Icon(Icons.pan_tool_rounded),
+          icon: DrawToolsList.pan.toolIcon,
           onPressed: () => widget.viewModel.changeTool(DrawToolsList.pan),
           color: widget.viewModel.currentTool == DrawToolsList.pan ? Colors.blueAccent : null,
         ),
         IconButton(
           splashRadius: 24,
-          icon: Icon(Icons.draw),
+          icon: DrawToolsList.freehand.toolIcon,
           onPressed: () => widget.viewModel.changeTool(DrawToolsList.freehand),
           color: widget.viewModel.currentTool == DrawToolsList.freehand ? Colors.blueAccent : null,
+        ),
+        IconButton(
+          splashRadius: 24,
+          icon: DrawToolsList.erase.toolIcon,
+          onPressed: () => widget.viewModel.changeTool(DrawToolsList.erase),
+          color: widget.viewModel.currentTool == DrawToolsList.erase ? Colors.blueAccent : null,
         ),
       ],
     );
