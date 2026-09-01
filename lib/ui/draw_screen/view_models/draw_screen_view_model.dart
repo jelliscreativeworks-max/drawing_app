@@ -8,8 +8,6 @@ import 'package:drawing_app/domain/models/draw_command/draw_command.dart';
 import 'package:drawing_app/domain/models/draw_layer/draw_layer.dart';
 import 'package:drawing_app/domain/models/draw_tools/draw_tool.dart';
 import 'package:drawing_app/domain/models/draw_tools/draw_tools_list.dart';
-import 'package:drawing_app/domain/models/draw_tools/freehand_tool.dart';
-import 'package:drawing_app/domain/models/draw_tools/pan_tool.dart';
 import 'package:drawing_app/utils/command.dart';
 import 'package:drawing_app/utils/image_conversion.dart';
 import 'package:drawing_app/utils/result.dart';
@@ -19,6 +17,7 @@ import 'package:uuid/uuid.dart';
 import 'package:vector_math/vector_math_64.dart' as vm;
 
 const Uuid uuid = Uuid();
+// TODO: SHOULDNT BE ABLE TO UNDO OPERATIONS ON A DELETED LAYER
 
 class DrawScreenViewModel extends ChangeNotifier {
   DrawScreenViewModel({
@@ -63,13 +62,10 @@ class DrawScreenViewModel extends ChangeNotifier {
   bool isLayerMenuOpen = false;
 
   Offset _panStartOrigin = Offset.zero;
-  final TransformationController _transformationController =
-      TransformationController();
+
   int get transformRevision => _transformRevision;
 
   bool get isPanAndZoomActive => _currentTool.isNavigationTool;
-  TransformationController get transformationController =>
-      _transformationController;
 
   // late final Command1<void, String> generateSnapshot;
   final Map<String, Command1<void, String>> _layerSnapshotCommands = {};
@@ -574,7 +570,10 @@ class DrawScreenViewModel extends ChangeNotifier {
         _activeLayerId = layerId == _activeLayerId
             ? _layers.last.id
             : _activeLayerId;
+        // _cachedLayerHistories.remove(layerId);
         _cachedLayerHistories.remove(layerId);
+        _drawHistory.removeWhere((drawCMD) => drawCMD.layerId == layerId);
+        
 
         await _canvasDataRepository.modifyCanvasData(
           _currentCanvas!.copyWith(
