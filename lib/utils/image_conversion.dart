@@ -1,16 +1,17 @@
 import 'dart:async';
 import 'dart:typed_data';
+import 'package:drawing_app/domain/models/draw_command/draw_command.dart';
+import 'package:drawing_app/domain/models/draw_tools/draw_tool.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/rendering.dart';
 import 'dart:ui' as ui;
-import 'package:image/image.dart' as img; // Import the image package
+import 'package:image/image.dart' as img;
 
 class ImageProcessingPayload {
   final int width;
   final int height;
-  final Uint8List rawRgbaBytes; // e.g., 1.0 = normal, 1.5 = high contrast
-  final double transparencyFactor; // e.g., 0.5 = 50% opacity reduction
+  final Uint8List rawRgbaBytes;
+  final double transparencyFactor;
 
   ImageProcessingPayload({
     required this.width,
@@ -23,72 +24,70 @@ class ImageProcessingPayload {
 class CanvasToImageProcessor {
   bool isProcessing = false;
 
-  // Background Isolate function handling the heavy image package logic
-  static Future<Uint8List> _manipulateAndEncodePng(
-    ImageProcessingPayload payload,
-  ) async {
-    // 1. Reconstruct the image package structure from raw RGBA bytes
-    // 1. Reconstruct the image package structure from raw RGBA bytes
+  // Background Isolate function handling the heavy image package logic safely
+  static Future<Uint8List> _manipulateAndEncodePng(ImageProcessingPayload payload) async {
     final img.Image image = img.Image.fromBytes(
       width: payload.width,
       height: payload.height,
-      // Using .sublist ensures a clean copy of the byte array safe for Isolate transfer
       bytes: payload.rawRgbaBytes.buffer,
       order: img.ChannelOrder.rgba,
     );
 
-    // 2. Perform pixel-level manipulations
+    // Perform pixel-level transparency tweaks safely in the worker isolate pool
     for (final img.Pixel pixel in image) {
-      // Modify transparency/alpha channel
       pixel.a = (pixel.a * payload.transparencyFactor).clamp(0, 255);
     }
 
-    // Alternatively, use high-level package methods:
-    // img.adjustColor(image, contrast: payload.contrastAmount);
-
-    // 3. Compress and encode the structural data to a standard PNG format
     return Uint8List.fromList(img.encodePng(image));
   }
-  Future<Uint8List?> processLayerSnapshotInBackground({
-    required GlobalKey layerKey,
-    required double transparency,
+
+  // 🌟 THE PRODUCTION FIX: Render pure vector arrays directly to an offscreen image buffer!
+  Future<Uint8List?> generateLayerSnapshotFromVectors({
+    required List<DrawCommand> layerHistory,
+    required Map<String, DrawTool> drawTools,
+    double transparency = 1.0,
+    double targetWidth = 500.0,
+    double targetHeight = 500.0,
   }) async {
     isProcessing = true;
+
+    if (layerHistory.isEmpty) {
+      isProcessing = false;
+      return Uint8List(0); // Return empty array safely if layer contains no content
+    }
+
+    // 1. Initialize an offscreen GPU graphics recorder
+    final ui.PictureRecorder recorder = ui.PictureRecorder();
     
-    final RenderRepaintBoundary? boundary = 
-        layerKey.currentContext?.findRenderObject() as RenderRepaintBoundary?;
+    // 2. Instantiate a raw drawing canvas bound directly to the recorder canvas grid
+    final ui.Canvas offscreenCanvas = ui.Canvas(
+      recorder, 
+      Rect.fromLTWH(0, 0, targetWidth, targetHeight),
+    );
 
-    if (boundary == null) {
-      isProcessing = false;
-      return null;
+    // 3. OPTIONAL COORD SCALE NUDGE: Scale down your massive 2000x2000 coordinates 
+    // to cleanly fit inside your compact 500x500 thumbnail box preview window frame
+    final double scaleX = targetWidth / 2000.0;
+    final double scaleY = targetHeight / 2000.0;
+    offscreenCanvas.scale(scaleX, scaleY);
+
+    // 4. DRAW THE VECTORS PASSIVELY (Completely free from InteractiveViewer pan/zoom offsets!)
+    for (DrawCommand command in layerHistory) {
+      final tool = drawTools[command.toolName];
+      if (tool != null) {
+        command.draw(offscreenCanvas, tool);
+      }
     }
 
-    // 🟢 THE BULLETPROOF CURE: Yield the execution thread to the framework 
-    // if the layer is currently locked in a paint cycle.
-    int paintSyncRetries = 0;
-    while (boundary.debugNeedsPaint && paintSyncRetries < 5) {
-      // Puts this execution at the back of the event queue, 
-      // allowing Flutter to complete its ongoing layout and paint cycles.
-      await Future.delayed(Duration.zero); 
-      paintSyncRetries++;
-    }
+    // 5. Finalize recording and compile directly into an un-compressed raw image buffer matrix
+    final ui.Picture picture = recorder.endRecording();
+    final ui.Image image = await picture.toImage(targetWidth.toInt(), targetHeight.toInt());
 
-    // Secondary fallback guard if the frame is permanently locked
-    if (boundary.debugNeedsPaint) {
-      debugPrint("Snapshot skipped: Repaint boundary is currently unavailable.");
-      isProcessing = false;
-      return null;
-    }
-
-    // Frame is guaranteed clean and safe now. Capture at a lower resolution for performance!
-    final ui.Image image = await boundary.toImage(pixelRatio: 0.25);
-
-    // Get uncompressed raw byte arrays (crucial for Isolate communication)
     final ByteData? rawByteData = await image.toByteData(format: ui.ImageByteFormat.rawRgba);
     if (rawByteData == null) {
       isProcessing = false;
       return null;
-    } 
+    }
 
     final payload = ImageProcessingPayload(
       width: image.width,
@@ -97,7 +96,7 @@ class CanvasToImageProcessor {
       transparencyFactor: transparency,
     );
 
-    // Offload heavy processing to the background worker pool
+    // 6. Offload raw bytes to your Isolate worker block for PNG compression encoding
     final Uint8List processedPng = await compute(_manipulateAndEncodePng, payload);
     
     isProcessing = false;

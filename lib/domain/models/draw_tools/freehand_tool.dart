@@ -1,10 +1,10 @@
 import 'dart:ui';
 import 'package:drawing_app/domain/models/draw_command/draw_command.dart';
 import 'package:drawing_app/domain/models/draw_tools/draw_tool.dart';
-import 'package:drawing_app/domain/models/recordable_action/recorable_controller.dart';
+import 'package:flutter/material.dart';
 
 class FreehandTool extends DrawTool {
-  const FreehandTool({required super.toolName, required super.toolIcon});
+  FreehandTool({required super.toolName, required super.toolIcon});
 
   @override
   void draw(Canvas canvas, DrawCommand drawCommand) {
@@ -52,13 +52,4 @@ class FreehandTool extends DrawTool {
     return currentCommand; // Freehand doesn't need end-of-stroke processing adjustments
   }
 
-  @override
-  void execute(RecorableController rController) {
-    // TODO: implement execute
-  }
-
-  @override
-  void undo(RecorableController rController) {
-    // TODO: implement undo
-  }
 }

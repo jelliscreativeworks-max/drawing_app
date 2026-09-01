@@ -1,50 +1,80 @@
-import 'dart:ui';
+import 'dart:ui' as ui;
 import 'package:drawing_app/domain/models/draw_command/draw_command.dart';
 import 'package:drawing_app/domain/models/draw_tools/draw_tool.dart';
 import 'package:flutter/material.dart';
-import 'package:logger/web.dart';
-
 
 class MyPainter extends CustomPainter {
-  Logger log = Logger();
   final List<DrawCommand> drawHistory;
   final Map<String, DrawTool> drawTools;
-  
-  // 1. Pass the live active command frame directly into the painter
   final DrawCommand? activeCommand; 
+  
+  // 1. INJECT CAMERA TRANSFORM AND ARTBOARD SIZES FROM VIEWMODEL
+  final Matrix4 transform;
+  final double canvasWidth;
+  final double canvasHeight;
 
   MyPainter({
     required this.drawHistory, 
     required this.drawTools, 
     required this.activeCommand,
+    required this.transform,
+    required this.canvasWidth,
+    required this.canvasHeight,
   });
 
   @override
   void paint(Canvas canvas, Size size) {
-    // 2. Draw all completed historical items sequentially
+    // Save the graphics state configuration before applying camera mutations
+    canvas.save();
+    
+    // 2. THE CANVASKIT CORE: Apply the view model zoom/pan matrix directly to the canvas buffer!
+    canvas.transform(transform.storage);
+
+    // Define the rigid bounding box dimensions of your paper sheet
+    final Rect artboardRect = Rect.fromLTWH(0, 0, canvasWidth, canvasHeight);
+
+    // 3. RENDER THE PHYSICAL ARTBOARD SHEET BACKGROUND WITH A DROP SHADOW
+    final Paint shadowPaint = Paint()
+      ..color = Colors.black.withOpacity(0.25)
+      ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 8.0);
+    // Draw the shadow shifted slightly down and to the right
+    canvas.drawRect(artboardRect.shift(const Offset(4, 4)), shadowPaint);
+
+    // Draw the pure white paper workspace surface
+    final Paint paperPaint = Paint()..color = Colors.white;
+    canvas.drawRect(artboardRect, paperPaint);
+
+    // 4. HARDWARE-CLIP ANYTHING PAST THE EXPANDABLE ARTBOARD LIMITS
+    // This stops lines from spilling over onto your workspace background!
+    canvas.clipRect(artboardRect);
+
+    // 5. Draw completed historical entries sequentially
     for (DrawCommand command in drawHistory) {
       final tool = drawTools[command.toolName];
       if (tool != null) {
-        // log.d('Drawing history command on canvas with tool: $tool');
         command.draw(canvas, tool);
       }
     }
 
-    // 3. Draw the active live user path in real-time if it exists
+    // 6. Draw the live brush stroke path previews in real-time
     if (activeCommand != null) {
       final tool = drawTools[activeCommand!.toolName];
       if (tool != null) {
-        // log.d('Drawing active tool: ${activeCommand!.toolName}');
         activeCommand!.draw(canvas, tool);
       }
     }
+
+    // Restore the canvas pipeline back to standard system constraints
+    canvas.restore();
   }
 
   @override
   bool shouldRepaint(covariant MyPainter oldDelegate) {
-    // 4. Optimize repaints: Skip redraw loops unless reference pointers change
+    // Optimize redraw passes: block paint loops unless a structural change occurs
     return oldDelegate.drawHistory != drawHistory || 
            oldDelegate.activeCommand != activeCommand ||
-           oldDelegate.drawTools != drawTools;
+           oldDelegate.transform != transform ||
+           oldDelegate.canvasWidth != canvasWidth ||
+           oldDelegate.canvasHeight != canvasHeight;
   }
 }

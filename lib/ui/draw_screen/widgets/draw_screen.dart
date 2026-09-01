@@ -1,77 +1,90 @@
+import 'package:drawing_app/domain/models/draw_tools/draw_tools_list.dart';
 import 'package:drawing_app/painter.dart';
-import 'package:drawing_app/ui/draw_screen/widgets/layer_preview_view.dart'; // Retained your project paths
+import 'package:drawing_app/ui/draw_screen/widgets/bottom_tool_bar_buttons.dart';
+import 'package:drawing_app/ui/draw_screen/widgets/layer_preview_view.dart';
 import 'package:drawing_app/ui/draw_screen/widgets/layer_menu_anchor_view.dart';
 import 'package:drawing_app/ui/draw_screen/view_models/draw_screen_view_model.dart';
 import 'package:drawing_app/utils/result.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
-class DrawScreen extends StatelessWidget {
-  final DrawScreenViewModel viewModel;
+class DrawScreen extends StatefulWidget{
+   const DrawScreen({super.key, required this.viewModel});
 
-  const DrawScreen({super.key, required this.viewModel});
+   final DrawScreenViewModel viewModel;
 
-  @override
-  Widget build(BuildContext context) {
-    return ListenableBuilder(
-      listenable: Listenable.merge([
-        viewModel,
-        viewModel.saveDirtyProgress,
-        viewModel.loadProject,
-        viewModel.createLayer,
-        viewModel.initProject,
-      ]),
-      builder: (context, child) {
-        return Scaffold(
-          backgroundColor: DrawScreenViewModel
-              .canvasBackgroundColor, // Artboard canvas background wrapper
-          appBar: AppBar(
-            title: (Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                IconButton(onPressed: (){}, icon: Icon(Icons.arrow_back_rounded)),
+   @override
+  State<StatefulWidget> createState() => _DrawScreenState();
+}
 
-                 IconButton(onPressed: () => viewModel.toggleLayerMenu(), icon: Icon(Icons.layers)),
-                IconButton(
-                  onPressed: () {},
-                  icon: Icon(Icons.add_photo_alternate_outlined),
-                ),
-                IconButton(onPressed: () {}, icon: Icon(Icons.more_vert)),
-              ],
-            )),
-          ),
-          body: Stack(
+class _DrawScreenState extends State<DrawScreen> {
+bool _hasCenteredOnStart = false;
+
+@override
+Widget build(BuildContext context) {
+  return ListenableBuilder(
+    listenable: Listenable.merge([
+      widget.viewModel,
+      widget.viewModel.saveDirtyProgress,
+    ]),
+    builder: (context, child) {
+      return Scaffold(
+        backgroundColor: Colors.grey.shade900,
+        appBar: AppBar(
+          title: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              // --- Layer 1: Global Workspace Canvas Gesture Grid ---
+              IconButton(onPressed: () => Navigator.of(context).pop(), icon: const Icon(Icons.arrow_back_rounded)),
+              IconButton(onPressed: () => widget.viewModel.toggleLayerMenu(), icon: const Icon(Icons.layers)),
+              IconButton(onPressed: () {}, icon: const Icon(Icons.add_photo_alternate_outlined)),
+              IconButton(onPressed: () {}, icon: const Icon(Icons.more_vert)),
+            ],
+          ),
+        ),
+        body: LayoutBuilder(
+          builder: (context, constraints){
+            final Size currentViewport = Size(constraints.maxWidth, constraints.maxHeight);
+
+             if (!_hasCenteredOnStart) {
+                WidgetsBinding.instance.addPostFrameCallback((_) {
+                  widget.viewModel.resetView(currentViewport);
+                });
+                _hasCenteredOnStart = true;
+              }
+
+           return Stack(
+            children: [
+              // --- Layer 1: Unified CanvasKit Viewport Workspace ---
               Positioned.fill(
                 child: GestureDetector(
-                  onPanStart: (details) =>
-                      viewModel.handlePanStart(details.localPosition),
-                  onPanUpdate: (details) =>
-                      viewModel.handlePanUpdate(details.localPosition),
-                  onPanEnd: (_) => viewModel.handlePanEnd(),
+                  behavior: HitTestBehavior.opaque,
+                  onScaleStart: (details) => widget.viewModel.handleScaleStart(details),
+                  onScaleUpdate: (details) => widget.viewModel.handleScaleUpdate(details),
+                  onScaleEnd: (_) => widget.viewModel.handleScaleEnd(),
+                  
                   child: Stack(
-                    children: viewModel.layers.map((layer) {
-                      final filteredLayerHistory = viewModel.getHistoryForLayer(
-                        layer.id,
-                      );
-
-                      // Avoid drawing or painting widgets if they are hidden
+                    children: widget.viewModel.layers.map((layer) {
+                      final filteredLayerHistory = widget.viewModel.getHistoryForLayer(layer.id);
                       if (!layer.isVisible) return const SizedBox.shrink();
-
+                            
                       return Positioned.fill(
                         child: RepaintBoundary(
-                          key: viewModel.getGlobalLayerKey(layer.id),
                           child: CustomPaint(
+                            // FIX 1: Add the transformRevision into the canvas key track!
+                            // This forces the RepaintBoundary cache layer to clear out 
+                            // and repaint instantly whenever a zoom or pan modification updates.
                             key: ValueKey(
-                              '${layer.id}_${filteredLayerHistory.length}',
+                              '${layer.id}_${filteredLayerHistory.length}_${widget.viewModel.transformRevision}'
                             ),
                             painter: MyPainter(
+                              canvasHeight: widget.viewModel.canvasHeight,
+                              canvasWidth: widget.viewModel.canvasWidth,
                               drawHistory: filteredLayerHistory,
-                              drawTools: viewModel.tools,
-                              activeCommand: layer.id == viewModel.activeLayerId
-                                  ? viewModel.activeCommand
+                              drawTools: DrawToolsList.map,
+                              activeCommand: layer.id == widget.viewModel.activeLayerId 
+                                  ? widget.viewModel.activeCommand 
                                   : null,
+                              transform: widget.viewModel.transform, // Continuous matrix camera feed
                             ),
                           ),
                         ),
@@ -80,37 +93,38 @@ class DrawScreen extends StatelessWidget {
                   ),
                 ),
               ),
-
-              // --- Layer 2: Floating Functional Action Toolbar Panel ---
-              Align(
+            Align(
                 alignment: Alignment.bottomRight,
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    // Undo action trigger hook
-                    IconButton(
-                      onPressed: viewModel.canUndo
-                          ? viewModel.executeUndo
-                          : null,
-                      icon: const Icon(Icons.undo),
-                      color: Colors.black87,
+                child: SafeArea(
+                  child: Container(
+                    margin: const EdgeInsets.all(16),
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withOpacity(0.9),
+                      borderRadius: BorderRadius.circular(20),
                     ),
-                    const SizedBox(width: 8),
-                    // Redo action trigger hook
-                    IconButton(
-                      onPressed: viewModel.canRedo
-                          ? viewModel.executeRedo
-                          : null,
-                      icon: const Icon(Icons.redo),
-                      color: Colors.black87,
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        IconButton(
+                          onPressed: widget.viewModel.canUndo ? widget.viewModel.executeUndo : null,
+                          icon: const Icon(Icons.undo),
+                          color: Colors.black87,
+                        ),
+                        const SizedBox(width: 8),
+                        IconButton(
+                          onPressed: widget.viewModel.canRedo ? widget.viewModel.executeRedo : null,
+                          icon: const Icon(Icons.redo),
+                          color: Colors.black87,
+                        ),
+                      ],
                     ),
-                    // const SizedBox(width: 12),
-                    // IconButton(onPressed: () => viewModel.toggleLayerMenu(), icon: Icon(Icons.layers))
-                  ],
+                  ),
                 ),
               ),
-
-              if (viewModel.loadProject.running)
+          
+              // Fullscreen Initial Loading Blocker
+              if (widget.viewModel.loadProject.running || widget.viewModel.initProject.running)
                 Positioned.fill(
                   child: Container(
                     color: Colors.black54,
@@ -119,37 +133,26 @@ class DrawScreen extends StatelessWidget {
                     ),
                   ),
                 ),
-
-              if (viewModel.isLayerMenuOpen == true)
+          
+              // Sidebar Layers Panel overlay
+              if (widget.viewModel.isLayerMenuOpen)
                 Positioned(
-                  right: 16, // Distance from right screen frame edges
-                  top: 20, // Placed right below the navigation AppBar
-                  child: FloatingLayerPanel(viewModel: viewModel),
+                  right: 16,
+                  top: 20,
+                  child: FloatingLayerPanel(viewModel: widget.viewModel),
                 ),
+            
             ],
-          ),
-
-          bottomNavigationBar: BottomAppBar(
-            height: 56.0,
-            padding: const EdgeInsets.symmetric(horizontal: 12.0),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceAround,
-              children: [
-                IconButton(
-                  splashRadius: 24.0,
-                  icon: const Icon(Icons.near_me, size: 24.0),
-                  onPressed: () {},
-                ),
-                IconButton(
-                  splashRadius: 24.0,
-                  icon: const Icon(Icons.draw, size: 24.0),
-                  onPressed: () {},
-                ),
-              ],
-            ),
-          ),
-        );
-      },
-    );
-  }
+          
+            
+          );}
+        ),
+        bottomNavigationBar: BottomAppBar(
+          height: 64.0,
+          child: BottomToolBarButtons(viewModel: widget.viewModel),
+        ),
+      );
+    },
+  );
+}
 }

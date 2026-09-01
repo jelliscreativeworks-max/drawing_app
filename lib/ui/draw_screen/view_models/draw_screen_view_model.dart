@@ -7,22 +7,26 @@ import 'package:drawing_app/domain/models/canvas/canvas_data.dart';
 import 'package:drawing_app/domain/models/draw_command/draw_command.dart';
 import 'package:drawing_app/domain/models/draw_layer/draw_layer.dart';
 import 'package:drawing_app/domain/models/draw_tools/draw_tool.dart';
+import 'package:drawing_app/domain/models/draw_tools/draw_tools_list.dart';
 import 'package:drawing_app/domain/models/draw_tools/freehand_tool.dart';
+import 'package:drawing_app/domain/models/draw_tools/pan_tool.dart';
 import 'package:drawing_app/utils/command.dart';
 import 'package:drawing_app/utils/image_conversion.dart';
 import 'package:drawing_app/utils/result.dart';
 import 'package:flutter/material.dart';
 import 'package:logger/logger.dart';
 import 'package:uuid/uuid.dart';
+import 'package:vector_math/vector_math_64.dart' as vm;
 
 const Uuid uuid = Uuid();
+
 class DrawScreenViewModel extends ChangeNotifier {
   DrawScreenViewModel({
     required LayerDataRepository layerDataRepository,
     required CanvasDataRepository canvasDataRepository,
   }) : _layerDataRepository = layerDataRepository,
        _canvasDataRepository = canvasDataRepository {
-    _currentTool = tools.values.first;
+    _currentTool = DrawToolsList.pan;
 
     deleteLayer = Command1(_deleteLayer);
     loadProject = Command1(_loadProject);
@@ -36,11 +40,18 @@ class DrawScreenViewModel extends ChangeNotifier {
 
   static const canvasBackgroundColor = Colors.white;
 
+  double _canvasWidth = 2000.0;
+  double _canvasHeight = 2000.0;
+
+  double get canvasWidth => _canvasWidth;
+  double get canvasHeight => _canvasHeight;
+
   Logger log = Logger();
 
   final LayerDataRepository _layerDataRepository;
   final CanvasDataRepository _canvasDataRepository;
-  final CanvasToImageProcessor canvasToImageProcessor = CanvasToImageProcessor();
+  final CanvasToImageProcessor canvasToImageProcessor =
+      CanvasToImageProcessor();
 
   late final Command1<void, String> loadProject;
   // late final Command1<void, String> saveLayerSnapshot;
@@ -51,18 +62,29 @@ class DrawScreenViewModel extends ChangeNotifier {
 
   bool isLayerMenuOpen = false;
 
+  Offset _panStartOrigin = Offset.zero;
+  final TransformationController _transformationController =
+      TransformationController();
+  int get transformRevision => _transformRevision;
+
+  bool get isPanAndZoomActive => _currentTool.isNavigationTool;
+  TransformationController get transformationController =>
+      _transformationController;
+
   // late final Command1<void, String> generateSnapshot;
   final Map<String, Command1<void, String>> _layerSnapshotCommands = {};
-  
-  Command1<void, String> getSnapshotCommandForLayer(String layerId) {
-  return _layerSnapshotCommands.putIfAbsent(layerId, () {
-    return Command1<void, String>(
-      _getLayerSnapshot,
-      allowConcurrent: true, // 🟢 Allows multiple layers to process at once!
-    );
-  });
-}
 
+  Command1<void, String> getSnapshotCommandForLayer(String layerId) {
+    return _layerSnapshotCommands.putIfAbsent(layerId, () {
+      return Command1<void, String>(
+        _getLayerSnapshot,
+        allowConcurrent: true, // 🟢 Allows multiple layers to process at once!
+      );
+    });
+  }
+
+    Offset? _drawingStartPoint; 
+  bool _isStrokeStabilized = false;
 
   CanvasData? _currentCanvas;
   List<DrawLayer> _layers = [];
@@ -81,27 +103,18 @@ class DrawScreenViewModel extends ChangeNotifier {
   bool get canUndo => _drawHistory.isNotEmpty;
   bool get canRedo => _redoHistory.isNotEmpty;
 
-  final Map<String, DrawTool> tools = {
-    'Freehand Tool': const FreehandTool(
-      toolName: 'Freehand Tool',
-      toolIcon: Icon(Icons.draw),
-    ),
-  };
-
   late DrawTool _currentTool;
   DrawCommand? _activeCommand;
 
   final List<DrawCommand> _drawHistory = [];
   final List<DrawCommand> _redoHistory = [];
-  final Map<String, GlobalKey> _layerGlobalKeys = {};
   final Map<String, Uint8List> _layerSnapshots = {};
 
-
+  final GlobalKey canvasKey = GlobalKey();
 
   final Map<String, List<DrawCommand>> _cachedLayerHistories = {};
 
-
-  Color _strokeColor = Colors.green;
+  Color _strokeColor = Colors.blue;
   double _strokeWidth = 5.0;
 
   DrawLayer? get activeLayer =>
@@ -110,43 +123,75 @@ class DrawScreenViewModel extends ChangeNotifier {
   List<DrawCommand> getHistoryForLayer(String layerId) =>
       _cachedLayerHistories[layerId] ?? const [];
 
-  void handlePanStart(Offset startPoint) {
-    if (_activeLayerId == null) return;
+  Matrix4 _transform = Matrix4.identity();
+  double _scaleStart = 1.0;
+  int _transformRevision = 0;
+  Offset _focalPointAtStart = Offset.zero;
 
-    final strokeSettings = Paint()
-      ..color = _strokeColor
-      ..strokeWidth = _strokeWidth
-      ..strokeCap = StrokeCap.round
-      ..strokeJoin = StrokeJoin.round
-      ..style = PaintingStyle.stroke;
+  Matrix4 get transform => _transform;
+  double get scale => _transform.getMaxScaleOnAxis();
 
-    // Instantiate an isolated fresh DrawCommand linked cleanly to the target layerId boundary
-    _activeCommand = _currentTool.onDrawStart(
-      startPoint,
-      strokeSettings,
-      Paint(),
-      _activeLayerId!,
-    );
+  // --- ADOPTED FROM CANVAS_KIT: PIXEL-PERFECT SCREEN-TO-WORLD ENGINE ---
+  Offset getTransformedOffset(Offset screenPoint) {
+    if (_transform == Matrix4.identity()) return screenPoint;
+    if (_transform.determinant().abs() < 1e-6) return screenPoint;
+
+    try {
+      // Invert the camera matrix completely to translate viewport pixels into canvas geometry
+      final Matrix4 invertedMatrix = Matrix4.inverted(_transform);
+      final vm.Vector3 vector = vm.Vector3(screenPoint.dx, screenPoint.dy, 0.0)
+        ..applyMatrix4(invertedMatrix);
+      return Offset(vector.x, vector.y);
+    } catch (e) {
+      return screenPoint;
+    }
+  }
+
+  // --- DEFINITIVE DYNAMIC ARTBOARD RESIZER ---
+  void resizeCanvas(double newWidth, double newHeight) {
+    // 1. Safety guard rails protect against zero or negative dimensions
+    if (newWidth <= 0 || newHeight <= 0) return;
+
+    // 2. Assign the fresh bounding dimensions cleanly to your internal states
+    _canvasWidth = newWidth;
+    _canvasHeight = newHeight;
+
+    // 3. Increment the revision counter to force the RepaintBoundary to clear its texture cache
+    _transformRevision++;
+    notifyListeners();
+
+    // 4. Force refresh layer snapshot previews to update background framing aspect ratios
+    for (var layer in _layers) {
+      getSnapshotCommandForLayer(layer.id).execute(layer.id);
+    }
+  }
+
+  void changeTool(DrawTool newTool) {
+    if (_currentTool == newTool) return;
+
+    _currentTool = newTool;
     notifyListeners();
   }
 
-  void toggleLayerMenu(){
+  void toggleLayerMenu() {
     isLayerMenuOpen = isLayerMenuOpen == true ? false : true;
     notifyListeners();
   }
 
-  void handlePanUpdate(Offset usePoint) {
-    if (_activeCommand == null) return;
-    _activeCommand = _currentTool.onUpdateTool(_activeCommand!, usePoint);
-    notifyListeners();
-  }
+  // --- CORRECTED SYSTEM GESTURE END ACTION HANDLER ---
+  void handleScaleEnd() {
+        _drawingStartPoint = null;
+    _isStrokeStabilized = false;
 
-  void handlePanEnd() {
+    if (isPanAndZoomActive) return;
+
+    // 2. ROUTE TO INK DRAWING ENGINE
     if (_activeCommand == null || _activeLayerId == null) return;
 
+    // Finalize the active stroke data blueprint
     final finalizedCommand = _currentTool.onDrawEnd(_activeCommand!);
     _drawHistory.add(finalizedCommand);
-    _redoHistory.clear(); 
+    _redoHistory.clear();
 
     _cachedLayerHistories[_activeLayerId!] = [
       ...?_cachedLayerHistories[_activeLayerId!],
@@ -155,19 +200,172 @@ class DrawScreenViewModel extends ChangeNotifier {
     _markLayerAsDirtyById(_activeLayerId!);
     _activeCommand = null;
 
-    notifyListeners(); // 1. Draws vector lines instantly
+    _transformRevision++; // Forces the UI texture canvas boundary cache to invalidate
+    notifyListeners();
 
-    // 2. Safe post-frame background command execution
+    // 3. EXECUTE OFF-SCREEN MULTI-LAYER SNAPSHOT LOGIC
+    // We execute the snapshot command manually outside the Command container bounds
+    // to trigger the asynchronous offscreen vector rendering pipeline!
     final targetLayerId = _activeLayerId!;
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      getSnapshotCommandForLayer(targetLayerId).execute(targetLayerId); 
+      getSnapshotCommandForLayer(targetLayerId).execute(targetLayerId);
     });
 
+    // 4. CHANNELS AUTOMATIC PROGRESS BACKGROUND AUTO-SAVE TICK
     if (!saveDirtyProgress.running) {
+      // Execute your Command pattern class utility passively.
+      // It handles its own internal async loading states and locks natively!
       saveDirtyProgress.execute();
     }
   }
 
+  void handleScaleStart(ScaleStartDetails details) {
+    _scaleStart = scale;
+    
+    // 1. Project the raw screen input point down to world matrix vector coordinates
+    final Offset rawCanvasPoint = getTransformedOffset(details.localFocalPoint);
+    
+    // 2. Enforce structural geometry boundary clamping
+    _focalPointAtStart = Offset(
+      rawCanvasPoint.dx.clamp(0.0, _canvasWidth),
+      rawCanvasPoint.dy.clamp(0.0, _canvasHeight),
+    );
+    
+    _panStartOrigin = details.localFocalPoint;
+        _drawingStartPoint = _focalPointAtStart;
+    _isStrokeStabilized = false;
+
+    // 🌟 THE DOT PREVENTION TRACKER: Do NOT create an active command here.
+    // We let the very first microframe of handleScaleUpdate verify the pointerCount 
+    // before we commit to initializing an ink stroke on the canvas!
+  }
+
+  void handleScaleUpdate(ScaleUpdateDetails details) {
+    // 1. CAMERA NAVIGATION (PAN/ZOOM) AND MULTI-TOUCH GATEKEEPER
+    // If we are in Pan mode, OR if there is more than 1 finger on the screen, execute camera mechanics
+    if (isPanAndZoomActive || details.pointerCount > 1) {
+      if (_activeCommand != null || _drawingStartPoint != null) {
+        _activeCommand = null;
+        _drawingStartPoint = null;
+        _isStrokeStabilized = false;
+        notifyListeners();
+      }
+
+      if (details.pointerCount <= 1) {
+        final Offset screenDelta = details.localFocalPoint - _panStartOrigin;
+        if (screenDelta == Offset.zero) return;
+
+        _transform = _transform.clone()..translate(screenDelta.dx / scale, screenDelta.dy / scale);
+        _panStartOrigin = details.localFocalPoint;
+        _transformRevision++;
+        notifyListeners();
+        return;
+      }
+
+      // --- TWO-FINGER ZOOM AND FOCAL ALIGNMENT ENGINE ---
+      final double proposedScale = _scaleStart * details.scale;
+      final double clampedScale = proposedScale.clamp(0.2, 5.0);
+      final double currentScale = scale;
+      
+      if ((clampedScale - currentScale).abs() < 1e-6) return;
+      final double scaleMultiplier = clampedScale / currentScale;
+
+      _transform = _transform.clone()
+        ..translate(_focalPointAtStart.dx, _focalPointAtStart.dy)
+        ..scale(scaleMultiplier, scaleMultiplier)
+        ..translate(-_focalPointAtStart.dx, -_focalPointAtStart.dy);
+
+      final Offset currentScreenPos = MatrixUtils.transformPoint(_transform, _focalPointAtStart);
+      final Offset structuralDelta = details.localFocalPoint - currentScreenPos;
+      _transform.translate(structuralDelta.dx / scale, structuralDelta.dy / scale);
+
+      _transformRevision++;
+      notifyListeners();
+      return;
+    }
+
+    // 2. ROUTE TO INK DRAWING ENGINE (Only triggers if strictly 1 finger is down)
+    if (_activeLayerId == null || _drawingStartPoint == null) return;
+
+    final Offset rawCanvasPoint = getTransformedOffset(details.localFocalPoint);
+    final Offset clampedCanvasPoint = Offset(
+      rawCanvasPoint.dx.clamp(0.0, _canvasWidth),
+      rawCanvasPoint.dy.clamp(0.0, _canvasHeight),
+    );
+
+     if (!_isStrokeStabilized) {
+      final double travelDistance = (clampedCanvasPoint - _drawingStartPoint!).distance;
+      
+      // If the finger has moved less than 4 pixels, ignore this microframe packet!
+      // This absorbs the landing frame delays of pinch gestures completely.
+      if (travelDistance < 4.0) return;
+      
+      // The finger has moved purposefully! Unlock the line generation pipeline.
+      _isStrokeStabilized = true;
+    }
+
+
+    // 🌟 THE DOT PREVENTION FIX: If no active command exists yet, this is our true single-finger drawing touchdown!
+    // Initialize the line command safely now that we are 100% sure it's a 1-finger draw gesture.
+    if (_activeCommand == null) {
+      final strokeSettings = Paint()
+        ..color = _strokeColor
+        ..strokeWidth = _strokeWidth
+        ..strokeCap = StrokeCap.round
+        ..strokeJoin = StrokeJoin.round
+        ..style = PaintingStyle.stroke;
+
+      // Instantiate the brush path seamlessly at the clamped starting point
+      _activeCommand = _currentTool.onDrawStart(
+        clampedCanvasPoint, 
+        strokeSettings, 
+        Paint(), 
+        _activeLayerId!,
+      );
+      notifyListeners();
+      return; // Skip update step on the initialization frame to let the path stabilize
+    }
+
+    // Continue appending points into your active drawing path history list
+    _activeCommand = _currentTool.onUpdateTool(_activeCommand!, clampedCanvasPoint);
+    notifyListeners();
+  }
+
+
+    void resetView(Size viewportSize) {
+    // 1. Calculate the empty padding space remaining when scale is exactly 1.0
+    final double extraWidth = viewportSize.width - _canvasWidth;
+    final double extraHeight = viewportSize.height - _canvasHeight;
+
+    // 2. Divide by 2 to find the exact midpoint coordinates
+    final double centerX = extraWidth / 2.0;
+    final double centerY = extraHeight / 2.0;
+
+    // 3. Reset the master camera matrix back to default 100% scale and centered pan!
+    // We instantiate a fresh Identity matrix, which naturally resets scale components to 1.0.
+    _transform = Matrix4.identity();
+    
+    // Index 12 is translation X, and Index 13 is translation Y in column-major layout.
+    _transform[12] = centerX;
+    _transform[13] = centerY;
+
+    // 4. Increment your revision and repaint the UI instantly
+    _transformRevision++;
+    notifyListeners();
+  }
+
+
+  void setActiveLayer(String layerId) {
+    if (activeLayerId == layerId) return;
+
+    _activeLayerId = layerId;
+
+    _activeCommand = null;
+
+    notifyListeners();
+  }
+
+  // Inside drawing_app/lib/ui/draw_screen/view_models/draw_screen_view_model.dart
 
   void executeUndo() {
     if (_drawHistory.isEmpty) return;
@@ -177,26 +375,19 @@ class DrawScreenViewModel extends ChangeNotifier {
 
     _rebuildCacheForLayer(cmd.layerId);
     _markLayerAsDirtyById(cmd.layerId);
+
+    _transformRevision++; // Invalidate RepaintBoundary texture cache
     notifyListeners();
 
-        final targetLayerId = cmd.layerId;
+    // 🌟 RESTORED SNAPSHOT LOGIC: Update snapshot previews to match the undone history state
+    final targetLayerId = cmd.layerId;
     WidgetsBinding.instance.addPostFrameCallback((_) {
-       getSnapshotCommandForLayer(targetLayerId).execute(targetLayerId); 
+      getSnapshotCommandForLayer(targetLayerId).execute(targetLayerId);
     });
 
     if (!saveDirtyProgress.running) {
       saveDirtyProgress.execute();
     }
-  }
-
-  void setActiveLayer(String layerId){
-    if(activeLayerId == layerId) return;
-
-    _activeLayerId = layerId;
-
-    _activeCommand = null;
-
-    notifyListeners();
   }
 
   void executeRedo() {
@@ -207,11 +398,14 @@ class DrawScreenViewModel extends ChangeNotifier {
 
     _rebuildCacheForLayer(cmd.layerId);
     _markLayerAsDirtyById(cmd.layerId);
+
+    _transformRevision++; // Invalidate RepaintBoundary texture cache
     notifyListeners();
 
+    // 🌟 RESTORED SNAPSHOT LOGIC: Update snapshot previews to match the redone history state
     final targetLayerId = cmd.layerId;
     WidgetsBinding.instance.addPostFrameCallback((_) {
-        getSnapshotCommandForLayer(targetLayerId).execute(targetLayerId); 
+      getSnapshotCommandForLayer(targetLayerId).execute(targetLayerId);
     });
 
     if (!saveDirtyProgress.running) {
@@ -219,9 +413,7 @@ class DrawScreenViewModel extends ChangeNotifier {
     }
   }
 
-
-
-   Future<Result<void>> _loadProject(String canvasId) async {
+  Future<Result<void>> _loadProject(String canvasId) async {
     // 1. Fetch the primary canvas aggregate meta-data container file
     final loadedCanvasResult = await _canvasDataRepository.getCanvasData(
       canvasId,
@@ -241,17 +433,19 @@ class DrawScreenViewModel extends ChangeNotifier {
 
     switch (loadedLayersResult) {
       case Ok():
-          final loadedLayers = loadedLayersResult.value;
+        final loadedLayers = loadedLayersResult.value;
 
-           final Map<String, int> orderMap = {
-      for (int i = 0; i < _currentCanvas!.layerIds.length; i++) 
-        _currentCanvas!.layerIds[i]: i
-    };
+        final Map<String, int> orderMap = {
+          for (int i = 0; i < _currentCanvas!.layerIds.length; i++)
+            _currentCanvas!.layerIds[i]: i,
+        };
 
-        loadedLayers.sort((a, b) => (orderMap[a.id] ?? 0).compareTo(orderMap[b.id] ?? 0));
+        loadedLayers.sort(
+          (a, b) => (orderMap[a.id] ?? 0).compareTo(orderMap[b.id] ?? 0),
+        );
 
         _layers = loadedLayers;
-        
+
         // Safety Fallback: Ensure active cursor assignment handles empty layer bounds gracefully
         _activeLayerId = _layers.lastOrNull?.id;
 
@@ -261,7 +455,7 @@ class DrawScreenViewModel extends ChangeNotifier {
         _redoHistory.clear();
         _layerSnapshots.clear();
 
-              // 4. Reconstruct structural histories layer by layer
+        // 4. Reconstruct structural histories layer by layer
         for (var layer in _layers) {
           _cachedLayerHistories[layer.id] = List<DrawCommand>.from(
             layer.layerDrawHistory,
@@ -269,7 +463,7 @@ class DrawScreenViewModel extends ChangeNotifier {
           _drawHistory.addAll(layer.layerDrawHistory);
         }
 
-            // ... (steps 1 to 4 loading and sorting layer arrays in _loadProject)
+        // ... (steps 1 to 4 loading and sorting layer arrays in _loadProject)
 
         // 5. Commit structural data vectors to screen
         notifyListeners();
@@ -277,12 +471,12 @@ class DrawScreenViewModel extends ChangeNotifier {
         // 🟢 MENU FIX: Force background pre-warm on project loads
         for (var layer in _layers) {
           final currentLoopId = layer.id;
-          
+
           WidgetsBinding.instance.addPostFrameCallback((_) async {
-            // Give Flutter one engine loop tick to paint layout bounding boxes 
+            // Give Flutter one engine loop tick to paint layout bounding boxes
             // before we attempt to snapshot them
             await Future.delayed(Duration.zero);
-            
+
             // Warm up the snapshot map cache instantly in the background!
             getSnapshotCommandForLayer(currentLoopId).execute(currentLoopId);
           });
@@ -293,100 +487,111 @@ class DrawScreenViewModel extends ChangeNotifier {
     }
     return Result.ok(null);
   }
-void reorderLayers(int oldIndex, int newIndex) {
-  if(currentCanvas == null) return;
-  // Flutter's internal adjustment for dragging downward
-  if (oldIndex < newIndex) {
-    newIndex -= 1;
-  }
-  
-  // Guard bounds just in case
-  if (oldIndex == newIndex || newIndex < 0 || newIndex >= layers.length) return;
+
+  void reorderLayers(int oldIndex, int newIndex) {
+    if (currentCanvas == null) return;
+    // Flutter's internal adjustment for dragging downward
+    if (oldIndex < newIndex) {
+      newIndex -= 1;
+    }
+
+    // Guard bounds just in case
+    if (oldIndex == newIndex || newIndex < 0 || newIndex >= layers.length)
+      return;
 
     // 1. Get a mutable copy of the current visible layers array to keep the UI in sync
     final updatedLayers = List<DrawLayer>.from(_layers);
-    
+
     // Move the actual layer object in the runtime memory list
     final DrawLayer movedLayer = updatedLayers.removeAt(oldIndex);
     updatedLayers.insert(newIndex, movedLayer);
     _layers = updatedLayers;
 
-
-        // 2. EXTRACT THE NEW ID TIMELINE ORDER FOR PERSISTENCE
+    // 2. EXTRACT THE NEW ID TIMELINE ORDER FOR PERSISTENCE
     final List<String> newLayerIds = _layers.map((l) => l.id).toList();
 
     // 3. Update the parent canvas metadata model cleanly
-    _currentCanvas = _currentCanvas!.copyWith(
-      layerIds: newLayerIds,
+    _currentCanvas = _currentCanvas!.copyWith(layerIds: newLayerIds);
+
+    _canvasDataRepository.modifyCanvasData(
+      currentCanvas!.copyWith(layerIds: newLayerIds),
     );
-  
-  _canvasDataRepository.modifyCanvasData(currentCanvas!.copyWith(layerIds: newLayerIds));
-  
-  notifyListeners(); // Triggers the 'viewModel' listenable
-}
 
+    notifyListeners(); // Triggers the 'viewModel' listenable
+  }
 
-Future<Result<void>> _saveDirtyProgress() async {
-  if (_currentCanvas == null) return Result.error(Exception('Canvas cannot be empty'));
+  Future<Result<void>> _saveDirtyProgress() async {
+    if (_currentCanvas == null)
+      return Result.error(Exception('Canvas cannot be empty'));
 
-  // 1. BRIDGE THE GAP: Pack memory cache into the immutable layer models
-  final packagedLayers = _layers.map((layer) {
-    if (layer.isDirty) {
-      // Pull the specific history for this layer from your fast memory cache
-      final currentHistory = _cachedLayerHistories[layer.id] ?? const [];
-      
-      // Update the actual model with the history before saving
-      return layer.copyWith(
-        layerDrawHistory: currentHistory,
+    // 1. BRIDGE THE GAP: Pack memory cache into the immutable layer models
+    final packagedLayers = _layers.map((layer) {
+      if (layer.isDirty) {
+        // Pull the specific history for this layer from your fast memory cache
+        // Update the actual model with the history before saving
+        return layer.copyWith(
+          layerDrawHistory: _cachedLayerHistories[layer.id] ?? const [],
+        );
+      }
+      return layer;
+    }).toList();
+
+    // 2. Filter for only the layers that actually need a file-write
+    final dirtyLayers = packagedLayers.where((l) => l.isDirty).toList();
+    if (dirtyLayers.isEmpty) return Result.ok(null);
+
+    // 3. Offload to the repository for the background auto-save
+    final result = await _layerDataRepository.saveDirtyLayers(dirtyLayers);
+
+    switch (result) {
+      case Ok():
+        // 4. Update your local _layers list so they are no longer dirty
+        _layers = packagedLayers
+            .map((layer) => layer.copyWith(isDirty: false))
+            .toList();
+        notifyListeners();
+      case Error():
+        return Result.error(result.error);
+    }
+    return Result.ok(null);
+  }
+
+  Future<Result<void>> _deleteLayer(String layerId) async {
+    if (_currentCanvas == null) {
+      return Result.error(
+        Exception("Canvas must not be null before deleting layers"),
       );
     }
-    return layer;
-  }).toList();
 
-  // 2. Filter for only the layers that actually need a file-write
-  final dirtyLayers = packagedLayers.where((l) => l.isDirty).toList();
-  if (dirtyLayers.isEmpty) return Result.ok(null);
+    if (_layers.length <= 1)
+      return Result.ok(null); //So we don't delete the last layer
 
-  // 3. Offload to the repository for the background auto-save
-  final result = await _layerDataRepository.saveDirtyLayers(dirtyLayers);
+    final deleteResult = await _layerDataRepository.deleteLayer(layerId);
 
-  switch (result) {
-    case Ok():
-      // 4. Update your local _layers list so they are no longer dirty
-      _layers = packagedLayers.map((layer) => layer.copyWith(isDirty: false)).toList();
-      notifyListeners();
-    case Error():
-      return Result.error(result.error);
+    switch (deleteResult) {
+      case Ok():
+        _layers.removeWhere((layer) => layer.id == layerId);
+        _activeLayerId = layerId == _activeLayerId
+            ? _layers.last.id
+            : _activeLayerId;
+        _cachedLayerHistories.remove(layerId);
+
+        await _canvasDataRepository.modifyCanvasData(
+          _currentCanvas!.copyWith(
+            layerIds: _currentCanvas!.layerIds
+                .where((id) => id != layerId)
+                .toList(),
+          ),
+        );
+        notifyListeners();
+        return Result.ok(null);
+      case Error():
+        return Result.error(deleteResult.error);
+    }
   }
-  return Result.ok(null);
-}
-
-Future<Result<void>> _deleteLayer(String layerId) async{
-  if(_currentCanvas == null){
-    return Result.error(Exception("Canvas must not be null before deleting layers"));
-  }
-
-  if(_layers.length <= 1) return Result.ok(null); //So we don't delete the last layer
-
-  final deleteResult = await _layerDataRepository.deleteLayer(layerId);
-
-  switch(deleteResult){
-    case Ok():
-      _layers.removeWhere((layer) => layer.id == layerId);
-      _activeLayerId = layerId == _activeLayerId ? _layers.last.id : _activeLayerId;
-      _cachedLayerHistories.remove(layerId);
-
-      await _canvasDataRepository.modifyCanvasData(_currentCanvas!.copyWith(layerIds: _currentCanvas!.layerIds.where((id) => id != layerId).toList()));
-      notifyListeners();
-      return Result.ok(null);
-    case Error():
-      return Result.error(deleteResult.error);
-  }
-
-}
 
   Future<Result<void>> _createAndAddLayer() async {
-    if (_currentCanvas == null){
+    if (_currentCanvas == null) {
       return Result.error(
         Exception('Canvas must not be null when adding new layer'),
       );
@@ -406,11 +611,13 @@ Future<Result<void>> _deleteLayer(String layerId) async{
         _layers = [..._layers, addResult.value];
         _activeLayerId = addResult.value.id;
         _cachedLayerHistories[addResult.value.id] = [];
-        
+
         await _canvasDataRepository.modifyCanvasData(
-          _currentCanvas!.copyWith(layerIds: [..._currentCanvas!.layerIds, addResult.value.id])
+          _currentCanvas!.copyWith(
+            layerIds: [..._currentCanvas!.layerIds, addResult.value.id],
+          ),
         );
-        
+
         // 1. Inflate layer onto view tree
         notifyListeners();
 
@@ -421,7 +628,6 @@ Future<Result<void>> _deleteLayer(String layerId) async{
           getSnapshotCommandForLayer(targetLayerId).execute(targetLayerId);
         });
 
-
       case Error():
         return Result.error(addResult.error);
     }
@@ -430,7 +636,7 @@ Future<Result<void>> _deleteLayer(String layerId) async{
 
   Future<Result<void>> _initializeNewProject() async {
     final templateCanvas = CanvasData(
-      id: 'temp', 
+      id: 'temp',
       name: 'Untitled Drawing',
       layerIds: [],
     );
@@ -441,7 +647,7 @@ Future<Result<void>> _deleteLayer(String layerId) async{
       case Ok<CanvasData>():
         _currentCanvas = result.value;
 
-        final createBaseLayerResult = await _createAndAddLayer(); 
+        final createBaseLayerResult = await _createAndAddLayer();
 
         switch (createBaseLayerResult) {
           case Ok():
@@ -472,38 +678,28 @@ Future<Result<void>> _deleteLayer(String layerId) async{
     }).toList();
   }
 
- Future<Result<void>> _getLayerSnapshot(String layerId) async {
+  Future<Result> _getLayerSnapshot(String layerId) async {
+    final List<DrawCommand> layerHistory = _cachedLayerHistories[layerId] ?? const [];
+    if (layerHistory.isEmpty) {
+      _layerSnapshots.remove(layerId);
+      notifyListeners();
+      return Result.ok(null);
+    }
     try {
-      final GlobalKey layerKey = getGlobalLayerKey(layerId);
-
-      // The command handles the 'running' state, we just execute the heavy lift
-      final snapshot = await canvasToImageProcessor.processLayerSnapshotInBackground(
-        layerKey: layerKey, 
-        transparency: 1.0, 
-      );
-      
-      if (snapshot == null) {
-        return Result.error(Exception('Snapshot data returned null from processor.'));
+      final Uint8List? bytes = await canvasToImageProcessor
+          .generateLayerSnapshotFromVectors(
+            layerHistory: layerHistory,
+            drawTools: DrawToolsList.map,
+            transparency: _activeLayerId == layerId ? 1.0 : 0.6,
+          );
+      if (bytes != null && bytes.isNotEmpty) {
+        _layerSnapshots[layerId] = bytes;
+        notifyListeners();
       }
-
-      // Update your cache map array directly
-      _layerSnapshots[layerId] = snapshot;
-      // Notify so any UI components reading 'layerSnapshots' know data changed
-      notifyListeners(); 
-      
       return Result.ok(null);
     } catch (e) {
-      return Result.error(Exception('Failed to generate layer snapshot: $e'));
+      log.e('Failed to author vector-to-image snapshot: $e');
+      return Result.error(e is Exception ? e : Exception(e.toString()));
     }
   }
-
-
-
-
-  GlobalKey getGlobalLayerKey(String layerId){
-    GlobalKey key = _layerGlobalKeys.putIfAbsent(layerId, () => GlobalKey());
-    
-    return key;
-  }
-
 }
