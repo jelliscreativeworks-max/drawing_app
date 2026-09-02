@@ -14,14 +14,48 @@ class PanTool extends DrawTool{
   void draw(Canvas canvas, DrawCommand drawCommand){}
 
   @override
-  DrawCommand onDrawEnd(DrawCommand currentCommand) => currentCommand;
+  void onDrawEnd({required DrawCommand? activeCommand, required String layerId, required List<DrawCommand> drawHistory, required Map<String, List<DrawCommand>> layerDrawHistory, required ToolMatrixPayload camera}) {
 
-  @override
-  DrawCommand onDrawStart(Offset startPoint, Paint strokeSettings, Paint fillSettings, String layerId) {
-    return DrawCommand.data(toolName: toolName, layerId: layerId, points: const[]);
   }
 
   @override
-  DrawCommand onUpdateTool(DrawCommand currentCommand, Offset newPoint) => currentCommand;
-  
+  DrawCommand? onDrawStart({required Offset startPoint, required Paint strokeSettings, required Paint fillSettings, required String layerId, required List<DrawCommand> drawHistory, required Map<String, List<DrawCommand>> layerDrawHistory, required ToolMatrixPayload camera}) {
+    return null;
+  }
+
+  @override
+  DrawCommand? onUpdateTool({required DrawCommand activeCommand, required Offset newPoint, required List<DrawCommand> drawHistory, required Map<String, List<DrawCommand>> layerDrawHistory, required ToolMatrixPayload camera, required int pointerCount, required double gestureScale}) {
+  if (pointerCount <= 1) {
+      final Offset screenDelta = newPoint - camera.panStartOrigin;
+      if (screenDelta == Offset.zero) return null;
+
+      // Translate the camera matrix instance cleanly relative to current uniform magnification scale
+      camera.transform = camera.transform.clone()
+        ..translate(screenDelta.dx / camera.currentScale, screenDelta.dy / camera.currentScale);
+      
+      camera.panStartOrigin = newPoint; // Reset touch anchor path
+      return null;
+    }
+
+    // 2. ROUTE TO COMPREHENSIVE 2-FINGER MULTI-TOUCH PINCH ZOOMING
+    final double proposedScale = camera.scaleStart * gestureScale;
+    final double clampedScale = proposedScale.clamp(0.2, 5.0);
+    
+    if ((clampedScale - camera.currentScale).abs() < 1e-6) return null;
+    final double scaleMultiplier = clampedScale / camera.currentScale;
+
+    // Mutate the transformation matrix uniformly around the exact starting pinch focal layout anchor
+    camera.transform = camera.transform.clone()
+      ..translate(camera.focalPointAtStart.dx, camera.focalPointAtStart.dy)
+      ..scale(scaleMultiplier, scaleMultiplier)
+      ..translate(-camera.focalPointAtStart.dx, -camera.focalPointAtStart.dy);
+
+    // Reposition the pan transformation to keep artwork locked under the dynamic hand focal movement
+    final Offset currentScreenPos = MatrixUtils.transformPoint(camera.transform, camera.focalPointAtStart);
+    final Offset structuralDelta = newPoint - currentScreenPos;
+    
+    camera.transform.translate(structuralDelta.dx / camera.currentScale, structuralDelta.dy / camera.currentScale);
+    return null;
+  }
+
 }

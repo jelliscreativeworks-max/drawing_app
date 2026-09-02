@@ -79,7 +79,7 @@ class DrawScreenViewModel extends ChangeNotifier {
     });
   }
 
-    Offset? _drawingStartPoint; 
+  Offset? _drawingStartPoint;
   bool _isStrokeStabilized = false;
 
   CanvasData? _currentCanvas;
@@ -173,73 +173,47 @@ class DrawScreenViewModel extends ChangeNotifier {
     isLayerMenuOpen = isLayerMenuOpen == true ? false : true;
     notifyListeners();
   }
-
-  // --- CORRECTED SYSTEM GESTURE END ACTION HANDLER ---
-  void handleScaleEnd() {
-        _drawingStartPoint = null;
-    _isStrokeStabilized = false;
-
-    if (isPanAndZoomActive) return;
-
-    // 2. ROUTE TO INK DRAWING ENGINE
-    if (_activeCommand == null || _activeLayerId == null) return;
-
-    // Finalize the active stroke data blueprint
-    final finalizedCommand = _currentTool.onDrawEnd(_activeCommand!);
-    _drawHistory.add(finalizedCommand);
-    _redoHistory.clear();
-
-    _cachedLayerHistories[_activeLayerId!] = [
-      ...?_cachedLayerHistories[_activeLayerId!],
-      finalizedCommand,
-    ];
-    _markLayerAsDirtyById(_activeLayerId!);
-    _activeCommand = null;
-
-    _transformRevision++; // Forces the UI texture canvas boundary cache to invalidate
-    notifyListeners();
-
-    // 3. EXECUTE OFF-SCREEN MULTI-LAYER SNAPSHOT LOGIC
-    // We execute the snapshot command manually outside the Command container bounds
-    // to trigger the asynchronous offscreen vector rendering pipeline!
-    final targetLayerId = _activeLayerId!;
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      getSnapshotCommandForLayer(targetLayerId).execute(targetLayerId);
-    });
-
-    // 4. CHANNELS AUTOMATIC PROGRESS BACKGROUND AUTO-SAVE TICK
-    if (!saveDirtyProgress.running) {
-      // Execute your Command pattern class utility passively.
-      // It handles its own internal async loading states and locks natively!
-      saveDirtyProgress.execute();
-    }
-  }
-
   void handleScaleStart(ScaleStartDetails details) {
     _scaleStart = scale;
-    
-    // 1. Project the raw screen input point down to world matrix vector coordinates
     final Offset rawCanvasPoint = getTransformedOffset(details.localFocalPoint);
     
-    // 2. Enforce structural geometry boundary clamping
     _focalPointAtStart = Offset(
       rawCanvasPoint.dx.clamp(0.0, _canvasWidth),
       rawCanvasPoint.dy.clamp(0.0, _canvasHeight),
     );
-    
     _panStartOrigin = details.localFocalPoint;
-        _drawingStartPoint = _focalPointAtStart;
+
+    _drawingStartPoint = _focalPointAtStart;
     _isStrokeStabilized = false;
 
-    // 🌟 THE DOT PREVENTION TRACKER: Do NOT create an active command here.
-    // We let the very first microframe of handleScaleUpdate verify the pointerCount 
-    // before we commit to initializing an ink stroke on the canvas!
+    // Pack up camera state matrices for tool consumption
+    final cameraPayload = ToolMatrixPayload(
+      transform: _transform,
+      panStartOrigin: _panStartOrigin,
+      scaleStart: _scaleStart,
+      focalPointAtStart: _focalPointAtStart,
+      currentScale: scale,
+    );
+
+    // Let the current strategy safely prepare its initialization data
+    _currentTool.onDrawStart(
+      startPoint: _focalPointAtStart,
+      strokeSettings: Paint(),
+      fillSettings: Paint(),
+      layerId: _activeLayerId ?? '',
+      drawHistory: _drawHistory,
+      layerDrawHistory: _cachedLayerHistories,
+      camera: cameraPayload,
+    );
   }
 
-  void handleScaleUpdate(ScaleUpdateDetails details) {
-    // 1. CAMERA NAVIGATION (PAN/ZOOM) AND MULTI-TOUCH GATEKEEPER
-    // If we are in Pan mode, OR if there is more than 1 finger on the screen, execute camera mechanics
-    if (isPanAndZoomActive || details.pointerCount > 1) {
+    void handleScaleUpdate(ScaleUpdateDetails details) {
+    // 1. 🌟 CAMERA NAVIGATION (PAN/ZOOM) STRATEGY ENFORCER
+    // This block must live at the ABSOLUTE TOP to ensure multi-touch signals 
+    // are never blocked or absorbed by drawing stabilization gates!
+    final bool forceNavigation = details.pointerCount > 1;
+
+    if (isPanAndZoomActive || forceNavigation) {
       if (_activeCommand != null || _drawingStartPoint != null) {
         _activeCommand = null;
         _drawingStartPoint = null;
@@ -251,14 +225,32 @@ class DrawScreenViewModel extends ChangeNotifier {
         final Offset screenDelta = details.localFocalPoint - _panStartOrigin;
         if (screenDelta == Offset.zero) return;
 
-        _transform = _transform.clone()..translate(screenDelta.dx / scale, screenDelta.dy / scale);
-        _panStartOrigin = details.localFocalPoint;
+        final cameraPayload = ToolMatrixPayload(
+          transform: _transform,
+          panStartOrigin: _panStartOrigin,
+          scaleStart: _scaleStart,
+          focalPointAtStart: _focalPointAtStart,
+          currentScale: scale,
+        );
+
+        _currentTool.onUpdateTool(
+          activeCommand: DrawCommand.data(toolName: '', layerId: '', points: const []),
+          newPoint: details.localFocalPoint, 
+          drawHistory: _drawHistory,
+          layerDrawHistory: _cachedLayerHistories,
+          camera: cameraPayload,
+          pointerCount: details.pointerCount,
+          gestureScale: details.scale,
+        );
+
+        _transform = cameraPayload.transform;
+        _panStartOrigin = cameraPayload.panStartOrigin;
         _transformRevision++;
         notifyListeners();
         return;
       }
 
-      // --- TWO-FINGER ZOOM AND FOCAL ALIGNMENT ENGINE ---
+      // --- TWO-FINGER MULTI-TOUCH ZOOM MECHANICS ---
       final double proposedScale = _scaleStart * details.scale;
       final double clampedScale = proposedScale.clamp(0.2, 5.0);
       final double currentScale = scale;
@@ -280,7 +272,7 @@ class DrawScreenViewModel extends ChangeNotifier {
       return;
     }
 
-    // 2. ROUTE TO INK DRAWING ENGINE (Only triggers if strictly 1 finger is down)
+    // 2. ROUTE TO LIVE DRAWING INK STRATEGY (Guaranteed 1-finger operation)
     if (_activeLayerId == null || _drawingStartPoint == null) return;
 
     final Offset rawCanvasPoint = getTransformedOffset(details.localFocalPoint);
@@ -289,20 +281,18 @@ class DrawScreenViewModel extends ChangeNotifier {
       rawCanvasPoint.dy.clamp(0.0, _canvasHeight),
     );
 
-     if (!_isStrokeStabilized) {
+    // 🌟 MOVE THE GESTURE STABILIZATION GATES HERE:
+    // It now safely wraps ONLY single-finger draw paths, completely clearing out zoom locks!
+    if (!_isStrokeStabilized) {
       final double travelDistance = (clampedCanvasPoint - _drawingStartPoint!).distance;
       
-      // If the finger has moved less than 4 pixels, ignore this microframe packet!
-      // This absorbs the landing frame delays of pinch gestures completely.
+      // If a single finger hasn't moved 4 pixels, ignore this microframe to block landing dots
       if (travelDistance < 4.0) return;
       
-      // The finger has moved purposefully! Unlock the line generation pipeline.
       _isStrokeStabilized = true;
     }
 
-
-    // 🌟 THE DOT PREVENTION FIX: If no active command exists yet, this is our true single-finger drawing touchdown!
-    // Initialize the line command safely now that we are 100% sure it's a 1-finger draw gesture.
+    // Initialize the line command safely now that single-finger draw intent is verified
     if (_activeCommand == null) {
       final strokeSettings = Paint()
         ..color = _strokeColor
@@ -311,24 +301,102 @@ class DrawScreenViewModel extends ChangeNotifier {
         ..strokeJoin = StrokeJoin.round
         ..style = PaintingStyle.stroke;
 
-      // Instantiate the brush path seamlessly at the clamped starting point
+      final cameraPayload = ToolMatrixPayload(
+        transform: _transform,
+        panStartOrigin: _panStartOrigin,
+        scaleStart: _scaleStart,
+        focalPointAtStart: _focalPointAtStart,
+        currentScale: scale,
+      );
+
       _activeCommand = _currentTool.onDrawStart(
-        clampedCanvasPoint, 
-        strokeSettings, 
-        Paint(), 
-        _activeLayerId!,
+        startPoint: _drawingStartPoint!,
+        strokeSettings: strokeSettings,
+        fillSettings: Paint(),
+        layerId: _activeLayerId!,
+        drawHistory: _drawHistory,
+        layerDrawHistory: _cachedLayerHistories,
+        camera: cameraPayload,
       );
       notifyListeners();
-      return; // Skip update step on the initialization frame to let the path stabilize
+      return;
     }
 
-    // Continue appending points into your active drawing path history list
-    _activeCommand = _currentTool.onUpdateTool(_activeCommand!, clampedCanvasPoint);
-    notifyListeners();
+    final cameraPayload = ToolMatrixPayload(
+      transform: _transform,
+      panStartOrigin: _panStartOrigin,
+      scaleStart: _scaleStart,
+      focalPointAtStart: _focalPointAtStart,
+      currentScale: scale,
+    );
+
+    final updatedCommand = _currentTool.onUpdateTool(
+      activeCommand: _activeCommand!,
+      newPoint: clampedCanvasPoint,
+      drawHistory: _drawHistory,
+      layerDrawHistory: _cachedLayerHistories,
+      camera: cameraPayload,
+      pointerCount: details.pointerCount,
+      gestureScale: details.scale,
+    );
+
+    if (updatedCommand != null) {
+      _activeCommand = updatedCommand;
+      notifyListeners();
+    }
   }
 
 
-    void resetView(Size viewportSize) {
+  void handleScaleEnd() {
+    _drawingStartPoint = null;
+    _isStrokeStabilized = false;
+
+    if (_activeLayerId == null) return;
+
+    final cameraPayload = ToolMatrixPayload(
+      transform: _transform,
+      panStartOrigin: _panStartOrigin,
+      scaleStart: _scaleStart,
+      focalPointAtStart: _focalPointAtStart,
+      currentScale: scale,
+    );
+
+    _currentTool.onDrawEnd(
+      activeCommand: _activeCommand,
+      layerId: _activeLayerId!,
+      drawHistory: _drawHistory,
+      layerDrawHistory: _cachedLayerHistories,
+      camera: cameraPayload,
+    );
+
+    _transform = cameraPayload.transform;
+    _panStartOrigin = cameraPayload.panStartOrigin;
+
+    if (isPanAndZoomActive) {
+      _transformRevision++;
+      notifyListeners();
+      return;
+    }
+
+    _redoHistory.clear();
+    _markLayerAsDirtyById(_activeLayerId!);
+    _activeCommand = null;
+    
+    _transformRevision++;
+    notifyListeners();
+
+    final targetLayerId = _activeLayerId!;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      getSnapshotCommandForLayer(targetLayerId).execute(targetLayerId);
+    });
+
+    if (!saveDirtyProgress.running) {
+      saveDirtyProgress.execute();
+    }
+  }
+
+
+  void resetView(Size viewportSize) {
     // 1. Calculate the empty padding space remaining when scale is exactly 1.0
     final double extraWidth = viewportSize.width - _canvasWidth;
     final double extraHeight = viewportSize.height - _canvasHeight;
@@ -340,7 +408,7 @@ class DrawScreenViewModel extends ChangeNotifier {
     // 3. Reset the master camera matrix back to default 100% scale and centered pan!
     // We instantiate a fresh Identity matrix, which naturally resets scale components to 1.0.
     _transform = Matrix4.identity();
-    
+
     // Index 12 is translation X, and Index 13 is translation Y in column-major layout.
     _transform[12] = centerX;
     _transform[13] = centerY;
@@ -349,7 +417,6 @@ class DrawScreenViewModel extends ChangeNotifier {
     _transformRevision++;
     notifyListeners();
   }
-
 
   void setActiveLayer(String layerId) {
     if (activeLayerId == layerId) return;
@@ -573,7 +640,6 @@ class DrawScreenViewModel extends ChangeNotifier {
         // _cachedLayerHistories.remove(layerId);
         _cachedLayerHistories.remove(layerId);
         _drawHistory.removeWhere((drawCMD) => drawCMD.layerId == layerId);
-        
 
         await _canvasDataRepository.modifyCanvasData(
           _currentCanvas!.copyWith(
@@ -678,7 +744,8 @@ class DrawScreenViewModel extends ChangeNotifier {
   }
 
   Future<Result> _getLayerSnapshot(String layerId) async {
-    final List<DrawCommand> layerHistory = _cachedLayerHistories[layerId] ?? const [];
+    final List<DrawCommand> layerHistory =
+        _cachedLayerHistories[layerId] ?? const [];
     if (layerHistory.isEmpty) {
       _layerSnapshots.remove(layerId);
       notifyListeners();

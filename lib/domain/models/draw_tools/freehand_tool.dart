@@ -10,8 +10,12 @@ class FreehandTool extends DrawTool {
   void draw(Canvas canvas, DrawCommand drawCommand) {
     if (drawCommand.points.isEmpty) return;
 
-    if(drawCommand.strokeSettings != null){
-    _drawIndividualLine(canvas, drawCommand.points, drawCommand.strokeSettings!);
+    if (drawCommand.strokeSettings != null) {
+      _drawIndividualLine(
+        canvas,
+        drawCommand.points,
+        drawCommand.strokeSettings!,
+      );
     }
   }
 
@@ -28,9 +32,35 @@ class FreehandTool extends DrawTool {
   }
 
   @override
-  DrawCommand onDrawStart(Offset startPoint, Paint strokeSettings, Paint fillSettings, String layerId) {
-    // Generate a fresh Freezed data block instantly
-    return DrawCommand.data(
+  void onDrawEnd({
+    required DrawCommand? activeCommand,
+    required String layerId,
+    required List<DrawCommand> drawHistory,
+    required Map<String, List<DrawCommand>> layerDrawHistory,
+    required ToolMatrixPayload camera
+  }) {
+    if(activeCommand != null && activeCommand.points.isNotEmpty){
+      drawHistory.add(activeCommand);
+
+    layerDrawHistory[layerId] = [
+      ...?layerDrawHistory[layerId],
+      activeCommand
+
+    ];
+    }
+  }
+
+  @override
+  DrawCommand? onDrawStart({
+    required Offset startPoint,
+    required Paint strokeSettings,
+    required Paint fillSettings,
+    required String layerId,
+    required List<DrawCommand> drawHistory,
+    required Map<String, List<DrawCommand>> layerDrawHistory,
+    required ToolMatrixPayload camera
+  }) {
+   return DrawCommand.data(
       toolName: toolName,
       layerId: layerId,
       points: [startPoint],
@@ -40,16 +70,18 @@ class FreehandTool extends DrawTool {
   }
 
   @override
-  DrawCommand onUpdateTool(DrawCommand currentCommand, Offset newPoint) {
-    // Return a cleanly copied Freezed snapshot
-    return currentCommand.copyWith(
-      points: [...currentCommand.points, newPoint],
+  DrawCommand? onUpdateTool({
+    required DrawCommand activeCommand,
+    required Offset newPoint,
+    required List<DrawCommand> drawHistory,
+    required Map<String, List<DrawCommand>> layerDrawHistory,
+    required double gestureScale,
+    required int pointerCount,
+    required ToolMatrixPayload camera
+    
+  }) {
+ return activeCommand.copyWith(
+      points: [...activeCommand.points, newPoint],
     );
   }
-
-  @override
-  DrawCommand onDrawEnd(DrawCommand currentCommand) {
-    return currentCommand; // Freehand doesn't need end-of-stroke processing adjustments
-  }
-
 }

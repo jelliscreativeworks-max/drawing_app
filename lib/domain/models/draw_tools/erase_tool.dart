@@ -6,29 +6,28 @@ import 'package:drawing_app/domain/models/draw_tools/draw_tool.dart';
 class EraseTool extends DrawTool{
   EraseTool({required super.toolName, required super.toolIcon});
 
-  @override
-  bool get isEraserTool => true;
-  
+
   @override
   void draw(Canvas canvas, DrawCommand drawCommand) {
     
   }
 
   @override
-  DrawCommand onDrawEnd(DrawCommand currentCommand) {
+  void onDrawEnd({required DrawCommand? activeCommand, required String layerId, required List<DrawCommand> drawHistory, required Map<String, List<DrawCommand>> layerDrawHistory, required ToolMatrixPayload camera}) {
     // TODO: implement onDrawEnd
-    throw UnimplementedError();
   }
 
   @override
-  DrawCommand onDrawStart(Offset startPoint, Paint strokeSettings, Paint fillSettings, String layerId) {
+  DrawCommand? onDrawStart({required Offset startPoint, required Paint strokeSettings, required Paint fillSettings, required String layerId, required List<DrawCommand> drawHistory, required Map<String, List<DrawCommand>> layerDrawHistory, required ToolMatrixPayload camera}) {
     // TODO: implement onDrawStart
     throw UnimplementedError();
   }
 
   @override
-  DrawCommand onUpdateTool(DrawCommand currentCommand, Offset newPoint) {
+  DrawCommand? onUpdateTool({required DrawCommand activeCommand, required Offset newPoint, required List<DrawCommand> drawHistory, required Map<String, List<DrawCommand>> layerDrawHistory, required ToolMatrixPayload camera, required int pointerCount, required double gestureScale}) {
     // TODO: implement onUpdateTool
     throw UnimplementedError();
   }
+
+
 }
