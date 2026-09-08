@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:typed_data';
+import 'package:drawing_app/domain/models/canvas_command/canvas_command.dart';
 import 'package:drawing_app/domain/models/draw_command/draw_command.dart';
 import 'package:drawing_app/domain/models/draw_tools/draw_tool.dart';
 import 'package:flutter/foundation.dart';

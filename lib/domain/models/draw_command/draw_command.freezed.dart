@@ -11,18 +11,11 @@ part of 'draw_command.dart';
 
 // dart format off
 T _$identity<T>(T value) => value;
-DrawCommand _$DrawCommandFromJson(
-  Map<String, dynamic> json
-) {
-    return _DrawCommandData.fromJson(
-      json
-    );
-}
 
 /// @nodoc
 mixin _$DrawCommand {
 
- String get toolName; String get layerId;@OffsetConverter() List<Offset> get points;@PaintConverter() Paint? get strokeSettings;@PaintConverter() Paint? get fillSettings;
+ String get layerId; String get toolName;@PaintConverter() Paint? get strokeSettings;@PaintConverter() Paint? get fillSettings;@OffsetConverter() List<Offset> get points;
 /// Create a copy of DrawCommand
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -35,16 +28,16 @@ $DrawCommandCopyWith<DrawCommand> get copyWith => _$DrawCommandCopyWithImpl<Draw
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is DrawCommand&&(identical(other.toolName, toolName) || other.toolName == toolName)&&(identical(other.layerId, layerId) || other.layerId == layerId)&&const DeepCollectionEquality().equals(other.points, points)&&(identical(other.strokeSettings, strokeSettings) || other.strokeSettings == strokeSettings)&&(identical(other.fillSettings, fillSettings) || other.fillSettings == fillSettings));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is DrawCommand&&(identical(other.layerId, layerId) || other.layerId == layerId)&&(identical(other.toolName, toolName) || other.toolName == toolName)&&(identical(other.strokeSettings, strokeSettings) || other.strokeSettings == strokeSettings)&&(identical(other.fillSettings, fillSettings) || other.fillSettings == fillSettings)&&const DeepCollectionEquality().equals(other.points, points));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,toolName,layerId,const DeepCollectionEquality().hash(points),strokeSettings,fillSettings);
+int get hashCode => Object.hash(runtimeType,layerId,toolName,strokeSettings,fillSettings,const DeepCollectionEquality().hash(points));
 
 @override
 String toString() {
-  return 'DrawCommand(toolName: $toolName, layerId: $layerId, points: $points, strokeSettings: $strokeSettings, fillSettings: $fillSettings)';
+  return 'DrawCommand(layerId: $layerId, toolName: $toolName, strokeSettings: $strokeSettings, fillSettings: $fillSettings, points: $points)';
 }
 
 
@@ -55,7 +48,7 @@ abstract mixin class $DrawCommandCopyWith<$Res>  {
   factory $DrawCommandCopyWith(DrawCommand value, $Res Function(DrawCommand) _then) = _$DrawCommandCopyWithImpl;
 @useResult
 $Res call({
- String toolName, String layerId,@OffsetConverter() List<Offset> points,@PaintConverter() Paint? strokeSettings,@PaintConverter() Paint? fillSettings
+ String layerId, String toolName,@PaintConverter() Paint? strokeSettings,@PaintConverter() Paint? fillSettings,@OffsetConverter() List<Offset> points
 });
 
 
@@ -72,14 +65,14 @@ class _$DrawCommandCopyWithImpl<$Res>
 
 /// Create a copy of DrawCommand
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? toolName = null,Object? layerId = null,Object? points = null,Object? strokeSettings = freezed,Object? fillSettings = freezed,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? layerId = null,Object? toolName = null,Object? strokeSettings = freezed,Object? fillSettings = freezed,Object? points = null,}) {
   return _then(_self.copyWith(
-toolName: null == toolName ? _self.toolName : toolName // ignore: cast_nullable_to_non_nullable
-as String,layerId: null == layerId ? _self.layerId : layerId // ignore: cast_nullable_to_non_nullable
-as String,points: null == points ? _self.points : points // ignore: cast_nullable_to_non_nullable
-as List<Offset>,strokeSettings: freezed == strokeSettings ? _self.strokeSettings : strokeSettings // ignore: cast_nullable_to_non_nullable
+layerId: null == layerId ? _self.layerId : layerId // ignore: cast_nullable_to_non_nullable
+as String,toolName: null == toolName ? _self.toolName : toolName // ignore: cast_nullable_to_non_nullable
+as String,strokeSettings: freezed == strokeSettings ? _self.strokeSettings : strokeSettings // ignore: cast_nullable_to_non_nullable
 as Paint?,fillSettings: freezed == fillSettings ? _self.fillSettings : fillSettings // ignore: cast_nullable_to_non_nullable
-as Paint?,
+as Paint?,points: null == points ? _self.points : points // ignore: cast_nullable_to_non_nullable
+as List<Offset>,
   ));
 }
 
@@ -100,11 +93,11 @@ extension DrawCommandPatterns on DrawCommand {
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeMap<TResult extends Object?>({TResult Function( _DrawCommandData value)?  data,required TResult orElse(),}){
+@optionalTypeArgs TResult maybeMap<TResult extends Object?>(TResult Function( _DrawCommand value)?  $default,{required TResult orElse(),}){
 final _that = this;
 switch (_that) {
-case _DrawCommandData() when data != null:
-return data(_that);case _:
+case _DrawCommand() when $default != null:
+return $default(_that);case _:
   return orElse();
 
 }
@@ -122,11 +115,11 @@ return data(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult map<TResult extends Object?>({required TResult Function( _DrawCommandData value)  data,}){
+@optionalTypeArgs TResult map<TResult extends Object?>(TResult Function( _DrawCommand value)  $default,){
 final _that = this;
 switch (_that) {
-case _DrawCommandData():
-return data(_that);case _:
+case _DrawCommand():
+return $default(_that);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -143,11 +136,11 @@ return data(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult? mapOrNull<TResult extends Object?>({TResult? Function( _DrawCommandData value)?  data,}){
+@optionalTypeArgs TResult? mapOrNull<TResult extends Object?>(TResult? Function( _DrawCommand value)?  $default,){
 final _that = this;
 switch (_that) {
-case _DrawCommandData() when data != null:
-return data(_that);case _:
+case _DrawCommand() when $default != null:
+return $default(_that);case _:
   return null;
 
 }
@@ -164,10 +157,10 @@ return data(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>({TResult Function( String toolName,  String layerId, @OffsetConverter()  List<Offset> points, @PaintConverter()  Paint? strokeSettings, @PaintConverter()  Paint? fillSettings)?  data,required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String layerId,  String toolName, @PaintConverter()  Paint? strokeSettings, @PaintConverter()  Paint? fillSettings, @OffsetConverter()  List<Offset> points)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
-case _DrawCommandData() when data != null:
-return data(_that.toolName,_that.layerId,_that.points,_that.strokeSettings,_that.fillSettings);case _:
+case _DrawCommand() when $default != null:
+return $default(_that.layerId,_that.toolName,_that.strokeSettings,_that.fillSettings,_that.points);case _:
   return orElse();
 
 }
@@ -185,10 +178,10 @@ return data(_that.toolName,_that.layerId,_that.points,_that.strokeSettings,_that
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>({required TResult Function( String toolName,  String layerId, @OffsetConverter()  List<Offset> points, @PaintConverter()  Paint? strokeSettings, @PaintConverter()  Paint? fillSettings)  data,}) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String layerId,  String toolName, @PaintConverter()  Paint? strokeSettings, @PaintConverter()  Paint? fillSettings, @OffsetConverter()  List<Offset> points)  $default,) {final _that = this;
 switch (_that) {
-case _DrawCommandData():
-return data(_that.toolName,_that.layerId,_that.points,_that.strokeSettings,_that.fillSettings);case _:
+case _DrawCommand():
+return $default(_that.layerId,_that.toolName,_that.strokeSettings,_that.fillSettings,_that.points);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -205,10 +198,10 @@ return data(_that.toolName,_that.layerId,_that.points,_that.strokeSettings,_that
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>({TResult? Function( String toolName,  String layerId, @OffsetConverter()  List<Offset> points, @PaintConverter()  Paint? strokeSettings, @PaintConverter()  Paint? fillSettings)?  data,}) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String layerId,  String toolName, @PaintConverter()  Paint? strokeSettings, @PaintConverter()  Paint? fillSettings, @OffsetConverter()  List<Offset> points)?  $default,) {final _that = this;
 switch (_that) {
-case _DrawCommandData() when data != null:
-return data(_that.toolName,_that.layerId,_that.points,_that.strokeSettings,_that.fillSettings);case _:
+case _DrawCommand() when $default != null:
+return $default(_that.layerId,_that.toolName,_that.strokeSettings,_that.fillSettings,_that.points);case _:
   return null;
 
 }
@@ -219,12 +212,12 @@ return data(_that.toolName,_that.layerId,_that.points,_that.strokeSettings,_that
 /// @nodoc
 @JsonSerializable()
 
-class _DrawCommandData extends DrawCommand {
-   _DrawCommandData({required this.toolName, required this.layerId, @OffsetConverter() required final  List<Offset> points, @PaintConverter() this.strokeSettings, @PaintConverter() this.fillSettings}): _points = points,super._();
-  factory _DrawCommandData.fromJson(Map<String, dynamic> json) => _$DrawCommandDataFromJson(json);
+class _DrawCommand extends DrawCommand {
+  const _DrawCommand({required final  String layerId, required final  String toolName, @PaintConverter() this.strokeSettings, @PaintConverter() this.fillSettings, @OffsetConverter() required final  List<Offset> points}): _points = points,super._(layerId: layerId, toolName: toolName);
+  factory _DrawCommand.fromJson(Map<String, dynamic> json) => _$DrawCommandFromJson(json);
 
-@override final  String toolName;
-@override final  String layerId;
+@override@PaintConverter() final  Paint? strokeSettings;
+@override@PaintConverter() final  Paint? fillSettings;
  final  List<Offset> _points;
 @override@OffsetConverter() List<Offset> get points {
   if (_points is EqualUnmodifiableListView) return _points;
@@ -232,43 +225,41 @@ class _DrawCommandData extends DrawCommand {
   return EqualUnmodifiableListView(_points);
 }
 
-@override@PaintConverter() final  Paint? strokeSettings;
-@override@PaintConverter() final  Paint? fillSettings;
 
 /// Create a copy of DrawCommand
 /// with the given fields replaced by the non-null parameter values.
 @override @JsonKey(includeFromJson: false, includeToJson: false)
 @pragma('vm:prefer-inline')
-_$DrawCommandDataCopyWith<_DrawCommandData> get copyWith => __$DrawCommandDataCopyWithImpl<_DrawCommandData>(this, _$identity);
+_$DrawCommandCopyWith<_DrawCommand> get copyWith => __$DrawCommandCopyWithImpl<_DrawCommand>(this, _$identity);
 
 @override
 Map<String, dynamic> toJson() {
-  return _$DrawCommandDataToJson(this, );
+  return _$DrawCommandToJson(this, );
 }
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _DrawCommandData&&(identical(other.toolName, toolName) || other.toolName == toolName)&&(identical(other.layerId, layerId) || other.layerId == layerId)&&const DeepCollectionEquality().equals(other._points, _points)&&(identical(other.strokeSettings, strokeSettings) || other.strokeSettings == strokeSettings)&&(identical(other.fillSettings, fillSettings) || other.fillSettings == fillSettings));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _DrawCommand&&(identical(other.layerId, layerId) || other.layerId == layerId)&&(identical(other.toolName, toolName) || other.toolName == toolName)&&(identical(other.strokeSettings, strokeSettings) || other.strokeSettings == strokeSettings)&&(identical(other.fillSettings, fillSettings) || other.fillSettings == fillSettings)&&const DeepCollectionEquality().equals(other._points, _points));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,toolName,layerId,const DeepCollectionEquality().hash(_points),strokeSettings,fillSettings);
+int get hashCode => Object.hash(runtimeType,layerId,toolName,strokeSettings,fillSettings,const DeepCollectionEquality().hash(_points));
 
 @override
 String toString() {
-  return 'DrawCommand.data(toolName: $toolName, layerId: $layerId, points: $points, strokeSettings: $strokeSettings, fillSettings: $fillSettings)';
+  return 'DrawCommand(layerId: $layerId, toolName: $toolName, strokeSettings: $strokeSettings, fillSettings: $fillSettings, points: $points)';
 }
 
 
 }
 
 /// @nodoc
-abstract mixin class _$DrawCommandDataCopyWith<$Res> implements $DrawCommandCopyWith<$Res> {
-  factory _$DrawCommandDataCopyWith(_DrawCommandData value, $Res Function(_DrawCommandData) _then) = __$DrawCommandDataCopyWithImpl;
+abstract mixin class _$DrawCommandCopyWith<$Res> implements $DrawCommandCopyWith<$Res> {
+  factory _$DrawCommandCopyWith(_DrawCommand value, $Res Function(_DrawCommand) _then) = __$DrawCommandCopyWithImpl;
 @override @useResult
 $Res call({
- String toolName, String layerId,@OffsetConverter() List<Offset> points,@PaintConverter() Paint? strokeSettings,@PaintConverter() Paint? fillSettings
+ String layerId, String toolName,@PaintConverter() Paint? strokeSettings,@PaintConverter() Paint? fillSettings,@OffsetConverter() List<Offset> points
 });
 
 
@@ -276,23 +267,23 @@ $Res call({
 
 }
 /// @nodoc
-class __$DrawCommandDataCopyWithImpl<$Res>
-    implements _$DrawCommandDataCopyWith<$Res> {
-  __$DrawCommandDataCopyWithImpl(this._self, this._then);
+class __$DrawCommandCopyWithImpl<$Res>
+    implements _$DrawCommandCopyWith<$Res> {
+  __$DrawCommandCopyWithImpl(this._self, this._then);
 
-  final _DrawCommandData _self;
-  final $Res Function(_DrawCommandData) _then;
+  final _DrawCommand _self;
+  final $Res Function(_DrawCommand) _then;
 
 /// Create a copy of DrawCommand
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? toolName = null,Object? layerId = null,Object? points = null,Object? strokeSettings = freezed,Object? fillSettings = freezed,}) {
-  return _then(_DrawCommandData(
-toolName: null == toolName ? _self.toolName : toolName // ignore: cast_nullable_to_non_nullable
-as String,layerId: null == layerId ? _self.layerId : layerId // ignore: cast_nullable_to_non_nullable
-as String,points: null == points ? _self._points : points // ignore: cast_nullable_to_non_nullable
-as List<Offset>,strokeSettings: freezed == strokeSettings ? _self.strokeSettings : strokeSettings // ignore: cast_nullable_to_non_nullable
+@override @pragma('vm:prefer-inline') $Res call({Object? layerId = null,Object? toolName = null,Object? strokeSettings = freezed,Object? fillSettings = freezed,Object? points = null,}) {
+  return _then(_DrawCommand(
+layerId: null == layerId ? _self.layerId : layerId // ignore: cast_nullable_to_non_nullable
+as String,toolName: null == toolName ? _self.toolName : toolName // ignore: cast_nullable_to_non_nullable
+as String,strokeSettings: freezed == strokeSettings ? _self.strokeSettings : strokeSettings // ignore: cast_nullable_to_non_nullable
 as Paint?,fillSettings: freezed == fillSettings ? _self.fillSettings : fillSettings // ignore: cast_nullable_to_non_nullable
-as Paint?,
+as Paint?,points: null == points ? _self._points : points // ignore: cast_nullable_to_non_nullable
+as List<Offset>,
   ));
 }
 

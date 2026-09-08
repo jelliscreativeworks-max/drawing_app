@@ -1,13 +1,16 @@
 import 'dart:async';
 import 'dart:typed_data';
+import 'dart:ui';
 
 import 'package:drawing_app/data/repositories/canvas_data_repository/canvas_data_repository.dart';
 import 'package:drawing_app/data/repositories/layer_data_repository/layer_data_repository.dart';
 import 'package:drawing_app/domain/models/canvas/canvas_data.dart';
+import 'package:drawing_app/domain/models/canvas_command/canvas_command.dart';
 import 'package:drawing_app/domain/models/draw_command/draw_command.dart';
 import 'package:drawing_app/domain/models/draw_layer/draw_layer.dart';
 import 'package:drawing_app/domain/models/draw_tools/draw_tool.dart';
 import 'package:drawing_app/domain/models/draw_tools/draw_tools_list.dart';
+import 'package:drawing_app/domain/models/erase_command/erase_command.dart';
 import 'package:drawing_app/utils/command.dart';
 import 'package:drawing_app/utils/image_conversion.dart';
 import 'package:drawing_app/utils/result.dart';
@@ -38,6 +41,8 @@ class DrawScreenViewModel extends ChangeNotifier {
   }
 
   static const canvasBackgroundColor = Colors.white;
+
+  FragmentShader? gridShader;
 
   double _canvasWidth = 2000.0;
   double _canvasHeight = 2000.0;
@@ -91,19 +96,23 @@ class DrawScreenViewModel extends ChangeNotifier {
   Map<String, Uint8List> get layerSnapshots => _layerSnapshots;
   String? get activeLayerId => _activeLayerId;
   DrawTool get currentTool => _currentTool;
-  DrawCommand? get activeCommand => _activeCommand;
+  CanvasCommand? get activeCommand => _activeCommand;
   List<DrawCommand> get drawHistory => _drawHistory;
-  List<DrawCommand> get redoHistory => _redoHistory;
+  List<CanvasCommand> get redoHistory => _redoHistory;
   Color get strokeColor => _strokeColor;
   double get strokeWidth => _strokeWidth;
-  bool get canUndo => _drawHistory.isNotEmpty;
+  bool get canUndo => _undoHistory.isNotEmpty;
   bool get canRedo => _redoHistory.isNotEmpty;
 
   late DrawTool _currentTool;
-  DrawCommand? _activeCommand;
+  CanvasCommand? _activeCommand;
+  DrawCommand? get activeDrawCommand => _activeCommand is DrawCommand ? _activeCommand as DrawCommand : null;
+
+  
 
   final List<DrawCommand> _drawHistory = [];
-  final List<DrawCommand> _redoHistory = [];
+   final List<CanvasCommand>_undoHistory = [];
+  final List<CanvasCommand> _redoHistory = [];
   final Map<String, Uint8List> _layerSnapshots = {};
 
   final GlobalKey canvasKey = GlobalKey();
@@ -234,7 +243,7 @@ class DrawScreenViewModel extends ChangeNotifier {
         );
 
         _currentTool.onUpdateTool(
-          activeCommand: DrawCommand.data(toolName: '', layerId: '', points: const []),
+          activeCommand: DrawCommand(layerId: '', toolName: '', points: const[]),
           newPoint: details.localFocalPoint, 
           drawHistory: _drawHistory,
           layerDrawHistory: _cachedLayerHistories,
@@ -365,6 +374,8 @@ class DrawScreenViewModel extends ChangeNotifier {
       activeCommand: _activeCommand,
       layerId: _activeLayerId!,
       drawHistory: _drawHistory,
+      undoHistory: _undoHistory,
+      redoHistory: _redoHistory,
       layerDrawHistory: _cachedLayerHistories,
       camera: cameraPayload,
     );
@@ -378,7 +389,9 @@ class DrawScreenViewModel extends ChangeNotifier {
       return;
     }
 
-    _redoHistory.clear();
+  
+    // _redoHistory.clear();
+    _rebuildCacheForLayer(_activeLayerId!);
     _markLayerAsDirtyById(_activeLayerId!);
     _activeCommand = null;
     
@@ -431,10 +444,12 @@ class DrawScreenViewModel extends ChangeNotifier {
   // Inside drawing_app/lib/ui/draw_screen/view_models/draw_screen_view_model.dart
 
   void executeUndo() {
-    if (_drawHistory.isEmpty) return;
+    if (_undoHistory.isEmpty) return;
 
-    final cmd = _drawHistory.removeLast();
-    _redoHistory.add(cmd);
+    final cmd = _undoHistory.last;
+    cmd.undo(drawHistory: _drawHistory, undoHistory: _undoHistory, redoHistory: _redoHistory);
+
+   
 
     _rebuildCacheForLayer(cmd.layerId);
     _markLayerAsDirtyById(cmd.layerId);
@@ -456,8 +471,10 @@ class DrawScreenViewModel extends ChangeNotifier {
   void executeRedo() {
     if (_redoHistory.isEmpty) return;
 
-    final cmd = _redoHistory.removeLast();
-    _drawHistory.add(cmd);
+    final cmd = _redoHistory.last;
+    cmd.redo(drawHistory: _drawHistory, undoHistory: _undoHistory, redoHistory: _redoHistory);
+
+    
 
     _rebuildCacheForLayer(cmd.layerId);
     _markLayerAsDirtyById(cmd.layerId);

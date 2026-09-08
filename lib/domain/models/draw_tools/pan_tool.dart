@@ -1,5 +1,6 @@
 import 'dart:ui';
 
+import 'package:drawing_app/domain/models/canvas_command/canvas_command.dart';
 import 'package:drawing_app/domain/models/draw_command/draw_command.dart';
 import 'package:drawing_app/domain/models/draw_tools/draw_tool.dart';
 import 'package:flutter/material.dart';
@@ -11,20 +12,17 @@ class PanTool extends DrawTool{
   bool get isNavigationTool => true;
 
   @override
-  void draw(Canvas canvas, DrawCommand drawCommand){}
+  void draw(Canvas canvas, CanvasCommand drawCommand){}
+
+
 
   @override
-  void onDrawEnd({required DrawCommand? activeCommand, required String layerId, required List<DrawCommand> drawHistory, required Map<String, List<DrawCommand>> layerDrawHistory, required ToolMatrixPayload camera}) {
-
-  }
-
-  @override
-  DrawCommand? onDrawStart({required Offset startPoint, required Paint strokeSettings, required Paint fillSettings, required String layerId, required List<DrawCommand> drawHistory, required Map<String, List<DrawCommand>> layerDrawHistory, required ToolMatrixPayload camera}) {
+  CanvasCommand? onDrawStart({required Offset startPoint, required Paint strokeSettings, required Paint fillSettings, required String layerId, required List<CanvasCommand> drawHistory, required Map<String, List<CanvasCommand>> layerDrawHistory, required ToolMatrixPayload camera}) {
     return null;
   }
 
   @override
-  DrawCommand? onUpdateTool({required DrawCommand activeCommand, required Offset newPoint, required List<DrawCommand> drawHistory, required Map<String, List<DrawCommand>> layerDrawHistory, required ToolMatrixPayload camera, required int pointerCount, required double gestureScale}) {
+  CanvasCommand? onUpdateTool({required CanvasCommand activeCommand, required Offset newPoint, required List<CanvasCommand> drawHistory, required Map<String, List<CanvasCommand>> layerDrawHistory, required ToolMatrixPayload camera, required int pointerCount, required double gestureScale}) {
   if (pointerCount <= 1) {
       final Offset screenDelta = newPoint - camera.panStartOrigin;
       if (screenDelta == Offset.zero) return null;
@@ -57,5 +55,10 @@ class PanTool extends DrawTool{
     camera.transform.translate(structuralDelta.dx / camera.currentScale, structuralDelta.dy / camera.currentScale);
     return null;
   }
+
+  @override
+  void onDrawEnd({required CanvasCommand? activeCommand, required String layerId, required List<DrawCommand> drawHistory, required List<CanvasCommand> undoHistory, required List<CanvasCommand> redoHistory, required Map<String, List<DrawCommand>> layerDrawHistory, required ToolMatrixPayload camera}){}
+
+
 
 }

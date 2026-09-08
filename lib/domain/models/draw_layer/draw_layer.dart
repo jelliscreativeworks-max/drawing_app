@@ -1,5 +1,6 @@
 import 'dart:typed_data';
 
+import 'package:drawing_app/domain/models/canvas_command/canvas_command.dart';
 import 'package:drawing_app/domain/models/draw_command/draw_command.dart';
 import 'package:drawing_app/utils/converters.dart';
 import 'package:freezed_annotation/freezed_annotation.dart';
