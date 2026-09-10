@@ -1,5 +1,5 @@
 import 'package:drawing_app/data/repositories/canvas_data_repository/canvas_data_repository.dart';
-import 'package:drawing_app/domain/models/canvas/canvas_data.dart';
+import 'package:drawing_app/domain/models/canvas_data/canvas_data.dart';
 import 'package:drawing_app/utils/command.dart';
 import 'package:drawing_app/utils/result.dart';
 import 'package:flutter/material.dart';
@@ -29,4 +29,5 @@ class ProjectScreenViewModel extends ChangeNotifier{
         return Result.error(result.error);
     }
   }
+
 }

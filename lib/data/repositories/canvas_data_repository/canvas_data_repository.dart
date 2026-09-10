@@ -1,4 +1,4 @@
-import 'package:drawing_app/domain/models/canvas/canvas_data.dart';
+import 'package:drawing_app/domain/models/canvas_data/canvas_data.dart';
 import 'package:drawing_app/utils/result.dart';
 
 abstract class CanvasDataRepository {

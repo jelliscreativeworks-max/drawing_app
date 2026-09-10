@@ -1,14 +1,15 @@
 // GENERATED CODE - DO NOT MODIFY BY HAND
 
-part of 'draw_command.dart';
+part of 'draw_data.dart';
 
 // **************************************************************************
 // JsonSerializableGenerator
 // **************************************************************************
 
-_DrawCommand _$DrawCommandFromJson(Map<String, dynamic> json) => _DrawCommand(
+_DrawData _$DrawDataFromJson(Map<String, dynamic> json) => _DrawData(
   layerId: json['layerId'] as String,
   toolName: json['toolName'] as String,
+  index: (json['index'] as num).toInt(),
   strokeSettings: _$JsonConverterFromJson<Map<String, dynamic>, Paint>(
     json['strokeSettings'],
     const PaintConverter().fromJson,
@@ -22,20 +23,20 @@ _DrawCommand _$DrawCommandFromJson(Map<String, dynamic> json) => _DrawCommand(
       .toList(),
 );
 
-Map<String, dynamic> _$DrawCommandToJson(_DrawCommand instance) =>
-    <String, dynamic>{
-      'toolName': instance.toolName,
-      'layerId': instance.layerId,
-      'strokeSettings': _$JsonConverterToJson<Map<String, dynamic>, Paint>(
-        instance.strokeSettings,
-        const PaintConverter().toJson,
-      ),
-      'fillSettings': _$JsonConverterToJson<Map<String, dynamic>, Paint>(
-        instance.fillSettings,
-        const PaintConverter().toJson,
-      ),
-      'points': instance.points.map(const OffsetConverter().toJson).toList(),
-    };
+Map<String, dynamic> _$DrawDataToJson(_DrawData instance) => <String, dynamic>{
+  'layerId': instance.layerId,
+  'toolName': instance.toolName,
+  'index': instance.index,
+  'strokeSettings': _$JsonConverterToJson<Map<String, dynamic>, Paint>(
+    instance.strokeSettings,
+    const PaintConverter().toJson,
+  ),
+  'fillSettings': _$JsonConverterToJson<Map<String, dynamic>, Paint>(
+    instance.fillSettings,
+    const PaintConverter().toJson,
+  ),
+  'points': instance.points.map(const OffsetConverter().toJson).toList(),
+};
 
 Value? _$JsonConverterFromJson<Json, Value>(
   Object? json,

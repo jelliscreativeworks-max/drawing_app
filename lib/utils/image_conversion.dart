@@ -1,8 +1,8 @@
 import 'dart:async';
 import 'dart:typed_data';
-import 'package:drawing_app/domain/models/canvas_command/canvas_command.dart';
-import 'package:drawing_app/domain/models/draw_command/draw_command.dart';
-import 'package:drawing_app/domain/models/draw_tools/draw_tool.dart';
+import 'package:drawing_app/ui/core/commands/canvas_command.dart';
+import 'package:drawing_app/domain/models/draw_data/draw_data.dart';
+import 'package:drawing_app/ui/core/draw_tools/draw_tool.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'dart:ui' as ui;
@@ -44,8 +44,8 @@ class CanvasToImageProcessor {
 
   // 🌟 THE PRODUCTION FIX: Render pure vector arrays directly to an offscreen image buffer!
   Future<Uint8List?> generateLayerSnapshotFromVectors({
-    required List<DrawCommand> layerHistory,
-    required Map<String, DrawTool> drawTools,
+    required List<DrawData> layerHistory,
+    required Map<Type, DrawTool> drawTools,
     double transparency = 1.0,
     double targetWidth = 500.0,
     double targetHeight = 500.0,
@@ -73,12 +73,11 @@ class CanvasToImageProcessor {
     offscreenCanvas.scale(scaleX, scaleY);
 
     // 4. DRAW THE VECTORS PASSIVELY (Completely free from InteractiveViewer pan/zoom offsets!)
-    for (DrawCommand command in layerHistory) {
-      final tool = drawTools[command.toolName];
-      if (tool != null) {
-        command.draw(offscreenCanvas, tool);
+    for (DrawData command in layerHistory) {
+      final tool = drawTools.values.singleWhere((tool) => tool.toolName == command.toolName);
+        tool.draw(offscreenCanvas, command);
       }
-    }
+
 
     // 5. Finalize recording and compile directly into an un-compressed raw image buffer matrix
     final ui.Picture picture = recorder.endRecording();

@@ -1,16 +1,20 @@
 import 'dart:typed_data';
-import 'package:drawing_app/ui/draw_screen/view_models/draw_screen_view_model.dart';
-import 'package:drawing_app/utils/result.dart';
 import 'package:flutter/material.dart';
+import 'package:drawing_app/ui/draw_screen/view_models/draw_screen_view_model.dart';
+import 'package:drawing_app/ui/core/draw_tools/draw_tool.dart';
+
 class LayerPreviewWidget extends StatefulWidget {
   final String layerId;
   final DrawScreenViewModel viewModel;
-
+  
+  /// Injected from your view panel sidebar ribbon loop layout (e.g. toolController.tools)
+  final Map<Type, DrawTool> drawTools;
 
   const LayerPreviewWidget({
     super.key,
     required this.layerId,
     required this.viewModel,
+    required this.drawTools,
   });
 
   @override
@@ -27,27 +31,28 @@ class _LayerPreviewWidgetState extends State<LayerPreviewWidget> {
   @override
   void didUpdateWidget(covariant LayerPreviewWidget oldWidget) {
     super.didUpdateWidget(oldWidget);
-    // If the layer changes, check if we need to load data for the new ID
-    if (oldWidget.layerId != widget.layerId) {
+    // Secure guard check: If the layout item shifts, ensure alternative tracks refresh
+    if (oldWidget.layerId != widget.layerId || oldWidget.drawTools != widget.drawTools) {
       _checkAndScheduleSnapshot();
     }
   }
 
   void _checkAndScheduleSnapshot() {
-    // 🟢 HOT RESTART & COLD BOOT FIX: If memory cache is empty when this widget mounts,
-    // look up its unique command instance and request an isolated snapshot pass.
+    // HOT RESTART & COLD BOOT RECOVERY FIX: If memory caches are clear on initialization,
+    // look up its concurrent command script blueprint and run an isolation calculation pass.
     if (widget.viewModel.layerSnapshots[widget.layerId] == null) {
       WidgetsBinding.instance.addPostFrameCallback((_) async {
         if (!mounted) return;
         
-        // Give the main canvas painter one tiny engine event loop tick 
-        // to render its vector paths cleanly before we capture its pixels.
+        // Give Flutter's master engine layout loop exactly 1 tick to build visual dimensions
+        // before we request background isolate image rendering computations
         await Future.delayed(Duration.zero);
         
         if (mounted) {
+          // 🟢 FIXED: Successfully passes both mandatory arguments down the timeline pipeline map
           widget.viewModel
-              .getSnapshotCommandForLayer(widget.layerId)
-              .execute(widget.layerId);
+              .getSnapshotCommandForLayer(widget.layerId, widget.drawTools)
+              .execute(widget.layerId, widget.drawTools);
         }
       });
     }
@@ -55,47 +60,74 @@ class _LayerPreviewWidgetState extends State<LayerPreviewWidget> {
 
   @override
   Widget build(BuildContext context) {
-    final layerCommand = widget.viewModel.getSnapshotCommandForLayer(widget.layerId);
+    // Pull the specific command tracker instance from our centralized map registry
+    final layerCommand = widget.viewModel.getSnapshotCommandForLayer(widget.layerId, widget.drawTools);
 
     return ListenableBuilder(
-      listenable: layerCommand,
+      listenable: Listenable.merge([
+        widget.viewModel, // Listens to row layer selection adjustments
+        layerCommand,     // Listens to async .running snapshot generation cycles
+      ]),
       builder: (context, child) {
         final cachedBytes = widget.viewModel.layerSnapshots[widget.layerId];
+        final isSelected = widget.viewModel.activeLayerId == widget.layerId;
         final isThisLayerProcessing = layerCommand.running;
 
         return Material(
           type: MaterialType.button,
+          // 🟢 FIXED: Corrected abstract BorderRadiusGeometry typo to explicit concrete BorderRadius
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadiusGeometry.circular(4),
-            side: widget.viewModel.activeLayerId == widget.layerId ? BorderSide(color: Colors.blueAccent) : BorderSide.none),
-          color: DrawScreenViewModel.canvasBackgroundColor,
+            borderRadius: BorderRadius.circular(4),
+            side: isSelected 
+                ? const BorderSide(color: Colors.blueAccent, width: 2.0) 
+                : BorderSide(color: Colors.grey.shade800, width: 1.0),
+          ),
+          color: Colors.grey.shade50,
           child: Ink(
-
             width: 60,
             height: 60,
             child: InkWell(
               splashFactory: NoSplash.splashFactory,
-              onTap: () => widget.viewModel.activeLayerId == widget.layerId ? widget.viewModel.deleteLayer.execute(widget.layerId) :widget.viewModel.setActiveLayer(widget.layerId),
+              // Cleaned selection focus mapping assignment loop:
+              onTap: () => widget.viewModel.setActiveLayer(
+                widget.viewModel.layers.indexWhere((l) => l.id == widget.layerId),
+              ),
               child: Stack(
                 alignment: Alignment.center,
                 children: [
+                  // A. Transparent Grid Checker Blueprint Canvas Back-Background
+                  Positioned.fill(
+                    child: Container(color: Colors.grey.shade900),
+                  ),
+
+                  // B. Stable Image Snapshot Binary Bytes Render
                   if (cachedBytes != null && cachedBytes.isNotEmpty)
-                    Image.memory(
-                      cachedBytes, 
-                      fit: BoxFit.contain, 
-                      gaplessPlayback: true, // Prevents white flashes on brush strokes
-                    )
-                  // else
-                  //   const Icon(Icons.image, color: Colors.grey),
+                    Positioned.fill(
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(3),
+                        child: Image.memory(
+                          cachedBytes, 
+                          fit: BoxFit.contain, 
+                          gaplessPlayback: true, // Prevents annoying white flickering during real-time brush strokes
+                        ),
+                      ),
+                    ),
                       
-                  // if (isThisLayerProcessing)
-                  //   const Center(
-                  //     child: SizedBox(
-                  //       width: 12, 
-                  //       height: 12, 
-                  //       child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
-                  //     ),
-                  //   ),
+                  // C. High-Performance Overlay Loader Spinner Indicator
+                  if (isThisLayerProcessing)
+                    Container(
+                      color: Colors.black45, // Dim background sheet slightly while drawing
+                      child: const Center(
+                        child: SizedBox(
+                          width: 14, 
+                          height: 14, 
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2, 
+                            color: Colors.blueAccent,
+                          ),
+                        ),
+                      ),
+                    ),
                 ],
               ),
             ),

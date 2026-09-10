@@ -1,6 +1,6 @@
 import 'package:drawing_app/data/repositories/layer_data_repository/layer_data_repository.dart';
 import 'package:drawing_app/data/services/local_data_service.dart';
-import 'package:drawing_app/domain/models/draw_layer/draw_layer.dart';
+import 'package:drawing_app/domain/models/layer_data/layer_data.dart';
 import 'package:drawing_app/utils/result.dart';
 
 
@@ -12,7 +12,7 @@ class LayerDataRepositoryLocal implements LayerDataRepository {
 
 
   // In-memory layer cache scoped to the currently active project
-  final List<DrawLayer> _cachedLayers = List<DrawLayer>.empty(growable: true);
+  final List<LayerData> _cachedLayers = List<LayerData>.empty(growable: true);
 
 
   String? _cachedProjectId;
@@ -29,10 +29,10 @@ class LayerDataRepositoryLocal implements LayerDataRepository {
   }
 
   @override
-  Future<Result<List<DrawLayer>>> getAllCanvasLayers(String projectId) async {
+  Future<Result<List<LayerData>>> getAllCanvasLayers(String projectId) async {
     // If already cached for this exact project, return the cache instantly
     if (_cachedProjectId == projectId) {
-      return Result.ok(List<DrawLayer>.from(_cachedLayers));
+      return Result.ok(List<LayerData>.from(_cachedLayers));
     }
 
     try {
@@ -43,14 +43,14 @@ class LayerDataRepositoryLocal implements LayerDataRepository {
       _cachedLayers.addAll(layers);
       _cachedProjectId = projectId;
       
-      return Result.ok(List<DrawLayer>.from(_cachedLayers));
+      return Result.ok(List<LayerData>.from(_cachedLayers));
     } catch (e) {
       return Result.error(Exception('Failed to load layers for project $projectId: $e'));
     }
   }
 
   @override
-  Future<Result<DrawLayer>> getLayer(String id) async {
+  Future<Result<LayerData>> getLayer(String id) async {
     // Look up in the active memory cache for extreme UI rendering speed
     final cached = _cachedLayers.where((l) => l.id == id).firstOrNull;
     if (cached != null) return Result.ok(cached);
@@ -59,7 +59,7 @@ class LayerDataRepositoryLocal implements LayerDataRepository {
   }
 
   @override
-  Future<Result<DrawLayer>> addLayer(DrawLayer newLayer) async {
+  Future<Result<LayerData>> addLayer(LayerData newLayer) async {
     final loadCheck = await _ensureLoaded(newLayer.canvasId);
     if (loadCheck is Error) return Result.error((loadCheck).error);
 
@@ -123,7 +123,7 @@ class LayerDataRepositoryLocal implements LayerDataRepository {
   }
 
   @override
-  Future<Result<void>> saveDirtyLayers(List<DrawLayer> layers) async {
+  Future<Result<void>> saveDirtyLayers(List<LayerData> layers) async {
     // Short circuit if ViewModel evaluates that nothing was modified this stroke
     if (layers.isEmpty) return Result.ok(null);
     

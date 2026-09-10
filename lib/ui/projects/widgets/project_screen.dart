@@ -23,6 +23,7 @@ class ProjectScreen extends StatelessWidget {
         },);
       }
       ),
+      floatingActionButton: FloatingActionButton(child: Icon(Icons.add),onPressed: () => context.go(Routes.canvasNew)),
     );
   }
 }

@@ -1,6 +1,6 @@
 import 'package:drawing_app/data/repositories/canvas_data_repository/canvas_data_repository.dart';
 import 'package:drawing_app/data/services/local_data_service.dart';
-import 'package:drawing_app/domain/models/canvas/canvas_data.dart';
+import 'package:drawing_app/domain/models/canvas_data/canvas_data.dart';
 import 'package:drawing_app/utils/result.dart';
 import 'package:uuid/uuid.dart';
 

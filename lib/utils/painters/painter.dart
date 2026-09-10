@@ -1,89 +1,71 @@
 import 'dart:ui' as ui;
-import 'package:drawing_app/domain/models/canvas_command/canvas_command.dart';
-import 'package:drawing_app/domain/models/draw_command/draw_command.dart';
-import 'package:drawing_app/domain/models/draw_tools/draw_tool.dart';
-import 'package:drawing_app/ui/draw_screen/view_models/draw_screen_view_model.dart';
 import 'package:flutter/material.dart';
-import 'package:units_converter/properties/area.dart';
-import 'package:units_converter/units_converter.dart';
+import 'package:drawing_app/domain/models/draw_data/draw_data.dart';
+import 'package:drawing_app/ui/core/draw_tools/draw_tool.dart';
 
 class MyPainter extends CustomPainter {
-  final List<DrawCommand> drawHistory;
-  final Map<String, DrawTool> drawTools;
-  final DrawCommand? activeCommand; 
-  
-  // 1. INJECT CAMERA TRANSFORM AND ARTBOARD SIZES FROM VIEWMODEL
+  /// A pre-filtered vector timeline belonging exclusively to this isolated sheet layer.
+  final List<DrawData> drawHistory;
+
+  /// 🟢 FIXED: Updated to Type key to align perfectly with your ToolController registry!
+  final Map<Type, DrawTool> tools;
+
+  // --- Viewport Matrices & Bounding Artboard Injections ---
   final Matrix4 transform;
   final double canvasWidth;
   final double canvasHeight;
 
-  // final double gridUnitSize;
-
-  MyPainter({
+  const MyPainter({
     required this.drawHistory, 
-    required this.drawTools, 
-    required this.activeCommand,
+    required this.tools, 
     required this.transform,
     required this.canvasWidth,
     required this.canvasHeight,
-    
   });
 
   @override
   void paint(Canvas canvas, Size size) {
-  
-    // Save the graphics state configuration before applying camera mutations
+    // 1. Open a clean graphics state configuration container anchor frame.
     canvas.save();
     
-    // 2. THE CANVASKIT CORE: Apply the view model zoom/pan matrix directly to the canvas buffer!
+    // 2. THE CANVASKIT CORE: Apply the camera pan/zoom matrix directly into the painter buffer!
     canvas.transform(transform.storage);
 
-    // Define the rigid bounding box dimensions of your paper sheet
+    // 3. Define the rigid bounding layout box dimensions of your paper document sheet.
     final Rect artboardRect = Rect.fromLTWH(0, 0, canvasWidth, canvasHeight);
 
-    // // 3. RENDER THE PHYSICAL ARTBOARD SHEET BACKGROUND WITH A DROP SHADOW
-    // final Paint shadowPaint = Paint()
-    //   ..color = Colors.black.withOpacity(0.25)
-    //   ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 8.0);
-    // // Draw the shadow shifted slightly down and to the right
-    // canvas.drawRect(artboardRect.shift(const Offset(4, 4)), shadowPaint);
-    // // Draw the pure white paper workspace surface
-    // final Paint paperPaint = Paint()..color = Colors.transparent;
-    // final Paint gridPaint = Paint()
-    // ..style = PaintingStyle.fill
-    // ..shader = 
-    // canvas.drawRect(artboardRect, paperPaint);
-    // canvas.drawRect(artboardRect, 
+    // 4. HARDWARE-CLIP ANYTHING PAST THE EXPANDABLE ARTBOARD LIMITS.
+    // 🟢 FIXED: Enabled doAntiAlias to guarantee a perfectly smooth paper boundary edge at any zoom.
+    canvas.clipRect(artboardRect, doAntiAlias: true);
 
-    // 4. HARDWARE-CLIP ANYTHING PAST THE EXPANDABLE ARTBOARD LIMITS
-    // This stops lines from spilling over onto your workspace background!
-    canvas.clipRect(artboardRect);
-
-    // 5. Draw completed historical entries sequentially
-    for (DrawCommand command in drawHistory) {
-      final tool = drawTools[command.toolName];
-      if (tool != null) {
-        command.draw(canvas, tool);
+    // 5. Loop through and execute your drawing vectors sequentially (Z-index z-depth)
+    if (drawHistory.isNotEmpty) {
+      for (final DrawData command in drawHistory) {
+        final DrawTool? tool = _findToolByName(command.toolName);
+        
+        // Hand the canvas context directly back to the tool that knows how to paint itself!
+        tool?.draw(canvas, command);
       }
     }
 
-    // 6. Draw the live brush stroke path previews in real-time
-    if (activeCommand != null) {
-      final tool = drawTools[activeCommand!.toolName];
-      if (tool != null) {
-        activeCommand!.draw(canvas, tool);
-      }
-    }
-
-    // Restore the canvas pipeline back to standard system constraints
+    // 6. Close the transformation frame safely to protect peripheral rendering streams.
     canvas.restore();
+  }
+
+  /// Maps the database layout tool string key hashes back to our memory tool instances.
+  DrawTool? _findToolByName(String name) {
+    try {
+      return tools.values.firstWhere((t) => t.toolName == name);
+    } catch (_) {
+      return null;
+    }
   }
 
   @override
   bool shouldRepaint(covariant MyPainter oldDelegate) {
-    // Optimize redraw passes: block paint loops unless a structural change occurs
+    // HIGH-PERFORMANCE GPU CACHING OPTIMIZATION:
+    // Skips heavy vector repaint loops entirely unless data values or matrix dimensions actively update.
     return oldDelegate.drawHistory != drawHistory || 
-           oldDelegate.activeCommand != activeCommand ||
            oldDelegate.transform != transform ||
            oldDelegate.canvasWidth != canvasWidth ||
            oldDelegate.canvasHeight != canvasHeight;

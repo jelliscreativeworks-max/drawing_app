@@ -1,8 +1,8 @@
 import 'dart:convert';
 import 'dart:io';
 
-import 'package:drawing_app/domain/models/canvas/canvas_data.dart';
-import 'package:drawing_app/domain/models/draw_layer/draw_layer.dart';
+import 'package:drawing_app/domain/models/canvas_data/canvas_data.dart';
+import 'package:drawing_app/domain/models/layer_data/layer_data.dart';
 import 'package:path_provider/path_provider.dart';
 
 const String materialFile = 'material_data.json';
@@ -98,8 +98,8 @@ class LocalDataService {
     }
   }
 
-  Future<List<DrawLayer>> loadDrawLayers(String canvasId) async {
-    final List<DrawLayer> loadedLayers = [];
+  Future<List<LayerData>> loadDrawLayers(String canvasId) async {
+    final List<LayerData> loadedLayers = [];
     final layersDir = Directory(
       '${await _localPath}\\projects\\$canvasId\\layers',
     );
@@ -107,7 +107,7 @@ class LocalDataService {
     // 1. If the folder doesn't exist (e.g., brand new project), return empty list
     if (!await layersDir.exists()) return loadedLayers;
 
-    final List<Future<DrawLayer?>> readTasks = [];
+    final List<Future<LayerData?>> readTasks = [];
 
     // 2. Scan the layers directory
     await for (final FileSystemEntity entity in layersDir.list()) {
@@ -119,7 +119,7 @@ class LocalDataService {
     }
 
     // 4. Read all layer files from disk simultaneously
-    final List<DrawLayer?> results = await Future.wait(readTasks);
+    final List<LayerData?> results = await Future.wait(readTasks);
     
     // 5. Filter out any corrupted null results and add to our list
     for (var layer in results) {
@@ -132,7 +132,7 @@ class LocalDataService {
   }
 
   // Helper method to safely read and parse a single layer file
-  Future<DrawLayer?> _readLayerFile(String absolutePath) async {
+  Future<LayerData?> _readLayerFile(String absolutePath) async {
     try {
         File file = File(absolutePath);
           if (!await file.exists()) {
@@ -140,7 +140,7 @@ class LocalDataService {
     }
     final data = await file.readAsString();
     final json = jsonDecode(data) as Map<String, dynamic>;
-      return DrawLayer.fromJson(
+      return LayerData.fromJson(
         json,
       ).copyWith(isDirty: false); // Loaded layers are clean!
     } catch (e) {
@@ -149,7 +149,7 @@ class LocalDataService {
     }
   }
 
-  Future<void> saveDrawLayers(List<DrawLayer> data) async {
+  Future<void> saveDrawLayers(List<LayerData> data) async {
     List<Future<void>> futures = [];
 
     for (int i = 0; i < data.length; i++) {
@@ -165,7 +165,7 @@ class LocalDataService {
     await Future.wait(futures);
   }
 
-  Future<void> deleteDrawLayer(DrawLayer layer) async {
+  Future<void> deleteDrawLayer(LayerData layer) async {
         final path = 'projects\\${layer.canvasId}\\layers\\${layer.id}.json';
         final file = await _getlocalFile(path); 
 
