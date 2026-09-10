@@ -1,20 +1,19 @@
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:drawing_app/ui/draw_screen/view_models/draw_screen_view_model.dart';
-import 'package:drawing_app/ui/core/draw_tools/draw_tool.dart';
+import 'package:drawing_app/ui/draw_screen/view_models/tool_controller.dart';
+import 'package:drawing_app/domain/models/draw_data/draw_data.dart';
 
 class LayerPreviewWidget extends StatefulWidget {
   final String layerId;
   final DrawScreenViewModel viewModel;
-  
-  /// Injected from your view panel sidebar ribbon loop layout (e.g. toolController.tools)
-  final Map<Type, DrawTool> drawTools;
+  final ToolController toolController;
 
   const LayerPreviewWidget({
     super.key,
     required this.layerId,
     required this.viewModel,
-    required this.drawTools,
+    required this.toolController,
   });
 
   @override
@@ -22,37 +21,98 @@ class LayerPreviewWidget extends StatefulWidget {
 }
 
 class _LayerPreviewWidgetState extends State<LayerPreviewWidget> {
+  // Stable list reference cache to spot exact timeline changes across Undo/Redo cycles
+  List<DrawData> _lastKnownHistorySnapshot = const [];
+
   @override
   void initState() {
     super.initState();
+    _syncHistorySnapshotCache();
     _checkAndScheduleSnapshot();
+    
+    // Direct gesture listener: captures live brush and eraser stroke completions
+    widget.toolController.addListener(_onToolStateChanged);
+  }
+
+  @override
+  void dispose() {
+    widget.toolController.removeListener(_onToolStateChanged);
+    super.dispose();
   }
 
   @override
   void didUpdateWidget(covariant LayerPreviewWidget oldWidget) {
     super.didUpdateWidget(oldWidget);
-    // Secure guard check: If the layout item shifts, ensure alternative tracks refresh
-    if (oldWidget.layerId != widget.layerId || oldWidget.drawTools != widget.drawTools) {
-      _checkAndScheduleSnapshot();
+    
+    if (oldWidget.toolController != widget.toolController) {
+      oldWidget.toolController.removeListener(_onToolStateChanged);
+      widget.toolController.addListener(_onToolStateChanged);
+    }
+
+    // DELETION PROTECTION SHIELD: If this layer was just pruned from the list, abort immediately
+    final bool layerStillExists = widget.viewModel.layers.any((l) => l.id == widget.layerId);
+    if (!layerStillExists) return;
+
+    // THE UNDO/REDO REACTION ENGINE:
+    final List<DrawData> currentHistory = widget.viewModel.getHistoryForLayer(widget.layerId);
+
+    // Instead of measuring flat lengths, we check if the exact elements match our cached array references.
+    if (oldWidget.layerId != widget.layerId || !_areHistoriesIdentical(currentHistory, _lastKnownHistorySnapshot)) {
+      _lastKnownHistorySnapshot = List<DrawData>.from(currentHistory);
+      _checkAndScheduleSnapshot(force: true);
     }
   }
 
-  void _checkAndScheduleSnapshot() {
-    // HOT RESTART & COLD BOOT RECOVERY FIX: If memory caches are clear on initialization,
-    // look up its concurrent command script blueprint and run an isolation calculation pass.
-    if (widget.viewModel.layerSnapshots[widget.layerId] == null) {
+  void _syncHistorySnapshotCache() {
+    final bool layerStillExists = widget.viewModel.layers.any((l) => l.id == widget.layerId);
+    if (layerStillExists) {
+      _lastKnownHistorySnapshot = List<DrawData>.from(
+        widget.viewModel.getHistoryForLayer(widget.layerId),
+      );
+    }
+  }
+
+  /// Evaluates absolute element equivalence to catch out-of-order re-insertions during timeline rollbacks
+  bool _areHistoriesIdentical(List<DrawData> listA, List<DrawData> listB) {
+    if (listA.length != listB.length) return false;
+    for (int i = 0; i < listA.length; i++) {
+      if (listA[i] != listB[i]) return false;
+    }
+    return true;
+  }
+
+  void _onToolStateChanged() {
+    // If the active tool just completed its touch painting/erasing session, evaluate the data state
+    if (!widget.toolController.currentTool.isActive && mounted) {
+      final bool layerStillExists = widget.viewModel.layers.any((l) => l.id == widget.layerId);
+      if (!layerStillExists) return;
+
+      final List<DrawData> currentHistory = widget.viewModel.getHistoryForLayer(widget.layerId);
+      
+      // Only execute a snapshot rewrite if the drawing gesture genuinely altered the dataset
+      if (!_areHistoriesIdentical(currentHistory, _lastKnownHistorySnapshot)) {
+        _lastKnownHistorySnapshot = List<DrawData>.from(currentHistory);
+        _checkAndScheduleSnapshot(force: true);
+      }
+    }
+  }
+
+  void _checkAndScheduleSnapshot({bool force = false}) {
+    if (force || widget.viewModel.layerSnapshots[widget.layerId] == null) {
       WidgetsBinding.instance.addPostFrameCallback((_) async {
         if (!mounted) return;
         
-        // Give Flutter's master engine layout loop exactly 1 tick to build visual dimensions
-        // before we request background isolate image rendering computations
+        final bool layerStillExists = widget.viewModel.layers.any((l) => l.id == widget.layerId);
+        if (!layerStillExists) return;
+
+        // Give the graphics pipeline exactly 1 frame tick to stabilize path metrics cleanly
         await Future.delayed(Duration.zero);
         
         if (mounted) {
-          // 🟢 FIXED: Successfully passes both mandatory arguments down the timeline pipeline map
+          final drawToolsMap = widget.toolController.tools;
           widget.viewModel
-              .getSnapshotCommandForLayer(widget.layerId, widget.drawTools)
-              .execute(widget.layerId, widget.drawTools);
+              .getSnapshotCommandForLayer(widget.layerId, drawToolsMap)
+              .execute(widget.layerId, drawToolsMap);
         }
       });
     }
@@ -60,47 +120,57 @@ class _LayerPreviewWidgetState extends State<LayerPreviewWidget> {
 
   @override
   Widget build(BuildContext context) {
-    // Pull the specific command tracker instance from our centralized map registry
-    final layerCommand = widget.viewModel.getSnapshotCommandForLayer(widget.layerId, widget.drawTools);
+    final bool layerStillExists = widget.viewModel.layers.any((l) => l.id == widget.layerId);
+    if (!layerStillExists) return const SizedBox.shrink();
 
+    final drawToolsMap = widget.toolController.tools;
+    final layerCommand = widget.viewModel.getSnapshotCommandForLayer(widget.layerId, drawToolsMap);
+
+    // Listens EXCLUSIVELY to the asynchronous layerCommand task background loops,
+    // ensuring your preview cards remain completely immune to real-time zoom or pan matrix updates.
     return ListenableBuilder(
-      listenable: Listenable.merge([
-        widget.viewModel, // Listens to row layer selection adjustments
-        layerCommand,     // Listens to async .running snapshot generation cycles
-      ]),
+      listenable: layerCommand,
       builder: (context, child) {
         final cachedBytes = widget.viewModel.layerSnapshots[widget.layerId];
         final isSelected = widget.viewModel.activeLayerId == widget.layerId;
         final isThisLayerProcessing = layerCommand.running;
 
+        // TIMELINE CHANGE FALLBACK: Catch background Undo/Redo timeline modifications gracefully
+        final List<DrawData> currentHistory = widget.viewModel.getHistoryForLayer(widget.layerId);
+        if (!_areHistoriesIdentical(currentHistory, _lastKnownHistorySnapshot)) {
+          _lastKnownHistorySnapshot = List<DrawData>.from(currentHistory);
+          _checkAndScheduleSnapshot(force: true);
+        }
+
         return Material(
           type: MaterialType.button,
-          // 🟢 FIXED: Corrected abstract BorderRadiusGeometry typo to explicit concrete BorderRadius
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(4),
             side: isSelected 
                 ? const BorderSide(color: Colors.blueAccent, width: 2.0) 
                 : BorderSide(color: Colors.grey.shade800, width: 1.0),
           ),
-          color: Colors.grey.shade50,
+          color: Colors.grey.shade900,
           child: Ink(
             width: 60,
             height: 60,
             child: InkWell(
               splashFactory: NoSplash.splashFactory,
-              // Cleaned selection focus mapping assignment loop:
-              onTap: () => widget.viewModel.setActiveLayer(
-                widget.viewModel.layers.indexWhere((l) => l.id == widget.layerId),
-              ),
+              onTap: () {
+                final int dynamicIndex = widget.viewModel.layers.indexWhere(
+                  (l) => l.id == widget.layerId,
+                );
+                if (dynamicIndex != -1) {
+                  widget.viewModel.setActiveLayer(dynamicIndex);
+                }
+              },
               child: Stack(
                 alignment: Alignment.center,
                 children: [
-                  // A. Transparent Grid Checker Blueprint Canvas Back-Background
                   Positioned.fill(
-                    child: Container(color: Colors.grey.shade900),
+                    child: Container(color: Colors.grey),
                   ),
 
-                  // B. Stable Image Snapshot Binary Bytes Render
                   if (cachedBytes != null && cachedBytes.isNotEmpty)
                     Positioned.fill(
                       child: ClipRRect(
@@ -108,15 +178,14 @@ class _LayerPreviewWidgetState extends State<LayerPreviewWidget> {
                         child: Image.memory(
                           cachedBytes, 
                           fit: BoxFit.contain, 
-                          gaplessPlayback: true, // Prevents annoying white flickering during real-time brush strokes
+                          gaplessPlayback: true, 
                         ),
                       ),
                     ),
                       
-                  // C. High-Performance Overlay Loader Spinner Indicator
                   if (isThisLayerProcessing)
                     Container(
-                      color: Colors.black45, // Dim background sheet slightly while drawing
+                      color: Colors.black45, 
                       child: const Center(
                         child: SizedBox(
                           width: 14, 

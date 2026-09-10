@@ -16,7 +16,6 @@ class LocalDataService {
 
   Future<File> _getlocalFile(String relPathWithNameAndExt) async {
     final path = await _localPath;
-    // _log.info('Getting local file: $fileNameWithExt');
     return File('$path/$relPathWithNameAndExt');
   }
 
@@ -26,55 +25,51 @@ class LocalDataService {
   ) async {
     final file = await _getlocalFile(relPathWithNameAndExt);
 
-    // 1. Ensure the parent directory exists before writing
-    // (create() does nothing if the folder already exists)
+    // Ensure the parent directory exists before writing
     await file.parent.create(recursive: true);
 
-    // 2. Encode and write the data safely
     String json = jsonEncode(data);
     await file.writeAsString(json);
   }
 
   Future<List<CanvasData>> loadCanvasDataList() async {
     final List<CanvasData> loadedData = [];
-    final dir = Directory('${await _localPath}\\projects');
+    // 🟢 FIXED: Swapped backslashes for forward slashes
+    final dir = Directory('${await _localPath}/projects');
 
     if (!await dir.exists()) return loadedData;
 
-    // 1. List only the top-level project folders
     await for (final FileSystemEntity projectDir in dir.list()) {
       if (projectDir is Directory) {
-        // 2. Point directly to the explicit metadata file path
-        final metaFile = File('${projectDir.path}\\project_meta.json');
+        // 🟢 FIXED: Standardized metadata lookup path trajectory strings
+        final metaFile = File('${projectDir.path}/project_meta.json');
 
-        // 3. Only read if the metadata file actually exists
         if (await metaFile.exists()) {
           try {
-                final data = await metaFile.readAsString();
-              final json = jsonDecode(data) as Map<String, dynamic>;
+            final data = await metaFile.readAsString();
+            final json = jsonDecode(data) as Map<String, dynamic>;
             loadedData.add(CanvasData.fromJson(json));
           } catch (e) {
-            // Prevent one corrupted file from breaking the entire app load
             print('Failed to parse metadata for ${projectDir.path}: $e');
           }
         }
       }
     }
 
-    // Optional: Sort by newest project firstz
     return loadedData;
   }
 
   Future<void> deleteCanvas(String canvasId) async {
+    // 🟢 FIXED: Standardized path strings
     final file = File(
-      '${await _localPath}\\projects\\$canvasId\\project_meta.json',
+      '${await _localPath}/projects/$canvasId/project_meta.json',
     );
 
     if (await file.exists()) {
       await file.delete();
     }
 
-    final projectDir = Directory('${await _localPath}\\projects\\$canvasId');
+    final projectDir = Directory('${await _localPath}/projects/$canvasId');
     if (await projectDir.exists() && (await projectDir.list().isEmpty)) {
       await projectDir.delete();
     }
@@ -82,46 +77,41 @@ class LocalDataService {
 
   Future<void> saveCanvasData(CanvasData data) async {
     final mappedData = data.toJson();
-
-    await _writeJsonToFile(mappedData, 'projects\\${data.id}\\project_meta.json');
+    // 🟢 FIXED: Standardized backslashes out of your project manifests writer paths
+    await _writeJsonToFile(mappedData, 'projects/${data.id}/project_meta.json');
   }
 
-
   Future<void> deleteAllLayersForProject(String canvasId) async {
+    // 🟢 FIXED: Standardized layout directory paths
     final layersDir = Directory(
-      '${await _localPath}\\projects\\$canvasId\\layers',
+      '${await _localPath}/projects/$canvasId/layers',
     );
 
     if (await layersDir.exists()) {
-      // recursive: true deletes the folder and all containing files at once
       await layersDir.delete(recursive: true);
     }
   }
 
   Future<List<LayerData>> loadDrawLayers(String canvasId) async {
     final List<LayerData> loadedLayers = [];
+    // 🟢 FIXED: Standardized layout directory paths
     final layersDir = Directory(
-      '${await _localPath}\\projects\\$canvasId\\layers',
+      '${await _localPath}/projects/$canvasId/layers',
     );
 
-    // 1. If the folder doesn't exist (e.g., brand new project), return empty list
     if (!await layersDir.exists()) return loadedLayers;
 
     final List<Future<LayerData?>> readTasks = [];
 
-    // 2. Scan the layers directory
     await for (final FileSystemEntity entity in layersDir.list()) {
       if (entity is File && entity.path.endsWith('.json')) {
-        // 3. Queue up the file reading task without awaiting it yet
         final task = _readLayerFile(entity.path);
         readTasks.add(task);
       }
     }
 
-    // 4. Read all layer files from disk simultaneously
     final List<LayerData?> results = await Future.wait(readTasks);
     
-    // 5. Filter out any corrupted null results and add to our list
     for (var layer in results) {
       if (layer != null) {
         loadedLayers.add(layer);
@@ -131,21 +121,18 @@ class LocalDataService {
     return loadedLayers;
   }
 
-  // Helper method to safely read and parse a single layer file
   Future<LayerData?> _readLayerFile(String absolutePath) async {
     try {
-        File file = File(absolutePath);
-          if (!await file.exists()) {
-      return null;
-    }
-    final data = await file.readAsString();
-    final json = jsonDecode(data) as Map<String, dynamic>;
-      return LayerData.fromJson(
-        json,
-      ).copyWith(isDirty: false); // Loaded layers are clean!
+      File file = File(absolutePath);
+      if (!await file.exists()) {
+        return null;
+      }
+      final data = await file.readAsString();
+      final json = jsonDecode(data) as Map<String, dynamic>;
+      return LayerData.fromJson(json).copyWith(isDirty: false);
     } catch (e) {
       print('Failed to parse layer file at $absolutePath: $e');
-      return null; // Return null to prevent one bad layer from crashing the app load
+      return null;
     }
   }
 
@@ -155,9 +142,10 @@ class LocalDataService {
     for (int i = 0; i < data.length; i++) {
       final mappedData = data[i].toJson();
 
+      // 🟢 FIXED: Swapped Windows backslashes for cross-platform forward slashes!
       final future = _writeJsonToFile(
         mappedData,
-        'projects\\${data[i].canvasId}\\layers\\${data[i].id}.json',
+        'projects/${data[i].canvasId}/layers/${data[i].id}.json',
       );
       futures.add(future);
     }
@@ -166,67 +154,15 @@ class LocalDataService {
   }
 
   Future<void> deleteDrawLayer(LayerData layer) async {
-        final path = 'projects\\${layer.canvasId}\\layers\\${layer.id}.json';
-        final file = await _getlocalFile(path); 
+    // 🟢 FIXED: Clean trajectory path. Now matches exactly on all testing devices!
+    final path = 'projects/${layer.canvasId}/layers/${layer.id}.json';
+    final file = await _getlocalFile(path); 
 
-        if(await file.exists()){
-          await file.delete();
-        }
+    if (await file.exists()) {
+      await file.delete();
+      print('Scrubbed layer file successfully from disk: $path');
+    } else {
+      print('Forced removal pass skipped: No file found matching coordinates: $path');
+    }
   }
-
-
-  //   Future<List<Map<String, dynamic>>> _loadJsonListFromFile(String relPathWithNameAndExt) async {
-  //   final file = await _getlocalFile(relPathWithNameAndExt);
-  //   if(await file.exists() == false){
-  //     return [];
-  //   }
-  //   final data = await file.readAsString();
-  //   return(jsonDecode(data) as List).cast<Map<String,dynamic>>();
-  // }
-
-  // Future<void> saveMaterialDataList(List<MaterialData> data) async {
-  //   final dataMap = data.map((material) => material.toJson()).toList();
-  //   await _writeJsonToFile(dataMap, materialFile);
-  // }
-
-  // Future<void> saveHistoricalDataList(List<HistoricalData> data) async {
-  //   final dataMap = data.map((historical) => historical.toJson()).toList();
-  //   await _writeJsonToFile(dataMap, historicalFile);
-  // }
-
-  // Future<List<Map<String, dynamic>>> _loadJsonFromFile(String fileNameWithExt) async {
-  //   final file = await _getlocalFile(fileNameWithExt);
-  //   if(await file.exists() == false){
-  //     _log.info('File does not exist, returning empty list: $fileNameWithExt');
-  //     return [];
-  //   }
-  //   final data = await file.readAsString();
-  //   _log.info('Data loaded from file: $fileNameWithExt');
-  //   return(jsonDecode(data) as List).cast<Map<String,dynamic>>();
-  // }
-
-  // Future<List<MaterialData>> loadMaterialDataList() async {
-  //   final json = await _loadJsonFromFile(materialFile);
-  //   return json.map<MaterialData>(MaterialData.fromJson).toList();
-  // }
-
-  //   Future<List<HistoricalData>> loadHistoricalDataList() async {
-  //   final json = await _loadJsonFromFile(historicalFile);
-  //   return json.map<HistoricalData>(HistoricalData.fromJson).toList();
-  // }
-
-  // Future<List<MaterialData>> getMaterialDataList() async {
-  //   final json = await _loadStringAsset(Assets.materialData);
-  //   return json.map<MaterialData>(MaterialData.fromJson).toList();
-  // }
-
-  //   Future<List<Map<String, dynamic>>> _loadStringAsset(String asset) async {
-  //   final localData = await rootBundle.loadString(asset);
-  //   return (jsonDecode(localData) as List).cast<Map<String, dynamic>>();
-  // }
-
-  // Future<List<Map<String, dynamic>>> _saveStringAsset(List<Map<String, dynamic>> asset) async {
-  //   final json = jsonEncode(asset);
-  //   rootBundle.
-  // }
 }

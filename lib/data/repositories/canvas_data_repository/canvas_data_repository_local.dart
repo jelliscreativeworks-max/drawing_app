@@ -32,12 +32,12 @@ class CanvasDataRepositoryLocal extends CanvasDataRepository{
     }
 
   try{
-    CanvasData newData = data.copyWith(id: uuid.v4());
-    _canvasDataList.add(newData);
-    final saveResult = await _saveCanvasData(newData);
+
+    _canvasDataList.add(data);
+    final saveResult = await _saveCanvasData(data);
     switch(saveResult){
       case Ok():
-        return Result.ok(newData);
+        return Result.ok(data);
       case Error():
         return Result.error(saveResult.error);
     

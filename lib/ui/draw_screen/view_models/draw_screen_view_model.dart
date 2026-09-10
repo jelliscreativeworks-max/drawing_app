@@ -114,127 +114,181 @@ class DrawScreenViewModel extends ChangeNotifier {
 
   List<DrawData> getHistoryForLayer(String layerId) =>
       _cachedLayerHistories[layerId] ?? const [];
-
-  // =========================================================================
-  // --- THE CENTRAL TRANSACTIONAL COMMAND EXECUTION PIPELINE ---
-  // =========================================================================
-
-  /// Executes ANY structural change (Drawing vectors, Vector Erasures, 
-  /// Adding sheets, or Reordering Z-Indices) down a clean, transactional pipeline.
-  void executeCommand(CanvasCommand command) {
-    // 1. Pack your active memory arrays into a clean state context wrapper.
-    // This keeps the command completely agnostic of your view model's architecture.
+    void executeCommand(CanvasCommand command) {
     final context = CanvasStateContext(
       layerData: _layers, 
       globalDrawHistory: _drawHistory,
     );
     
-    // 2. Mutate the raw collection arrays atomically via the pure domain blueprint
+    final String activeIdBeforeExecution = activeLayerId;
+
+    // 1. Run the command mutation logic pass (e.g. AddLayerCommand.undo pulls the layer out)
     command.execute(context);
 
-    // 3. Log history timelines tracking loops
     _undoHistory.add(command);
-    _redoHistory.clear(); // Pure linear timeline constraint: fresh edits discard forward redo chains
+    _redoHistory.clear(); 
 
-    // 4. Synchronization Subroutines
-    // Instantly sync the O(1) rendering cache and flag modifications for the affected layer sheet
-    _rebuildCacheForLayer(command.layerId);
-    _markLayerAsDirtyById(command.layerId); 
+    // Verify if the layer specified by the command still actually exists in our visual list
+    final bool targetLayerStillExists = _layers.any((l) => l.id == command.layerId);
 
-    // =========================================================================
-    // --- 🟢 PURE MVVM LIFE-CYCLE MONITORING ---
-    // =========================================================================
-    // The View Model acts as the supervisor of the state. 
-    // If a DeleteLayerCommand just ran, the VM intercepts the event here 
-    // and records the ID to the disk deletion log so the auto-save knows to purge it.
+    if (targetLayerStillExists) {
+      _rebuildCacheForLayer(command.layerId);
+      _markLayerAsDirtyById(command.layerId);
+    } else {
+      // =========================================================================
+      // 🟢 FIX: LOG THE DELETION TO PURGE THE PHYSICAL FILE SYSTEM
+      // =========================================================================
+      // If the layer was removed from memory (like undoing an AddLayerCommand),
+      // log its ID straight into your pending deletions queue tracker!
+      // This tells your background daemon to completely delete the file from the disk.
+      _pendingLayerDeletionsLog.add(command.layerId);
+      
+      // Clean up internal runtime caching lookups instantly
+      _cachedLayerHistories.remove(command.layerId);
+      layerSnapshots.remove(command.layerId);
+    }
+
+    // Capture explicit forward DeleteLayerCommand signals uniformly
     if (command is DeleteLayerCommand) {
       _pendingLayerDeletionsLog.add(command.layerId);
     }
 
-    // 5. Request an immediate UI framework layout repaint pass
+    // 2. Heal your index pointer channels safely inside the reduced boundaries
+    final int verifiedIndex = _layers.indexWhere((l) => l.id == activeIdBeforeExecution);
+    if (verifiedIndex != -1) {
+      _activeLayerIndex = verifiedIndex;
+    } else {
+      _activeLayerIndex = _activeLayerIndex.clamp(0, _layers.length - 1);
+    }
+
     notifyListeners();
 
-    // 6. Automatic Background Autosave Dispatch Broker.
-    // Because this maps to a custom Command0 tracking object, if the file system 
-    // engine is already mid-write, it safely shields the disk from collision conflicts.
+    // 3. Wake up the background auto-save loop to process the file deletions!
     if (!saveDirtyProgress.running) {
       saveDirtyProgress.execute();
     }
   }
 
-  void undo(){
-    if(_undoHistory.isEmpty) return;
+
+  // =========================================================================
+  // --- GLOBAL HISTORICAL TIME TRAVEL ACTIONS (STATE-HEALED) ---
+  // =========================================================================
+
+  void undo() {
+    if (_undoHistory.isEmpty) return;
 
     final command = _undoHistory.last;
+    final bool layerExistsBeforeUndo = _layers.any((l) => l.id == command.layerId);
 
-    final bool layerExists = _layers.any((layerId) => layerId.id == command.layerId);
-
-    if(!layerExists && command is !DeleteLayerCommand){
-      log.w('Cannot undo commands on deleted layer');
+    if (!layerExistsBeforeUndo && command is! DeleteLayerCommand && command is! AddLayerCommand) {
+      log.w('Cannot undo commands on an untracked layer.');
       return;
     }
 
     _undoHistory.removeLast();
-    final context = CanvasStateContext(layerData: layers, globalDrawHistory: drawHistory);
+    final context = CanvasStateContext(layerData: _layers, globalDrawHistory: _drawHistory);
     final String activeIdBeforeUndo = activeLayerId;
 
+    // 1. Execute the rollback mutation
     command.undo(context);
     _redoHistory.add(command);
 
-    // 🛡️ SYNC FIX: If we roll back a deletion, drop the ID from the purge log instantly
+    // =========================================================================
+    // 🟢 THE STRUCTURAL SNAPSHOT SHIELD (FIXES UNDO LEAKING FILES)
+    // =========================================================================
+    // Verify if the layer specified by the command still exists AFTER the undo pass.
+    // If we just undid an AddLayerCommand, this evaluates to false!
+    final bool targetLayerStillExists = _layers.any((l) => l.id == command.layerId);
+
+    if (targetLayerStillExists) {
+      _rebuildCacheForLayer(command.layerId);
+      _markLayerAsDirtyById(command.layerId);
+    } else {
+      // 🟢 THE FIX: If the layer was removed by the undo action, 
+      // queue its ID straight into your pending file system deletions log!
+      _pendingLayerDeletionsLog.add(command.layerId);
+      
+      // Clear out internal runtime tracking lookups instantly
+      _cachedLayerHistories.remove(command.layerId);
+      layerSnapshots.remove(command.layerId);
+    }
+
     if (command is DeleteLayerCommand) {
       _pendingLayerDeletionsLog.remove(command.layerId);
     }
 
-    _rebuildCacheForLayer(command.layerId);
-    _markLayerAsDirtyById(command.layerId);
-    _recalibrateActiveIndex(activeIdBeforeUndo);
+    // =========================================================================
+    // 2. THE IDENTITY INDEX POINTER HEALER
+    // =========================================================================
+    final int verifiedIndex = _layers.indexWhere((l) => l.id == activeIdBeforeUndo);
+    if (verifiedIndex != -1) {
+      _activeLayerIndex = verifiedIndex;
+    } else {
+      _activeLayerIndex = _activeLayerIndex.clamp(0, _layers.length - 1);
+    }
+
     notifyListeners();
+
+    // Wake up the background auto-save loop to purge the file off your hard drive!
+    if (!saveDirtyProgress.running) {
+      saveDirtyProgress.execute();
+    }
   }
 
-void _recalibrateActiveIndex([String? preferredLayerId]) {
-    if (_layers.isEmpty) {
-      _activeLayerIndex = 0;
-      return;
-    }
-    if (preferredLayerId != null) {
-      final int lookupIndex = _layers.indexWhere((l) => l.id == preferredLayerId);
-      if (lookupIndex != -1) {
-        _activeLayerIndex = lookupIndex;
-        return;
-      }
-    }
-    _activeLayerIndex = _activeLayerIndex.clamp(0, _layers.length - 1);
-  }
-
-   void redo() {
+  void redo() {
     if (_redoHistory.isEmpty) return;
 
     final command = _redoHistory.last;
-
-    // 🛡️ RECOVERY FIX: Check layer lifecycle gates during forward playback
-    final bool layerExists = _layers.any((layer) => layer.id == command.layerId);
-    if (!layerExists && command is! DeleteLayerCommand) {
-      log.w('Cannot redo stroke operations on a deleted layer. Step blocked.');
+    final bool layerExistsBeforeRedo = _layers.any((l) => l.id == command.layerId);
+    
+    if (!layerExistsBeforeRedo && command is! DeleteLayerCommand && command is! AddLayerCommand) {
+      log.w('Cannot redo operations on an untracked layer.');
       return;
     }
 
     _redoHistory.removeLast();
     final context = CanvasStateContext(layerData: _layers, globalDrawHistory: _drawHistory);
-
     final String activeIdBeforeRedo = activeLayerId;
     
+    // 3. Execute the forward recreation step
     command.execute(context);
     _undoHistory.add(command);
+
     if (command is DeleteLayerCommand) {
       _pendingLayerDeletionsLog.add(command.layerId);
     }
 
-    _rebuildCacheForLayer(command.layerId);
-    _markLayerAsDirtyById(command.layerId);
-    _recalibrateActiveIndex(activeIdBeforeRedo);
+    // =========================================================================
+    // 🟢 THE REDO RE-SYNC SHIELD (FIXES RE-INSERTION COLD STANDSTILL)
+    // =========================================================================
+    final bool targetLayerStillExists = _layers.any((l) => l.id == command.layerId);
+
+    if (targetLayerStillExists) {
+      _rebuildCacheForLayer(command.layerId);
+      _markLayerAsDirtyById(command.layerId);
+    }
+
+    // Recalculate index focus pointers to latch focus securely by identity
+    final int verifiedIndex = _layers.indexWhere((l) => l.id == activeIdBeforeRedo);
+    if (verifiedIndex != -1) {
+      _activeLayerIndex = verifiedIndex;
+    } else {
+      _activeLayerIndex = _activeLayerIndex.clamp(0, _layers.length - 1);
+    }
+
+    // 🟢 THE RE-INSTANTIATION CLONE REFOCUS:
+    // Force a fresh collection update layout reference to trick Flutter's 
+    // change detection system into seeing the newly re-inserted redo row!
+    _layers = List<LayerData>.from(_layers);
+
     notifyListeners();
+
+    if (!saveDirtyProgress.running) {
+      saveDirtyProgress.execute();
+    }
   }
+
+
 
   // --- DEFINITIVE DYNAMIC ARTBOARD RESIZER ---
   void resizeCanvas(double newWidth, double newHeight, Map<Type,DrawTool> tools) {
@@ -355,39 +409,24 @@ void _recalibrateActiveIndex([String? preferredLayerId]) {
     return Result.ok(null);
   }
 
-    void reorderLayers(int oldIndex, int newIndex) {
-    if (oldIndex == newIndex) return;
+  void reorderLayers(int oldIndex, int newIndex) {
+    if (oldIndex < 0 || oldIndex >= _layers.length) return;
+    if (newIndex < 0 || newIndex > _layers.length) return;
 
-    // 1. Identify the moving layer ID
-    final movingLayerId = _layers[oldIndex].id;
-
-    // 2. Wrap the move operation inside a transactional command block
-    final command = ReorderLayerCommand(
-      layerId: movingLayerId,
+    // 1. Package the move operation cleanly into your command architecture
+    final reorderCommand = ReorderLayerCommand(
+      layerId: _layers[oldIndex].id,
       oldIndex: oldIndex,
       newIndex: newIndex,
+      currentHistoryLength: _drawHistory.length, // 🟢 Binds chronologically to the top of the timeline
     );
 
-    // 3. Keep track of your currently selected active layer index anchor!
-    // If the layer we are moving is the one currently active, track its new index.
-    final LayerData activeLayerBeforeMove = _layers[_activeLayerIndex];
-
-    // 4. Pass the command directly down the execution timeline loop
-    executeCommand(command);
-
-    // 5. Correct the active index pointer location so selection doesn't jump onto a different layer
-    _activeLayerIndex = _layers.indexOf(activeLayerBeforeMove);
-    notifyListeners();
+    // 2. Dispatch straight down your unified execution command engine pipeline pass!
+    // This handles moving the item, flushing layer caches, marking files dirty, 
+    // and waking up your automated disk-write autosave loops automatically!
+    executeCommand(reorderCommand);
   }
-  
-    // =========================================================================
-  // --- AUTOMATIC BACKGROUND AUTOSAVE FILE SYSTEM BROKERS ---
-  // =========================================================================
-
-  /// Collects modified layer vector pools and removed document handles, 
-  /// writing updates to the local database file storage in the background.
-  Future<Result<void>> _saveDirtyProgress() async {
-    // 1. Structural Guard: Cancel file writes if project files haven't mounted yet
+   Future<Result<void>> _saveDirtyProgress() async {
     if (_currentCanvas == null) {
       return Result.error(
         Exception("Canvas must not be null before saving workspace records"),
@@ -396,54 +435,42 @@ void _recalibrateActiveIndex([String? preferredLayerId]) {
 
     try {
       bool working = true;
+      
+      // Local transaction tracking array to hold onto target keys during this pass
+      final List<String> layersToPurgeThisPass = [];
 
-      // Continuous Execution Loop: Keeps processing storage operations as long 
-      // as rapid user interactions (e.g. fast drawing or deleting) occur.
       while (working) {
-        
         // =====================================================================
-        // TASK A: CLEAN UP RETIRED TRACKS FROM THE STORAGE STORAGE DRIVE
+        // TASK A: RE-ROUTE DELETIONS QUEUE
         // =====================================================================
         if (_pendingLayerDeletionsLog.isNotEmpty) {
-          // Create a thread-safe snapshot copy of the log to prevent collection mutation errors
-          final List<String> deletionsBatch = List<String>.from(_pendingLayerDeletionsLog);
-
-          for (final String layerIdToDelete in deletionsBatch) {
-            // Tell your repository layer to execute a clean file purge operation on disk
-            final Result<void> deleteResult = await _layerDataRepository.deleteLayer(layerIdToDelete);
-            
-            if (deleteResult is Ok) {
-              // Wipe from local memory tracking log upon successful disk removal
-              _pendingLayerDeletionsLog.remove(layerIdToDelete);
-            } else {
-              log.w('Failed to purge disk record file for deleted layer $layerIdToDelete: ${(deleteResult as Error).error}');
-            }
-          }
+          // Move the IDs into our deferred tracking loop block, but wait to clear 
+          // files until after the structural canvas metadata flushes safely.
+          layersToPurgeThisPass.addAll(_pendingLayerDeletionsLog);
+          _pendingLayerDeletionsLog.clear(); 
         }
 
         // =====================================================================
         // TASK B: PACK MEMORY HISTORY MAPS INTO REPOSITORY LAYER MODELS
         // =====================================================================
-        // By creating clean deep unmodifiable copies of the current vector arrays up front,
-        // we isolate active drawing thread modifications from background thread file writes.
         final List<LayerData> packagedLayers = _layers.map((LayerData layer) {
           return layer.copyWith(
             layerDrawHistory: List<DrawData>.from(_cachedLayerHistories[layer.id] ?? const []),
           );
         }).toList();
 
-        // Filter for active layers that actually need a file-write
-        // We evaluate against the main '_layers' collection to check original dirty flag statuses.
         final List<LayerData> dirtyLayers = packagedLayers.where((LayerData currentPackedLayer) {
-          final originalLayerRecord = _layers.firstWhere((orig) => orig.id == currentPackedLayer.id);
+          final originalLayerRecord = _layers.firstWhere(
+            (orig) => orig.id == currentPackedLayer.id,
+            orElse: () => currentPackedLayer,
+          );
           return originalLayerRecord.isDirty;
         }).toList();
 
         // =====================================================================
         // LOOP EXIT GATEWAY
         // =====================================================================
-        // If no new drawings were added and deletion logs are empty, exit the loop!
-        if (dirtyLayers.isEmpty && _pendingLayerDeletionsLog.isEmpty) {
+        if (dirtyLayers.isEmpty && _pendingLayerDeletionsLog.isEmpty && layersToPurgeThisPass.isEmpty) {
           working = false;
           break;
         }
@@ -458,7 +485,6 @@ void _recalibrateActiveIndex([String? preferredLayerId]) {
             return Result.error(saveResult.error);
           }
 
-          // Reset dirty flag status markers on successfully synchronized collection maps
           _layers = packagedLayers
               .map((LayerData layer) => layer.copyWith(isDirty: false))
               .toList();
@@ -467,11 +493,29 @@ void _recalibrateActiveIndex([String? preferredLayerId]) {
         // =====================================================================
         // TASK D: UPDATE CANVAS LAYER ID INDEX SEQUENCE MANIFESTS
         // =====================================================================
-        // Every pass guarantees your canvas ordering catalog always mirrors your active workspace layouts.
         await _synchronizeCanvasMetadata();
+
+        // =====================================================================
+        // 🟢 TASK E: RUN HARD DISK PURGES LAST (PREVENTS GHOST RE-WRITES)
+        // =====================================================================
+        // Executing file erasures strictly after all canvas metadata alterations 
+        // have concluded guarantees that your local filesystem services never 
+        // accidentally auto-generate or re-write empty folders for the removed layer!
+        if (layersToPurgeThisPass.isNotEmpty) {
+          final List<String> deletionsBatch = List<String>.from(layersToPurgeThisPass);
+          layersToPurgeThisPass.clear();
+
+          for (final String layerIdToDelete in deletionsBatch) {
+            final Result<void> deleteResult = await _layerDataRepository.deleteLayer(layerIdToDelete);
+            
+            if (deleteResult is Error) {
+              log.w('Failed to purge disk record file for deleted layer $layerIdToDelete: ${(deleteResult).error}');
+              _pendingLayerDeletionsLog.add(layerIdToDelete); // Re-queue if severe system lock
+            }
+          }
+        }
       }
 
-      // Rebuild peripheral UI trackers or toolbar status banners
       notifyListeners();
       return Result.ok(null);
 
@@ -480,6 +524,7 @@ void _recalibrateActiveIndex([String? preferredLayerId]) {
       return Result.error(e is Exception ? e : Exception(e.toString()));
     }
   }
+
 
 
 
@@ -583,14 +628,8 @@ void _recalibrateActiveIndex([String? preferredLayerId]) {
       layerIds: [initialLayerId], // Pre-populate the initial layout token mapping
     );
 
-    // 3. Commit the aggregate blueprint down to the local file storage repository
-    final result = await _canvasDataRepository.createCanvasData(templateCanvas);
 
-    switch (result) {
-      case Ok<CanvasData>():
-        _currentCanvas = result.value;
-
-        // 4. Construct the pristine baseline drawing layer model container
+            // 4. Construct the pristine baseline drawing layer model container
         final initialLayer = LayerData(
           id: initialLayerId,
           index: 0, // Hardcoded structural index 0 is safe from list range crashes
@@ -601,9 +640,19 @@ void _recalibrateActiveIndex([String? preferredLayerId]) {
           layerDrawHistory: const [],
         );
 
-        // 5. ATOMIC STATE RECONSTRUCTION
-        // Directly overwrite the memory trackers, completely isolating this 
-        // baseline setup step from polluting the user's Undo/Redo timelines!
+
+    // 3. Commit the aggregate blueprint down to the local file storage repository
+    final result = await _canvasDataRepository.createCanvasData(templateCanvas);
+
+    switch (result) {
+      case Ok<CanvasData>():
+
+      final layerResult = await _layerDataRepository.saveDirtyLayers([initialLayer]);
+
+      switch(layerResult){
+        case Ok():
+          _currentCanvas = result.value;
+          
         _layers = [initialLayer];
         
         _cachedLayerHistories.clear();
@@ -613,19 +662,20 @@ void _recalibrateActiveIndex([String? preferredLayerId]) {
         _undoHistory.clear(); // Flawless clean timeline history on startup
         _redoHistory.clear();
         _layerSnapshots.clear();
+        _pendingLayerDeletionsLog.clear();
         
         _activeLayerIndex = 0;
 
         // 6. Request immediate UI layout view tree redraw
         notifyListeners();
 
-        // 7. Schedule the automated background autosave macro daemon loop 
-        // to immediately author the layer file records on disk
-        if (!saveDirtyProgress.running) {
-          saveDirtyProgress.execute();
-        }
-
         return Result.ok(null);
+        case Error():
+          return Result.error(layerResult.error);
+      }
+        // _currentCanvas = result.value;
+
+
 
       case Error():
         return Result.error(result.error);
@@ -651,35 +701,27 @@ void _recalibrateActiveIndex([String? preferredLayerId]) {
   // --- METADATA SYNCHRONIZATION BROKERS ---
   // =========================================================================
 
-  /// Keeps the master canvas metadata file updated with the exact current 
-  /// layer order and saves it to the database repository.
   Future<void> _synchronizeCanvasMetadata() async {
-    // 1. Safety Guard: Skip execution if the project hasn't initialized yet
     if (_currentCanvas == null) return;
     
-    // 2. Map your active layers list down to an array of just their unique string IDs.
-    // This perfectly captures the physical stacking order (z-index) of your layers.
-    final List<String> updatedLayerIdsList = _layers.map((layer) => layer.id).toList();
-    
-    // 3. Create an immutable deep copy update of your canvas container model using Freezed copyWith
-    final CanvasData updatedCanvasManifest = _currentCanvas!.copyWith(
-      layerIds: updatedLayerIdsList,
+    // 🟢 THE RESOLUTION: Rebuild the manifest layer mapping strictly using 
+    // the live, active elements currently sitting inside your _layers array!
+    // If an AddLayer undo step just removed the layer from memory, this ensures 
+    // its ID string token is completely purged from the document description block.
+    final updatedCanvas = _currentCanvas!.copyWith(
+      layerIds: _layers.map((layer) => layer.id).toList(),
     );
     
-    // 4. Commit the fresh sorting manifest keys down to your canvas database repository disk files
-    // Note: If your repository class uses the name 'modifyCanvasData' instead of 'updateCanvasData',
-    // swap this call to match your specific repository signature!
-    final canvasSaveResult = await _canvasDataRepository.modifyCanvasData(updatedCanvasManifest);
+    // Push the clean, pruned manifest down to your local storage files
+    final canvasSaveResult = await _canvasDataRepository.modifyCanvasData(updatedCanvas);
     
-    switch (canvasSaveResult) {
-      case Ok():
-        // Securely update our live working reference model pointer upon disk success
-        _currentCanvas = updatedCanvasManifest;
-        log.d('Canvas ordering layout indexes mapping manifests synchronized successfully.');
-      case Error():
-        log.w('Failed to synchronize canvas layer index order manifest properties: ${canvasSaveResult.error}');
+    if (canvasSaveResult is Ok<CanvasData>) {
+      _currentCanvas = canvasSaveResult.value;
+    } else {
+      log.w('Failed to synchronize project canvas structure metadata maps.');
     }
   }
+
 
 
   Future<Result> _getLayerSnapshot(
@@ -708,4 +750,54 @@ void _recalibrateActiveIndex([String? preferredLayerId]) {
       return Result.error(e is Exception ? e : Exception(e.toString()));
     }
   }
+  // =========================================================================
+  // --- INFINITE WORKSPACE CAMERA NAVIGATION MATH ---
+  // =========================================================================
+
+  /// Uniformly scales the entire graphics transformation matrix around the 
+  /// active touch gesture focal point world coordinate anchor location.
+  void handlePinchZoom(double gestureScale) {
+    // 1. Calculate the target zoom multiplier by combining the gesture scale 
+    // with the starting zoom level captured when the pinch began.
+    final double proposedScale = camera.scaleStart * gestureScale;
+    
+    // 2. Restrict zoom parameters within standard creative app bounds (20% to 500%)
+    final double clampedScale = proposedScale.clamp(0.2, 5.0); 
+
+    // Safety Optimization: If the delta change is infinitesimally small, skip rendering.
+    if ((clampedScale - camera.currentScale).abs() < 1e-6) return;
+
+    // 3. Determine the relative scale expansion multiplier step factor
+    final double scaleMultiplier = clampedScale / camera.currentScale;
+
+    // =========================================================================
+    // 🟢 THE FOCAL POINT CORRECTION MATH
+    // =========================================================================
+    // Instead of using raw screen pixels, we must translate our focal point
+    // back into world canvas coordinates relative to our current viewport setup!
+    final Matrix4 inverted = Matrix4.copy(camera.transform)..invert();
+    final vm.Vector4 screenVector = vm.Vector4(
+      camera.focalPointAtStart.dx, 
+      camera.focalPointAtStart.dy, 
+      0.0, 
+      1.0,
+    );
+    final vm.Vector4 worldFocalVector = inverted.transform(screenVector);
+    
+    final double worldFocalX = worldFocalVector.x;
+    final double worldFocalY = worldFocalVector.y;
+
+    // 4. Uniformly mutate the transformation matrix around the localized world anchor point.
+    // By using worldFocal coordinates, your zoom tracks perfectly without drifting!
+    camera.transform = camera.transform.clone()
+      ..translate(worldFocalX, worldFocalY)
+      ..scale(scaleMultiplier, scaleMultiplier)
+      ..translate(-worldFocalX, -worldFocalY);
+
+    // 5. Increment your revision tracking counter flag so CustomPainters clear their caches
+    _transformRevision++;
+    notifyListeners();
+  }
+
+
 }

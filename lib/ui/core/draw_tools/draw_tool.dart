@@ -7,11 +7,23 @@ abstract class DrawTool {
   final String toolName;
   final Icon toolIcon;
 
-  const DrawTool({required this.toolName, required this.toolIcon});
+  Paint? strokePaint;
+  Paint? fillPaint;
+
+  DrawTool({required this.toolName, required this.toolIcon, this.strokePaint, this.fillPaint});
 
   bool get isActive;
 
   DrawData? get activePreview;
+
+
+  void updateStrokeSettings(Paint strokeSettings){
+    strokePaint = strokeSettings;
+  }
+
+    void updateFillSettings(Paint fillSettings){
+    fillPaint = fillSettings;
+  }
 
   void onDrawStart({
     required Offset startPoint,

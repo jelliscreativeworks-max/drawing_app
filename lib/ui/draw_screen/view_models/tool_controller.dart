@@ -5,6 +5,7 @@ import 'package:drawing_app/ui/core/draw_tools/erase_tool.dart';
 import 'package:drawing_app/ui/core/draw_tools/freehand_tool.dart';
 import 'package:drawing_app/ui/core/draw_tools/pan_tool.dart';
 import 'package:drawing_app/ui/draw_screen/view_models/draw_screen_view_model.dart';
+import 'package:drawing_app/utils/history_consumer.dart';
 import 'package:flutter/material.dart';
 import 'package:material_symbols_icons/symbols.dart';
 import 'package:vector_math/vector_math_64.dart' as vm;
@@ -32,6 +33,12 @@ tools = {
       FreehandTool: FreehandTool(
         toolName: 'Freehand Tool',
         toolIcon: Icon(Icons.draw),
+        strokePaint: Paint()
+          ..color = Colors.black
+          ..strokeCap = StrokeCap.round
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 5
+        
       ),
       PanTool: PanTool(
         toolName: 'Pan Tool',
@@ -40,8 +47,7 @@ tools = {
       ),
       EraseTool: EraseTool(
         toolName: 'Erase Tool',
-        toolIcon: Icon(Symbols.ink_eraser),
-        drawHistory: _viewModel.drawHistory,
+        toolIcon: Icon(Symbols.ink_eraser)
       ),
     };
     if(initialTool != null){
@@ -52,12 +58,22 @@ tools = {
     // _currentTool =  tools[PanTool]!;
   }
 
-  void selectTool<T extends DrawTool>(){
-    if(tools.containsKey(T) && _currentTool.runtimeType != T){
-      _currentTool = tools[T]!;
-      notifyListeners();
+  void selectTool<T extends DrawTool>() {
+    final targetTool = tools[T];
+    if (targetTool == null || targetTool == _currentTool) return;
+
+    // clear its caches, and emit any final transformation commands before swapping!
+    if (_currentTool.isActive) {
+      final finalCommand = _currentTool.onDrawEnd();
+      if (finalCommand != null) {
+        _viewModel.executeCommand(finalCommand);
+      }
     }
+
+    _currentTool = targetTool;
+    notifyListeners();
   }
+
 
   void updateColor(Color newColor) {
     activeColor = newColor;
@@ -68,48 +84,69 @@ tools = {
     activeStrokeWidth = newWidth;
     notifyListeners();
   }
+  // --- New Type-Safe Scale Gestures Layer Interceptors ---
 
-  void handlePointerDown(Offset localScreenPosition) {
+  void handleScaleStart(Offset screenFocalPoint) {
     if (_currentTool.isActive) return;
 
-    // FIX: Convert screen touch position into a pristine canvas world point!
-    final Offset worldPosition = _screenToWorld(localScreenPosition);
+    // Anchor camera reference configurations before calculating adjustments
+    _viewModel.camera.focalPointAtStart = screenFocalPoint;
+    _viewModel.camera.scaleStart = _viewModel.camera.currentScale;
+
+    final Offset worldPosition = _screenToWorld(screenFocalPoint);
+    final Offset targetPosition = _currentTool is PanTool ? screenFocalPoint : worldPosition;
+
+    if(_currentTool is HistoryConsumer){
+      List<DrawData> drawHistory = _viewModel.getHistoryForLayer(_viewModel.activeLayerId);
+      (_currentTool as HistoryConsumer).setHistorySnapshot(drawHistory);
+    }
 
     _currentTool.onDrawStart(
-       // Pass world position instead of raw screen coordinates!
+      startPoint:  targetPosition,
       layerId:  _viewModel.activeLayerId,
-      startPoint: _currentTool is PanTool ? localScreenPosition : worldPosition,
-      nextStrokeIndex: _viewModel.drawHistory.length,
+      nextStrokeIndex:  _viewModel.drawHistory.length,
       color: activeColor,
       strokeWidth: activeStrokeWidth,
     );
+
     notifyListeners();
   }
 
-  void handlePointerMove(Offset localScreenPosition) {
-    if (_currentTool.isActive) return;
+  void handleScaleUpdate(Offset screenFocalPoint, double gestureScale) {
+    if (!_currentTool.isActive) return;
 
     if (_currentTool is PanTool) {
-      // Navigational tools process raw screen deltas directly, so pass raw position
-      _currentTool.onUpdateTool(newPoint: localScreenPosition);
+      // 1. Capture and process real-time panning deltas using focal coordinates
+      _currentTool.onUpdateTool(newPoint:  screenFocalPoint);
+
+      // 2. 🟢 FIX: If the user pinches while the Pan tool is active, execute zoom adjustments!
+      if (gestureScale != 1.0) {
+        // Feed the anchor points and scale multiplier directly down into your ViewModel math
+        _viewModel.handlePinchZoom(gestureScale);
+      }
+      
       _viewModel.forceCanvasRefresh();
     } else {
-      // Drawing/Erasing tools require accurate canvas world alignment space map coordinates
-      final Offset worldPosition = _screenToWorld(localScreenPosition);
+      // Process standard line sketching coordinate points 
+      final Offset worldPosition = _screenToWorld(screenFocalPoint);
       _currentTool.onUpdateTool(newPoint: worldPosition);
       notifyListeners();
     }
   }
 
-  void handlePointerUp() {
-    final CanvasCommand? producedCommand = _currentTool.onDrawEnd();
-    
-    if (producedCommand != null) {
-      // Safely dispatch the concrete mutation block back into the timeline engine
-      _viewModel.executeCommand(producedCommand);
+  void handleScaleEnd() {
+
+    final command = _currentTool.onDrawEnd();
+    notifyListeners();
+
+    if (command != null) {
+      _viewModel.executeCommand(command);
     }
+
+    notifyListeners();
   }
 
+
   // ==========================================
   // --- COORDINATE MAPPING TRANSLATION ENGINE ---
   // ==========================================
@@ -117,19 +154,16 @@ tools = {
   // --- COORDINATE MAPPING TRANSLATION ENGINE ---
   // ==========================================
 
-  /// Translates a physical screen touch position into a real canvas world coordinate,
-  /// factoring in all active scale expansions and panning transformations.
   Offset _screenToWorld(Offset screenPoint) {
     final Matrix4 transformMatrix = _viewModel.camera.transform;
     
-    // 1. Create a clean deep copy of the camera matrix and mathematically invert it
+    // Invert the camera transformation matrix to reverse the painter's shift
     final Matrix4 inverted = Matrix4.copy(transformMatrix)..invert();
     
-    // 2. Cast the 2D Offset into a 4D Vector space computation block
+    // Cast the 2D offset into a 4D vector space calculation block
     final vm.Vector4 screenVector = vm.Vector4(screenPoint.dx, screenPoint.dy, 0.0, 1.0);
     final vm.Vector4 worldVector = inverted.transform(screenVector);
     
-    // 3. Extract the normalized world coordinates back out cleanly
     return Offset(worldVector.x, worldVector.y);
   }
 

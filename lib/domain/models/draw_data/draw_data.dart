@@ -14,6 +14,7 @@ abstract class DrawData with _$DrawData{
      required String layerId,
      required String toolName,
      required int index,
+     required String id,
      @PaintConverter() Paint? strokeSettings,
      @PaintConverter() Paint? fillSettings,
      @OffsetConverter() required List<Offset> points

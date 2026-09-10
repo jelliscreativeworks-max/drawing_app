@@ -10,6 +10,7 @@ _DrawData _$DrawDataFromJson(Map<String, dynamic> json) => _DrawData(
   layerId: json['layerId'] as String,
   toolName: json['toolName'] as String,
   index: (json['index'] as num).toInt(),
+  id: json['id'] as String,
   strokeSettings: _$JsonConverterFromJson<Map<String, dynamic>, Paint>(
     json['strokeSettings'],
     const PaintConverter().fromJson,
@@ -27,6 +28,7 @@ Map<String, dynamic> _$DrawDataToJson(_DrawData instance) => <String, dynamic>{
   'layerId': instance.layerId,
   'toolName': instance.toolName,
   'index': instance.index,
+  'id': instance.id,
   'strokeSettings': _$JsonConverterToJson<Map<String, dynamic>, Paint>(
     instance.strokeSettings,
     const PaintConverter().toJson,

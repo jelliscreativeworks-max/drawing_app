@@ -1,7 +1,6 @@
 import 'package:drawing_app/domain/models/canvas_camera.dart';
 import 'package:drawing_app/ui/core/commands/canvas_command.dart';
 import 'package:flutter/material.dart';
-import 'package:vector_math/vector_math_64.dart'; // Required for Vector4 matrix math if used
 import 'package:drawing_app/ui/core/draw_tools/draw_tool.dart';
 import 'package:drawing_app/domain/models/draw_data/draw_data.dart';
 
@@ -20,10 +19,17 @@ class PanTool extends DrawTool {
   // --- Core Abstract Base Interface Contract Overrides ---
 
   @override
+  void updateFillSettings(_) {}
+
+  @override
+  void updateStrokeSettings(_) {}
+  
+  @override
   bool get isActive => _isPanning;
 
   @override
   DrawData? get activePreview => null; // Navigation tools never author real-time vector line previews
+
 
   @override
   void onDrawStart(

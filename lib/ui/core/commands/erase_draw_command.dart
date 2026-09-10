@@ -6,17 +6,21 @@ class EraseDrawCommand extends CanvasCommand {
 
   EraseDrawCommand({
     required super.layerId,
-    required super.index, // Represents the chronological timeline sequence tracking number
+    required super.index, 
     required this.erasedDrawData,
   });
 
   @override
   void execute(CanvasStateContext context) {
-    // 1. Gather all values to remove into a Set for O(1) instant hash lookups
-    final targets = erasedDrawData.map((data) => data.drawData).toSet();
+    // 1. 🟢 FIXED: Collect only the absolute unique String ID tokens of the target strokes!
+    // String IDs are entirely unique per drawing action, preventing identical lines
+    // from accidentally matching and destroying your timeline indexes.
+    final Map<String, DrawData> targetsMap = {
+      for (final entry in erasedDrawData) entry.drawData.id: entry.drawData
+    };
 
-    // 2. Scan the flat render timeline array exactly once, stripping out matches in-place
-    context.globalDrawHistory.removeWhere((data) => targets.contains(data));
+    // 2. Scan the flat timeline ledger array exactly once, stripping out matches by ID
+    context.globalDrawHistory.removeWhere((data) => targetsMap.containsKey(data.id));
   }
 
   @override
@@ -29,7 +33,6 @@ class EraseDrawCommand extends CanvasCommand {
     // 2. Re-inject every stroke back into its precise historical depth position
     for (final entry in sorted) {
       if (entry.originalIndex <= context.globalDrawHistory.length) {
-        // 🟢 FIXED: Use entry.originalIndex instead of hardcoded 'index'
         context.globalDrawHistory.insert(entry.originalIndex, entry.drawData);
       } else {
         context.globalDrawHistory.add(entry.drawData);

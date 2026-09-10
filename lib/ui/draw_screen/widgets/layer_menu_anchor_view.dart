@@ -1,13 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:drawing_app/ui/draw_screen/view_models/draw_screen_view_model.dart';
 import 'package:drawing_app/ui/draw_screen/view_models/tool_controller.dart';
-import 'package:drawing_app/ui/draw_screen/widgets/layer_preview_view.dart'; // Target file for LayerPreviewWidget
+import 'package:drawing_app/ui/draw_screen/widgets/layer_preview_view.dart'; // Make sure your path matches
 
 class FloatingLayerPanel extends StatelessWidget {
   final DrawScreenViewModel viewModel;
-  
-  /// 🟢 NEW INJECTION: Inject your configuration View Model to satisfy 
-  /// the background isolation snapshot tool requirements.
   final ToolController toolController;
 
   const FloatingLayerPanel({
@@ -22,29 +19,26 @@ class FloatingLayerPanel extends StatelessWidget {
       elevation: 6,
       borderRadius: BorderRadius.circular(12),
       clipBehavior: Clip.antiAlias,
-      color: Theme.of(context).colorScheme.surface,
+      color: Colors.grey,
       child: Container(
         padding: const EdgeInsets.symmetric(vertical: 8),
         constraints: const BoxConstraints(
-          minWidth: 80,
-          maxWidth: 100,
+          minWidth: 120, 
+          maxWidth: 140,
           minHeight: 80, 
           maxHeight: 400, 
         ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            // Structural Addition Action Command Link
             IconButton(
               onPressed: () => viewModel.createLayer.execute(),
-              icon: const Icon(Icons.add_circle_outline_rounded),
+              icon: const Icon(Icons.add_circle_outline_rounded, color: Colors.white70),
               tooltip: 'Create New Layer',
             ),
             
-            const Divider(height: 12, thickness: 1),
+            const Divider(height: 12, thickness: 1, color: Colors.white24),
             
-            // Nested ListenableBuilder: Watches row selections, insertions, and destructions.
-            // Isolates list-rebuilding ticks entirely from the parent shell layout.
             Flexible(
               child: ListenableBuilder(
                 listenable: Listenable.merge([
@@ -53,14 +47,13 @@ class FloatingLayerPanel extends StatelessWidget {
                   viewModel,            
                 ]),
                 builder: (context, child) {
-                  // 1. Establish a stable local array sequence for absolute tracking index maps
                   final layerList = viewModel.layers;
 
                   return ReorderableListView(
-                    // 🟢 FIXED: Removed 'reverse: true' to protect your reorderLayers index math,
-                    // allowing drags to transition down the array bounds cleanly without drift.
                     physics: const ClampingScrollPhysics(),
-                    buildDefaultDragHandles: false,
+                    // 🟢 SET TO TRUE: Let Flutter natively append the drag handle 
+                    // gestures onto the rows to guarantee perfect alignment!
+                    buildDefaultDragHandles: true,
                     shrinkWrap: true, 
                     onReorder: (oldIndex, newIndex) {
                       viewModel.reorderLayers(oldIndex, newIndex); 
@@ -69,23 +62,38 @@ class FloatingLayerPanel extends StatelessWidget {
                       final int index = entry.key;
                       final layer = entry.value;
 
-                      return ReorderableDragStartListener(
-                        // Crucial Rule: Every direct child element inside a ReorderableListView 
-                        // MUST contain an explicit, unique Key on its absolute root element wrapper.
-                        key: ValueKey('drag_listener_${layer.id}'), 
-                        index: index, 
-                        child: Padding(
-                          padding: EdgeInsets.only(
-                            left: 4,
-                            right: 4,
-                            bottom: index == layerList.length - 1 ? 0 : 6,
-                          ),
-                          child: LayerPreviewWidget(
-                            layerId: layer.id,
-                            viewModel: viewModel,
-                            // 🟢 FIXED: Forwards the active UI drawing tool parameters map seamlessly!
-                            drawTools: toolController.tools, 
-                          ),
+                      // 🟢 FIXED: The immediate child MUST hold a clean ValueKey(layer.id).
+                      // This isolates the framework's GlobalKey factories from duplicates!
+                      return Padding(
+                        key: ValueKey(layer.id), // Key moved to top child cleanly
+                        padding: EdgeInsets.only(
+                          left: 8,
+                          right: 8,
+                          bottom: index == layerList.length - 1 ? 0 : 8,
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            // A. Clean, Isolated Layer Thumbnail Tile Card
+                            LayerPreviewWidget(
+                              layerId: layer.id,
+                              viewModel: viewModel,
+                              toolController: toolController, 
+                            ),
+                            
+                            const SizedBox(width: 6),
+
+                            // B. Explicit trash icon for deletions
+                            if (layerList.length > 1)
+                              IconButton(
+                                constraints: const BoxConstraints(),
+                                padding: EdgeInsets.zero,
+                                icon: const Icon(Icons.delete_outline_rounded, color: Colors.redAccent, size: 18),
+                                onPressed: () => viewModel.deleteLayer.execute(layer.id),
+                                tooltip: 'Delete Layer',
+                              ),
+                          ],
                         ),
                       );
                     }).toList(),

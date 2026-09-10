@@ -93,9 +93,9 @@ class _DrawScreenState extends State<DrawScreen> {
                   Positioned.fill(
                     child: GestureDetector(
                       behavior: HitTestBehavior.opaque,
-                      onPanStart: (details) => widget.toolController.handlePointerDown(details.localPosition),
-                      onPanUpdate: (details) => widget.toolController.handlePointerMove(details.localPosition),
-                      onPanEnd: (_) => widget.toolController.handlePointerUp(),
+                      onScaleStart: (details) => widget.toolController.handleScaleStart(details.localFocalPoint),
+                      onScaleUpdate: (details) => widget.toolController.handleScaleUpdate(details.localFocalPoint,details.scale),
+                      onScaleEnd: (_) => widget.toolController.handleScaleEnd(),
                       child: ClipRect(
                         child: Stack(
                           children: [
