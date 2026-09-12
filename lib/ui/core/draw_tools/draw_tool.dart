@@ -1,5 +1,6 @@
 import 'package:drawing_app/ui/core/commands/canvas_command.dart';
 import 'package:drawing_app/domain/models/draw_data/draw_data.dart';
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
   import 'dart:math';
 
@@ -26,6 +27,7 @@ abstract class DrawTool {
   }
 
   void onDrawStart({
+    required PointerDeviceKind deviceKind,
     required Offset startPoint,
     required String layerId,
     required int nextStrokeIndex,
@@ -35,6 +37,9 @@ abstract class DrawTool {
   );
   void onUpdateTool({
     required Offset newPoint,
+    required double gestureScale,
+    required PointerDeviceKind deviceKind,
+
   });
 
   CanvasCommand? onDrawEnd();

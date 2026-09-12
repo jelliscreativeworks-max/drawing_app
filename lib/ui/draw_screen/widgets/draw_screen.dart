@@ -1,16 +1,17 @@
+import 'dart:ui';
+
+import 'package:drawing_app/config/input_changed_notifier.dart';
 import 'package:drawing_app/domain/models/draw_data/draw_data.dart';
 import 'package:drawing_app/domain/models/layer_data/layer_data.dart';
-import 'package:drawing_app/ui/core/draw_tools/draw_tool.dart';
-import 'package:drawing_app/ui/core/draw_tools/draw_tools_list.dart';
 import 'package:drawing_app/ui/draw_screen/view_models/tool_controller.dart';
 import 'package:drawing_app/utils/painters/background_painter.dart';
+import 'package:drawing_app/utils/painters/debug_painter.dart';
 import 'package:drawing_app/utils/painters/gridline_painter.dart';
 import 'package:drawing_app/utils/painters/painter.dart';
 import 'package:drawing_app/ui/draw_screen/widgets/bottom_tool_bar_buttons.dart';
-import 'package:drawing_app/ui/draw_screen/widgets/layer_preview_view.dart';
 import 'package:drawing_app/ui/draw_screen/widgets/layer_menu_anchor_view.dart';
 import 'package:drawing_app/ui/draw_screen/view_models/draw_screen_view_model.dart';
-import 'package:drawing_app/utils/result.dart';
+
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -25,6 +26,7 @@ class DrawScreen extends StatefulWidget {
 }
 
 class _DrawScreenState extends State<DrawScreen> {
+
   bool _hasCenteredOnStart = false;
 
   @override
@@ -93,9 +95,14 @@ class _DrawScreenState extends State<DrawScreen> {
                   Positioned.fill(
                     child: GestureDetector(
                       behavior: HitTestBehavior.opaque,
-                      onScaleStart: (details) => widget.toolController.handleScaleStart(details.localFocalPoint),
-                      onScaleUpdate: (details) => widget.toolController.handleScaleUpdate(details.localFocalPoint,details.scale),
-                      onScaleEnd: (_) => widget.toolController.handleScaleEnd(),
+                      onScaleStart: (details){
+                        
+                        widget.toolController.handleScaleStart(details, context.read<InputChangedNotifier>().lastActiveDevice);},
+                      onScaleUpdate: (details){
+                        
+                        widget.toolController.handleScaleUpdate(details, context.read<InputChangedNotifier>().lastActiveDevice);},
+                      onScaleEnd: (_) => 
+                        widget.toolController.handleScaleEnd(),
                       child: ClipRect(
                         child: Stack(
                           children: [
@@ -159,6 +166,17 @@ class _DrawScreenState extends State<DrawScreen> {
                               },
                             ),
 
+                             Consumer2<ToolController, InputChangedNotifier>(
+                              builder: (context,toolController,inputChanged, child) {
+
+                                return Positioned.fill(
+                                  child: CustomPaint(
+                                    painter: DebugPainter(drawScreenViewModel: widget.viewModel, toolController: toolController, transform: widget.viewModel.camera.transform, canvasHeight: widget.viewModel.canvasHeight, canvasWidth: widget.viewModel.canvasWidth, device: inputChanged.lastActiveDevice)
+                                  ),
+                                );
+                              },
+                            ),
+
                             // D. Persistent Document Guideline Grids Overlay
                             // 🟢 MOVED TO TOP: Placed at the absolute end of the array loop 
                             // so guidelines sit perfectly visible over everything without blocking touch signals.
@@ -176,6 +194,7 @@ class _DrawScreenState extends State<DrawScreen> {
                                 ),
                               ),
                             ),
+                            
                           ],
                         ),
                       ),

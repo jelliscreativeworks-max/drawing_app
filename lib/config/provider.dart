@@ -1,3 +1,5 @@
+
+import 'package:drawing_app/config/input_changed_notifier.dart';
 import 'package:drawing_app/data/repositories/canvas_data_repository/canvas_data_repository.dart';
 import 'package:drawing_app/data/repositories/canvas_data_repository/canvas_data_repository_local.dart';
 import 'package:drawing_app/data/repositories/layer_data_repository/layer_data_repository.dart';
@@ -23,5 +25,16 @@ List<SingleChildWidget> get providersLocal {
         localDataService: context.read<LocalDataService>(),
       ),
     ),
+
+
   ];
 }
+
+List<SingleChildWidget> get providersGlobal{
+  return [
+    ChangeNotifierProvider(
+      create: (_) => InputChangedNotifier()
+      ),
+  ];
+}
+

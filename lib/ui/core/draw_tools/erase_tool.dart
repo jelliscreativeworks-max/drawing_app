@@ -13,7 +13,7 @@ class EraseTool extends DrawTool implements HistoryConsumer {
   final List<CanvasHistoryEntry> _erasedDrawData = [];
   List<DrawData> _drawHistory = const [];
   String _currentLayerId = '';
-  int _currentIndex = 0;
+
   bool _isErasing = false;
   Offset? _lastActivePoint;
   @override
@@ -106,6 +106,7 @@ class EraseTool extends DrawTool implements HistoryConsumer {
 
   @override
   void onDrawStart({
+    required PointerDeviceKind deviceKind,
     required Offset startPoint, 
     required String layerId, 
     required int nextStrokeIndex, // We skip using this hardcoded value entirely!
@@ -121,7 +122,7 @@ class EraseTool extends DrawTool implements HistoryConsumer {
   }
 
   @override
-  void onUpdateTool({required Offset newPoint}) {
+  void onUpdateTool({required Offset newPoint, required double gestureScale,  required PointerDeviceKind deviceKind,}) {
     if(!_isErasing || _lastActivePoint == null) return;
     _checkCollisions(_lastActivePoint!,newPoint);
     _lastActivePoint = newPoint;

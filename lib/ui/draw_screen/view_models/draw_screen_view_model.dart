@@ -114,7 +114,7 @@ class DrawScreenViewModel extends ChangeNotifier {
 
   List<DrawData> getHistoryForLayer(String layerId) =>
       _cachedLayerHistories[layerId] ?? const [];
-    void executeCommand(CanvasCommand command) {
+  void executeCommand(CanvasCommand command) {
     final context = CanvasStateContext(
       layerData: _layers, 
       globalDrawHistory: _drawHistory,
@@ -750,54 +750,7 @@ class DrawScreenViewModel extends ChangeNotifier {
       return Result.error(e is Exception ? e : Exception(e.toString()));
     }
   }
-  // =========================================================================
-  // --- INFINITE WORKSPACE CAMERA NAVIGATION MATH ---
-  // =========================================================================
 
-  /// Uniformly scales the entire graphics transformation matrix around the 
-  /// active touch gesture focal point world coordinate anchor location.
-  void handlePinchZoom(double gestureScale) {
-    // 1. Calculate the target zoom multiplier by combining the gesture scale 
-    // with the starting zoom level captured when the pinch began.
-    final double proposedScale = camera.scaleStart * gestureScale;
-    
-    // 2. Restrict zoom parameters within standard creative app bounds (20% to 500%)
-    final double clampedScale = proposedScale.clamp(0.2, 5.0); 
-
-    // Safety Optimization: If the delta change is infinitesimally small, skip rendering.
-    if ((clampedScale - camera.currentScale).abs() < 1e-6) return;
-
-    // 3. Determine the relative scale expansion multiplier step factor
-    final double scaleMultiplier = clampedScale / camera.currentScale;
-
-    // =========================================================================
-    // 🟢 THE FOCAL POINT CORRECTION MATH
-    // =========================================================================
-    // Instead of using raw screen pixels, we must translate our focal point
-    // back into world canvas coordinates relative to our current viewport setup!
-    final Matrix4 inverted = Matrix4.copy(camera.transform)..invert();
-    final vm.Vector4 screenVector = vm.Vector4(
-      camera.focalPointAtStart.dx, 
-      camera.focalPointAtStart.dy, 
-      0.0, 
-      1.0,
-    );
-    final vm.Vector4 worldFocalVector = inverted.transform(screenVector);
-    
-    final double worldFocalX = worldFocalVector.x;
-    final double worldFocalY = worldFocalVector.y;
-
-    // 4. Uniformly mutate the transformation matrix around the localized world anchor point.
-    // By using worldFocal coordinates, your zoom tracks perfectly without drifting!
-    camera.transform = camera.transform.clone()
-      ..translate(worldFocalX, worldFocalY)
-      ..scale(scaleMultiplier, scaleMultiplier)
-      ..translate(-worldFocalX, -worldFocalY);
-
-    // 5. Increment your revision tracking counter flag so CustomPainters clear their caches
-    _transformRevision++;
-    notifyListeners();
-  }
 
 
 }

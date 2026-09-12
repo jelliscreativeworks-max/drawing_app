@@ -56,7 +56,7 @@ class FreehandTool extends DrawTool {
   }
 
   @override
-  void onDrawStart({required Offset startPoint, required String layerId, required int nextStrokeIndex, required Color color, required double strokeWidth}) {
+  void onDrawStart({    required PointerDeviceKind deviceKind, required Offset startPoint, required String layerId, required int nextStrokeIndex, required Color color, required double strokeWidth}) {
     _isDrawing = true;
 
     _activeStroke = DrawData(layerId: layerId, toolName: toolName,id: uuid.v4(),  index: nextStrokeIndex, points: [startPoint], strokeSettings: strokePaint);
@@ -64,7 +64,7 @@ class FreehandTool extends DrawTool {
   }
 
   @override
-  void onUpdateTool({required Offset newPoint}) {
+  void onUpdateTool({required Offset newPoint, required double gestureScale,  required PointerDeviceKind deviceKind,}) {
     if(!_isDrawing) return;
     final updatedPoints = List<Offset>.from(_activeStroke!.points)..add(newPoint);
     _activeStroke =  _activeStroke!.copyWith(points: updatedPoints);

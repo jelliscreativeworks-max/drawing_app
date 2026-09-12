@@ -6,7 +6,9 @@ import 'package:provider/provider.dart';
 
 void main() {
 
-  runApp(MultiProvider(providers: providersLocal, child: const MainApp(),));
+  runApp(MultiProvider(
+    providers: [...providersGlobal,...providersLocal],
+    child: const MainApp(),));
 }
 
 class MainApp extends StatelessWidget {

@@ -31,6 +31,8 @@ class MyPainter extends CustomPainter {
     // 2. THE CANVASKIT CORE: Apply the camera pan/zoom matrix directly into the painter buffer!
     canvas.transform(transform.storage);
 
+    
+
     // 3. Define the rigid bounding layout box dimensions of your paper document sheet.
     final Rect artboardRect = Rect.fromLTWH(0, 0, canvasWidth, canvasHeight);
 
@@ -47,6 +49,8 @@ class MyPainter extends CustomPainter {
         tool?.draw(canvas, command);
       }
     }
+
+    
 
     // 6. Close the transformation frame safely to protect peripheral rendering streams.
     canvas.restore();

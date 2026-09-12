@@ -6,12 +6,17 @@ import 'package:drawing_app/ui/core/draw_tools/freehand_tool.dart';
 import 'package:drawing_app/ui/core/draw_tools/pan_tool.dart';
 import 'package:drawing_app/ui/draw_screen/view_models/draw_screen_view_model.dart';
 import 'package:drawing_app/utils/history_consumer.dart';
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:material_symbols_icons/symbols.dart';
 import 'package:vector_math/vector_math_64.dart' as vm;
 
 class ToolController extends ChangeNotifier {
   final DrawScreenViewModel _viewModel;
+
+  // DEBUG
+  ScaleStartDetails startDetails = ScaleStartDetails();
+  ScaleUpdateDetails updateDetails = ScaleUpdateDetails();
 
   Color activeColor = Colors.black;
   double activeStrokeWidth = 5.0;
@@ -23,13 +28,13 @@ class ToolController extends ChangeNotifier {
 
   ToolController({required DrawScreenViewModel viewModel})
     : _viewModel = viewModel {
-      initializeTools();
-    }
+    initializeTools();
+  }
 
   DrawTool get currentTool => _currentTool;
 
-  void initializeTools({Type? initialTool}){
-tools = {
+  void initializeTools({Type? initialTool}) {
+    tools = {
       FreehandTool: FreehandTool(
         toolName: 'Freehand Tool',
         toolIcon: Icon(Icons.draw),
@@ -37,8 +42,7 @@ tools = {
           ..color = Colors.black
           ..strokeCap = StrokeCap.round
           ..style = PaintingStyle.stroke
-          ..strokeWidth = 5
-        
+          ..strokeWidth = 5,
       ),
       PanTool: PanTool(
         toolName: 'Pan Tool',
@@ -47,11 +51,13 @@ tools = {
       ),
       EraseTool: EraseTool(
         toolName: 'Erase Tool',
-        toolIcon: Icon(Symbols.ink_eraser)
+        toolIcon: Icon(Symbols.ink_eraser),
       ),
     };
-    if(initialTool != null){
-    _currentTool = tools.containsKey(initialTool) ? tools[initialTool]! : tools.values.first;
+    if (initialTool != null) {
+      _currentTool = tools.containsKey(initialTool)
+          ? tools[initialTool]!
+          : tools.values.first;
     } else {
       _currentTool = tools[PanTool]!;
     }
@@ -74,7 +80,6 @@ tools = {
     notifyListeners();
   }
 
-
   void updateColor(Color newColor) {
     activeColor = newColor;
     notifyListeners();
@@ -84,27 +89,38 @@ tools = {
     activeStrokeWidth = newWidth;
     notifyListeners();
   }
-  // --- New Type-Safe Scale Gestures Layer Interceptors ---
 
-  void handleScaleStart(Offset screenFocalPoint) {
+  // --- New Type-Safe Scale Gestures Layer Interceptors ---
+  void handleScaleStart(ScaleStartDetails details, PointerDeviceKind device) {
+    startDetails = details;
     if (_currentTool.isActive) return;
 
-    // Anchor camera reference configurations before calculating adjustments
-    _viewModel.camera.focalPointAtStart = screenFocalPoint;
+    _viewModel.camera.focalPointAtStart = details.localFocalPoint;
     _viewModel.camera.scaleStart = _viewModel.camera.currentScale;
+    _viewModel.camera.previousGestureScale = 1.0;
 
-    final Offset worldPosition = _screenToWorld(screenFocalPoint);
-    final Offset targetPosition = _currentTool is PanTool ? screenFocalPoint : worldPosition;
+    // CRITICAL STEP: Transform the initial screen coordinate into true world space
+    // and lock it down for the entire lifecycle of this gesture!
+    _viewModel.camera.worldPivotAtStart = screenToWorld(
+      details.localFocalPoint,
+    );
 
-    if(_currentTool is HistoryConsumer){
-      List<DrawData> drawHistory = _viewModel.getHistoryForLayer(_viewModel.activeLayerId);
+    final Offset targetPosition = _currentTool is PanTool
+        ? details.localFocalPoint
+        : _viewModel.camera.worldPivotAtStart;
+
+    if (_currentTool is HistoryConsumer) {
+      List<DrawData> drawHistory = _viewModel.getHistoryForLayer(
+        _viewModel.activeLayerId,
+      );
       (_currentTool as HistoryConsumer).setHistorySnapshot(drawHistory);
     }
 
     _currentTool.onDrawStart(
-      startPoint:  targetPosition,
-      layerId:  _viewModel.activeLayerId,
-      nextStrokeIndex:  _viewModel.drawHistory.length,
+      deviceKind: device,
+      startPoint: targetPosition,
+      layerId: _viewModel.activeLayerId,
+      nextStrokeIndex: _viewModel.drawHistory.length,
       color: activeColor,
       strokeWidth: activeStrokeWidth,
     );
@@ -112,30 +128,25 @@ tools = {
     notifyListeners();
   }
 
-  void handleScaleUpdate(Offset screenFocalPoint, double gestureScale) {
+  void handleScaleUpdate(ScaleUpdateDetails details, PointerDeviceKind device) {
+    updateDetails = details;
     if (!_currentTool.isActive) return;
 
-    if (_currentTool is PanTool) {
-      // 1. Capture and process real-time panning deltas using focal coordinates
-      _currentTool.onUpdateTool(newPoint:  screenFocalPoint);
-
-      // 2. 🟢 FIX: If the user pinches while the Pan tool is active, execute zoom adjustments!
-      if (gestureScale != 1.0) {
-        // Feed the anchor points and scale multiplier directly down into your ViewModel math
-        _viewModel.handlePinchZoom(gestureScale);
-      }
+    if (_currentTool is PanTool)  {
+        _currentTool.onUpdateTool(newPoint: details.localFocalPoint, gestureScale: details.scale, deviceKind: device);
       
+      // TODO: Dont like hard coding if is pan tool
       _viewModel.forceCanvasRefresh();
     } else {
-      // Process standard line sketching coordinate points 
-      final Offset worldPosition = _screenToWorld(screenFocalPoint);
-      _currentTool.onUpdateTool(newPoint: worldPosition);
+      // Process standard line sketching coordinate points
+      final Offset worldPosition = screenToWorld(details.localFocalPoint);
+
+      _currentTool.onUpdateTool(newPoint: worldPosition, gestureScale: details.scale, deviceKind: device);
       notifyListeners();
     }
   }
 
   void handleScaleEnd() {
-
     final command = _currentTool.onDrawEnd();
     notifyListeners();
 
@@ -146,7 +157,6 @@ tools = {
     notifyListeners();
   }
 
-
   // ==========================================
   // --- COORDINATE MAPPING TRANSLATION ENGINE ---
   // ==========================================
@@ -154,19 +164,21 @@ tools = {
   // --- COORDINATE MAPPING TRANSLATION ENGINE ---
   // ==========================================
 
-  Offset _screenToWorld(Offset screenPoint) {
+  Offset screenToWorld(Offset screenPoint) {
     final Matrix4 transformMatrix = _viewModel.camera.transform;
-    
+
     // Invert the camera transformation matrix to reverse the painter's shift
     final Matrix4 inverted = Matrix4.copy(transformMatrix)..invert();
-    
+
     // Cast the 2D offset into a 4D vector space calculation block
-    final vm.Vector4 screenVector = vm.Vector4(screenPoint.dx, screenPoint.dy, 0.0, 1.0);
+    final vm.Vector4 screenVector = vm.Vector4(
+      screenPoint.dx,
+      screenPoint.dy,
+      0.0,
+      1.0,
+    );
     final vm.Vector4 worldVector = inverted.transform(screenVector);
-    
+
     return Offset(worldVector.x, worldVector.y);
   }
-
-
 }
-
