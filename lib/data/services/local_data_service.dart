@@ -4,11 +4,14 @@ import 'dart:io';
 import 'package:drawing_app/domain/models/canvas_data/canvas_data.dart';
 import 'package:drawing_app/domain/models/layer_data/layer_data.dart';
 import 'package:path_provider/path_provider.dart';
+import 'package:logger/logger.dart';
 
 const String materialFile = 'material_data.json';
 const String historicalFile = 'historical_data.json';
 
 class LocalDataService {
+  final Logger _log = Logger();
+
   Future<String> get _localPath async {
     final directory = await getApplicationDocumentsDirectory();
     return directory.path;
@@ -34,14 +37,12 @@ class LocalDataService {
 
   Future<List<CanvasData>> loadCanvasDataList() async {
     final List<CanvasData> loadedData = [];
-    // 🟢 FIXED: Swapped backslashes for forward slashes
     final dir = Directory('${await _localPath}/projects');
 
     if (!await dir.exists()) return loadedData;
 
     await for (final FileSystemEntity projectDir in dir.list()) {
       if (projectDir is Directory) {
-        // 🟢 FIXED: Standardized metadata lookup path trajectory strings
         final metaFile = File('${projectDir.path}/project_meta.json');
 
         if (await metaFile.exists()) {
@@ -50,7 +51,7 @@ class LocalDataService {
             final json = jsonDecode(data) as Map<String, dynamic>;
             loadedData.add(CanvasData.fromJson(json));
           } catch (e) {
-            print('Failed to parse metadata for ${projectDir.path}: $e');
+            _log.e('Failed to parse metadata for ${projectDir.path}: $e');
           }
         }
       }
@@ -60,7 +61,7 @@ class LocalDataService {
   }
 
   Future<void> deleteCanvas(String canvasId) async {
-    // 🟢 FIXED: Standardized path strings
+
     final file = File(
       '${await _localPath}/projects/$canvasId/project_meta.json',
     );
@@ -77,12 +78,12 @@ class LocalDataService {
 
   Future<void> saveCanvasData(CanvasData data) async {
     final mappedData = data.toJson();
-    // 🟢 FIXED: Standardized backslashes out of your project manifests writer paths
+
     await _writeJsonToFile(mappedData, 'projects/${data.id}/project_meta.json');
   }
 
   Future<void> deleteAllLayersForProject(String canvasId) async {
-    // 🟢 FIXED: Standardized layout directory paths
+
     final layersDir = Directory(
       '${await _localPath}/projects/$canvasId/layers',
     );
@@ -94,7 +95,7 @@ class LocalDataService {
 
   Future<List<LayerData>> loadDrawLayers(String canvasId) async {
     final List<LayerData> loadedLayers = [];
-    // 🟢 FIXED: Standardized layout directory paths
+
     final layersDir = Directory(
       '${await _localPath}/projects/$canvasId/layers',
     );
@@ -131,7 +132,7 @@ class LocalDataService {
       final json = jsonDecode(data) as Map<String, dynamic>;
       return LayerData.fromJson(json).copyWith(isDirty: false);
     } catch (e) {
-      print('Failed to parse layer file at $absolutePath: $e');
+      _log.e('Failed to parse layer file at $absolutePath: $e');
       return null;
     }
   }
@@ -142,7 +143,6 @@ class LocalDataService {
     for (int i = 0; i < data.length; i++) {
       final mappedData = data[i].toJson();
 
-      // 🟢 FIXED: Swapped Windows backslashes for cross-platform forward slashes!
       final future = _writeJsonToFile(
         mappedData,
         'projects/${data[i].canvasId}/layers/${data[i].id}.json',
@@ -154,15 +154,14 @@ class LocalDataService {
   }
 
   Future<void> deleteDrawLayer(LayerData layer) async {
-    // 🟢 FIXED: Clean trajectory path. Now matches exactly on all testing devices!
     final path = 'projects/${layer.canvasId}/layers/${layer.id}.json';
     final file = await _getlocalFile(path); 
 
     if (await file.exists()) {
       await file.delete();
-      print('Scrubbed layer file successfully from disk: $path');
+      _log.i('Scrubbed layer file successfully from disk: $path');
     } else {
-      print('Forced removal pass skipped: No file found matching coordinates: $path');
+      _log.w('Forced removal pass skipped: No file found matching coordinates: $path');
     }
   }
 }

@@ -18,6 +18,7 @@ abstract class Command<T> extends ChangeNotifier {
 
   bool _running = false;
   bool get running => _running;
+  // ignore: unused_field
   Result<T>? _result;
   // ...
 

@@ -1,6 +1,5 @@
 import 'package:drawing_app/domain/models/draw_data/draw_data.dart';
 import 'package:drawing_app/domain/models/layer_data/layer_data.dart';
-import 'package:drawing_app/ui/core/draw_tools/pan_tool.dart';
 import 'package:drawing_app/ui/draw_screen/view_models/tool_controller.dart';
 import 'package:drawing_app/utils/painters/background_painter.dart';
 import 'package:drawing_app/utils/painters/debug_painter.dart';
@@ -30,8 +29,6 @@ class DrawScreen extends StatefulWidget {
 
 class _DrawScreenState extends State<DrawScreen> {
   bool _hasCenteredOnStart = false;
-
-
 
   @override
   Widget build(BuildContext context) {
@@ -110,45 +107,54 @@ class _DrawScreenState extends State<DrawScreen> {
                         onPointerCancel: (event) =>
                             widget.toolController.onPointerCancel(event),
 
+                        onPointerPanZoomStart: (event) =>
+                            widget.toolController.onPointerPanZoomStart(event),
+                        onPointerPanZoomUpdate: (event) =>
+                            widget.toolController.onPointerPanZoomUpdate(event),
+                        onPointerPanZoomEnd: (event) =>
+                            widget.toolController.onPointerPanZoomEnd(event),
+
                         child: RawGestureDetector(
                           gestures: {
-                            ScaleGestureRecognizer: GestureRecognizerFactoryWithHandlers<ScaleGestureRecognizer>(
-                              () => ScaleGestureRecognizer(
-                                allowedButtonsFilter: (int buttons) {
-                                  // 1. Mobile touch tracking (bitmask is always 0)
-                                  if (buttons == 0) return true;
+                            ScaleGestureRecognizer:
+                                GestureRecognizerFactoryWithHandlers<
+                                  ScaleGestureRecognizer
+                                >(
+                                  () => ScaleGestureRecognizer(
+                                    allowedButtonsFilter: (int buttons) {
+                                      // 1. Mobile touch tracking (bitmask is always 0)
+                                      if (buttons == 0) return true;
 
-                                  // 2. Reject middle mouse button (4) completely from the Scale Arena.
-                                  // This allows the raw Listener to manage it cleanly without arena collisions.
-                                  if ((buttons & kMiddleMouseButton) != 0) {
-                                    return false;
-                                  }
+                                      // 2. Reject middle mouse button (4) completely from the Scale Arena.
+                                      // This allows the raw Listener to manage it cleanly without arena collisions.
+                                      if ((buttons & kMiddleMouseButton) != 0) {
+                                        return false;
+                                      }
 
-                                  // 3. For all other scenarios (Pan Tool, Freehand, Erase), allow Left Click (1)
-                                  return (buttons & kPrimaryMouseButton != 0);
-                                },
-                              ),
-                              (ScaleGestureRecognizer instance) {
-                                instance
-                                  ..onStart = (ScaleStartDetails details) {
-                                    // _panStartOffset = _canvasOffset;
-                                    widget.toolController.handleScaleStart(
-                                      details,
-                                      details.kind!,
-                                    );
-                                  }
-                                  ..onUpdate = (ScaleUpdateDetails details) {
-                                    widget.toolController.handleScaleUpdate(
-                                      details,
-
-                                    );
-
-                                  }
-                                  ..onEnd = (ScaleEndDetails details) {
-                                    widget.toolController.handleScaleEnd();
-                                  };
-                              },
-                            ),
+                                      // 3. For all other scenarios (Pan Tool, Freehand, Erase), allow Left Click (1)
+                                      return (buttons & kPrimaryMouseButton !=
+                                          0);
+                                    },
+                                  ),
+                                  (ScaleGestureRecognizer instance) {
+                                    instance
+                                      ..onStart = (ScaleStartDetails details) {
+                                        // _panStartOffset = _canvasOffset;
+                                        widget.toolController.handleScaleStart(
+                                          details,
+                                          details.kind!,
+                                        );
+                                      }
+                                      ..onUpdate =
+                                          (ScaleUpdateDetails details) {
+                                            widget.toolController
+                                                .handleScaleUpdate(details);
+                                          }
+                                      ..onEnd = (ScaleEndDetails details) {
+                                        widget.toolController.handleScaleEnd();
+                                      };
+                                  },
+                                ),
                           },
                           child: ClipRect(
                             child: Stack(
@@ -172,8 +178,7 @@ class _DrawScreenState extends State<DrawScreen> {
                                 ...widget.viewModel.layers.map((
                                   LayerData layer,
                                 ) {
-                                  if (!layer.isVisible)
-                                    return const SizedBox.shrink();
+                                  if (!layer.isVisible) return const SizedBox.shrink();
 
                                   final List<DrawData> filteredLayerHistory =
                                       widget.viewModel.getHistoryForLayer(
@@ -199,7 +204,7 @@ class _DrawScreenState extends State<DrawScreen> {
                                       ),
                                     ),
                                   );
-                                }).toList(),
+                                }),
 
                                 // C. Real-Time Active Pointer Stroke Sketch Preview Overlay Channel
                                 // Sits right on top of historical layer lines so in-progress shapes trace accurately!
@@ -208,8 +213,7 @@ class _DrawScreenState extends State<DrawScreen> {
                                   builder: (context, child) {
                                     final DrawData? preview =
                                         widget.toolController.activePreview;
-                                    if (preview == null)
-                                      return const SizedBox.shrink();
+                                    if (preview == null) return const SizedBox.shrink();
 
                                     return Positioned.fill(
                                       child: CustomPaint(
@@ -283,7 +287,7 @@ class _DrawScreenState extends State<DrawScreen> {
                           vertical: 4,
                         ),
                         decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.9),
+                          color: Colors.white.withValues(alpha: 0.9),
                           borderRadius: BorderRadius.circular(20),
                         ),
                         child: Row(

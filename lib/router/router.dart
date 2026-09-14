@@ -1,4 +1,4 @@
-import 'package:drawing_app/config/provider.dart';
+
 import 'package:drawing_app/router/routes.dart';
 import 'package:drawing_app/ui/draw_screen/view_models/draw_screen_view_model.dart';
 import 'package:drawing_app/ui/draw_screen/view_models/tool_controller.dart';

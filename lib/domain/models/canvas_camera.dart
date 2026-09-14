@@ -11,5 +11,5 @@ class ToolMatrixPayload {
 
   Offset worldPivotAtStart = Offset.zero;
 
-  double get currentScale => transform.getMaxScaleOnAxis();
+double get currentScale => transform.getColumn(0).xyz.length;
 }

@@ -1,7 +1,5 @@
 import 'dart:ui';
 
-import 'package:drawing_app/ui/core/commands/canvas_command.dart';
-import 'package:drawing_app/ui/core/draw_tools/draw_tool.dart';
 import 'package:drawing_app/utils/converters.dart';
 import 'package:freezed_annotation/freezed_annotation.dart';
 

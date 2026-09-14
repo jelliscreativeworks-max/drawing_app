@@ -1,8 +1,5 @@
-import 'dart:typed_data';
 
-import 'package:drawing_app/ui/core/commands/canvas_command.dart';
 import 'package:drawing_app/domain/models/draw_data/draw_data.dart';
-import 'package:drawing_app/utils/converters.dart';
 import 'package:freezed_annotation/freezed_annotation.dart';
 
 part 'layer_data.freezed.dart';  

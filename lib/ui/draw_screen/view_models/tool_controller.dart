@@ -136,7 +136,6 @@ class ToolController extends ChangeNotifier {
 
   void onPointerMove(PointerMoveEvent event) {
     if (!drawEnabled) return;
-
     // Handle Middle Click drag tracking directly
     if (event.buttons == kTertiaryButton || _panToolOverrideActive && _lastDeviceKind == PointerDeviceKind.mouse) {
       final panTool = tools[PanTool] as PanTool;
@@ -187,8 +186,63 @@ class ToolController extends ChangeNotifier {
   }
 
 
+void onPointerPanZoomStart(PointerPanZoomStartEvent event) {
+  if (!drawEnabled) return;
+  
+  // 1. Log that we are actively on a trackpad interaction loop
+  _lastDeviceKind = PointerDeviceKind.trackpad;
+
+  // 2. Continuously sync the camera focal point to the trackpad's hover location
+  _viewModel.camera.focalPointAtStart = event.localPosition;
+  _viewModel.camera.scaleStart = _viewModel.camera.currentScale;
+  _viewModel.camera.previousGestureScale = 1.0;
+  
+  // 3. Keep world pivot calculation accurate for your tools
+  _viewModel.camera.worldPivotAtStart = screenToWorld(event.localPosition);
+
+  // Trigger your PanTool initialization hook cleanly
+  tools[PanTool]!.onDrawStart(
+    deviceKind: PointerDeviceKind.trackpad,
+    startPoint: event.localPosition,
+    layerId: _viewModel.activeLayerId,
+    nextStrokeIndex: _viewModel.drawHistory.length,
+    color: activeColor,
+    strokeWidth: activeStrokeWidth,
+  );
+}
+void onPointerPanZoomUpdate(PointerPanZoomUpdateEvent event) {
+  if (!drawEnabled) return;
+
+  _viewModel.camera.focalPointAtStart = event.localPosition;
+
+  tools[PanTool]!.onUpdateTool(
+    newPoint: event.localPanDelta, // Pure tracking delta
+    gestureScale: event.scale, 
+    deviceKind: PointerDeviceKind.trackpad,
+  );
+  
+  _viewModel.forceCanvasRefresh();
+}
+
+
+  // 🟢 Handles Trackpad Touch-Lift Cleanup
+  void onPointerPanZoomEnd(PointerPanZoomEndEvent event) {
+    if (!drawEnabled) return;
+    _activePointerIds.remove(event.pointer);
+
+    if (_panToolOverrideActive) {
+      tools[PanTool]!.onDrawEnd();
+      _panToolOverrideActive = false;
+      notifyListeners();
+    }
+  }
+
+
   void handleScaleStart(ScaleStartDetails details, PointerDeviceKind device) {
     if(!drawEnabled) return;
+
+    if (device == PointerDeviceKind.trackpad || _lastDeviceKind == PointerDeviceKind.trackpad) return;
+  
   
     startDetails = details;
     
@@ -243,6 +297,9 @@ class ToolController extends ChangeNotifier {
 
   void handleScaleUpdate(ScaleUpdateDetails details) {
     if (!drawEnabled) return;
+
+    if (_lastDeviceKind == PointerDeviceKind.trackpad) return;
+
     updateDetails = details;
     if (!_currentTool.isActive && _panToolOverrideActive == false) return;
 
@@ -271,7 +328,6 @@ class ToolController extends ChangeNotifier {
       notifyListeners();
     }
   }
-
 
   void handleScaleEnd() {
     if(!drawEnabled) return;
@@ -304,7 +360,6 @@ class ToolController extends ChangeNotifier {
     drawEnabled = true;
     notifyListeners();
   }
-
 
   Offset screenToWorld(Offset screenPoint) {
     final Matrix4 transformMatrix = _viewModel.camera.transform;

@@ -1,6 +1,5 @@
 import 'dart:async';
 import 'dart:typed_data';
-import 'dart:ui';
 
 import 'package:drawing_app/data/repositories/canvas_data_repository/canvas_data_repository.dart';
 import 'package:drawing_app/data/repositories/layer_data_repository/layer_data_repository.dart';
@@ -13,15 +12,12 @@ import 'package:drawing_app/domain/models/layer_data/layer_data.dart';
 import 'package:drawing_app/ui/core/commands/delete_layer_command.dart';
 import 'package:drawing_app/ui/core/commands/reorder_layer_command.dart';
 import 'package:drawing_app/ui/core/draw_tools/draw_tool.dart';
-import 'package:drawing_app/ui/core/draw_tools/draw_tools_list.dart';
-import 'package:drawing_app/ui/core/commands/erase_draw_command.dart';
 import 'package:drawing_app/utils/command.dart';
 import 'package:drawing_app/utils/image_conversion.dart';
 import 'package:drawing_app/utils/result.dart';
 import 'package:flutter/material.dart';
 import 'package:logger/logger.dart';
 import 'package:uuid/uuid.dart';
-import 'package:vector_math/vector_math_64.dart' as vm;
 
 const Uuid uuid = Uuid();
 
@@ -135,12 +131,9 @@ class DrawScreenViewModel extends ChangeNotifier {
       _rebuildCacheForLayer(command.layerId);
       _markLayerAsDirtyById(command.layerId);
     } else {
-      // =========================================================================
-      // 🟢 FIX: LOG THE DELETION TO PURGE THE PHYSICAL FILE SYSTEM
-      // =========================================================================
       // If the layer was removed from memory (like undoing an AddLayerCommand),
-      // log its ID straight into your pending deletions queue tracker!
-      // This tells your background daemon to completely delete the file from the disk.
+      // log its ID straight into the pending deletions queue tracker.
+      // This tells the background daemon to completely delete the file from the disk.
       _pendingLayerDeletionsLog.add(command.layerId);
       
       // Clean up internal runtime caching lookups instantly
@@ -163,16 +156,12 @@ class DrawScreenViewModel extends ChangeNotifier {
 
     notifyListeners();
 
-    // 3. Wake up the background auto-save loop to process the file deletions!
+    // 3. Wake up the background auto-save loop to process the file deletions
     if (!saveDirtyProgress.running) {
       saveDirtyProgress.execute();
     }
   }
 
-
-  // =========================================================================
-  // --- GLOBAL HISTORICAL TIME TRAVEL ACTIONS (STATE-HEALED) ---
-  // =========================================================================
 
   void undo() {
     if (_undoHistory.isEmpty) return;
@@ -193,19 +182,16 @@ class DrawScreenViewModel extends ChangeNotifier {
     command.undo(context);
     _redoHistory.add(command);
 
-    // =========================================================================
-    // 🟢 THE STRUCTURAL SNAPSHOT SHIELD (FIXES UNDO LEAKING FILES)
-    // =========================================================================
     // Verify if the layer specified by the command still exists AFTER the undo pass.
-    // If we just undid an AddLayerCommand, this evaluates to false!
+    // If we just undid an AddLayerCommand, this evaluates to false.
     final bool targetLayerStillExists = _layers.any((l) => l.id == command.layerId);
 
     if (targetLayerStillExists) {
       _rebuildCacheForLayer(command.layerId);
       _markLayerAsDirtyById(command.layerId);
     } else {
-      // 🟢 THE FIX: If the layer was removed by the undo action, 
-      // queue its ID straight into your pending file system deletions log!
+      // If the layer was removed by the undo action, 
+      // queue its ID straight into your pending file system deletions log
       _pendingLayerDeletionsLog.add(command.layerId);
       
       // Clear out internal runtime tracking lookups instantly
@@ -229,7 +215,7 @@ class DrawScreenViewModel extends ChangeNotifier {
 
     notifyListeners();
 
-    // Wake up the background auto-save loop to purge the file off your hard drive!
+    // Wake up the background auto-save loop to purge the file off of disk
     if (!saveDirtyProgress.running) {
       saveDirtyProgress.execute();
     }
@@ -258,9 +244,6 @@ class DrawScreenViewModel extends ChangeNotifier {
       _pendingLayerDeletionsLog.add(command.layerId);
     }
 
-    // =========================================================================
-    // 🟢 THE REDO RE-SYNC SHIELD (FIXES RE-INSERTION COLD STANDSTILL)
-    // =========================================================================
     final bool targetLayerStillExists = _layers.any((l) => l.id == command.layerId);
 
     if (targetLayerStillExists) {
@@ -276,9 +259,8 @@ class DrawScreenViewModel extends ChangeNotifier {
       _activeLayerIndex = _activeLayerIndex.clamp(0, _layers.length - 1);
     }
 
-    // 🟢 THE RE-INSTANTIATION CLONE REFOCUS:
     // Force a fresh collection update layout reference to trick Flutter's 
-    // change detection system into seeing the newly re-inserted redo row!
+    // change detection system into seeing the newly re-inserted redo row
     _layers = List<LayerData>.from(_layers);
 
     notifyListeners();
@@ -398,8 +380,6 @@ class DrawScreenViewModel extends ChangeNotifier {
 
         _activeLayerIndex = 0;
 
-        // ... (steps 1 to 4 loading and sorting layer arrays in _loadProject)
-
         // 5. Commit structural data vectors to screen
         notifyListeners();
 
@@ -421,9 +401,9 @@ class DrawScreenViewModel extends ChangeNotifier {
       currentHistoryLength: _drawHistory.length, // 🟢 Binds chronologically to the top of the timeline
     );
 
-    // 2. Dispatch straight down your unified execution command engine pipeline pass!
+    // 2. Dispatch straight down the unified execution command engine pipeline pass.
     // This handles moving the item, flushing layer caches, marking files dirty, 
-    // and waking up your automated disk-write autosave loops automatically!
+    // and waking up the automated disk-write autosave loops automatically.
     executeCommand(reorderCommand);
   }
    Future<Result<void>> _saveDirtyProgress() async {
@@ -563,9 +543,6 @@ class DrawScreenViewModel extends ChangeNotifier {
     return Result.ok(null);
   }
 
-  // =========================================================================
-  // --- STRUCTURAL LAYER MUTATION PIPELINES ---
-  // =========================================================================
 
   /// Instantiates a pristine, empty drawing sheet directly above the current active 
   /// layer selection slot, dropping it down the central execution pipeline loop.
@@ -673,7 +650,7 @@ class DrawScreenViewModel extends ChangeNotifier {
         case Error():
           return Result.error(layerResult.error);
       }
-        // _currentCanvas = result.value;
+
 
 
 
@@ -697,22 +674,18 @@ class DrawScreenViewModel extends ChangeNotifier {
     _layers[index] = _layers[index].copyWith(isDirty: true);
   }
 
-    // =========================================================================
-  // --- METADATA SYNCHRONIZATION BROKERS ---
-  // =========================================================================
-
   Future<void> _synchronizeCanvasMetadata() async {
     if (_currentCanvas == null) return;
     
-    // 🟢 THE RESOLUTION: Rebuild the manifest layer mapping strictly using 
-    // the live, active elements currently sitting inside your _layers array!
+    // Rebuild the manifest layer mapping strictly using 
+    // the live, active elements currently sitting inside _layers
     // If an AddLayer undo step just removed the layer from memory, this ensures 
     // its ID string token is completely purged from the document description block.
     final updatedCanvas = _currentCanvas!.copyWith(
       layerIds: _layers.map((layer) => layer.id).toList(),
     );
     
-    // Push the clean, pruned manifest down to your local storage files
+    // Push the clean, pruned manifest down to local storage files
     final canvasSaveResult = await _canvasDataRepository.modifyCanvasData(updatedCanvas);
     
     if (canvasSaveResult is Ok<CanvasData>) {

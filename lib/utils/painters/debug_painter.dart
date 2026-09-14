@@ -40,24 +40,9 @@ class DebugPainter extends CustomPainter{
   }
  
  Offset handlePinchZoom(double gestureScale) {
-    // 1. Calculate the target zoom multiplier by combining the gesture scale 
-    // with the starting zoom level captured when the pinch began.
-    final double proposedScale = drawScreenViewModel.camera.scaleStart * gestureScale;
-    
-    // 2. Restrict zoom parameters within standard creative app bounds (20% to 500%)
-    final double clampedScale = proposedScale.clamp(0.2, 5.0); 
 
-    // Safety Optimization: If the delta change is infinitesimally small, skip rendering.
-    // if ((clampedScale - drawScreenViewModel.camera.currentScale).abs() < 1e-6) 
-
-    // 3. Determine the relative scale expansion multiplier step factor
-    final double scaleMultiplier = clampedScale / drawScreenViewModel.camera.currentScale;
-
-    // =========================================================================
-    // 🟢 THE FOCAL POINT CORRECTION MATH
-    // =========================================================================
     // Instead of using raw screen pixels, we must translate our focal point
-    // back into world canvas coordinates relative to our current viewport setup!
+    // back into world canvas coordinates relative to our current viewport setup
     final Matrix4 inverted = Matrix4.copy(drawScreenViewModel.camera.transform)..invert();
     final vm.Vector4 screenVector = vm.Vector4(
       drawScreenViewModel.camera.focalPointAtStart.dx, 
@@ -69,18 +54,8 @@ class DebugPainter extends CustomPainter{
     
     final double worldFocalX = worldFocalVector.x;
     final double worldFocalY = worldFocalVector.y;
-      //   drawScreenViewModel.camera.transform = drawScreenViewModel.camera.transform.clone()
-      // ..translate(worldFocalX, worldFocalY)
-      // ..scale(scaleMultiplier, scaleMultiplier)
-      // ..translate(-worldFocalX, -worldFocalY);
-
 
     return Offset(worldFocalX, worldFocalY);
-
-    // // 4. Uniformly mutate the transformation matrix around the localized world anchor point.
-    // // By using worldFocal coordinates, your zoom tracks perfectly without drifting!
-
-
   }
 
 

@@ -1,7 +1,4 @@
-import 'dart:typed_data';
 
-import 'package:drawing_app/ui/core/commands/canvas_command.dart';
-import 'package:drawing_app/utils/converters.dart';
 import 'package:freezed_annotation/freezed_annotation.dart';
 
 part 'canvas_data.freezed.dart';  

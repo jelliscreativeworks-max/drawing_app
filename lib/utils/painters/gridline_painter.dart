@@ -1,4 +1,4 @@
-import 'dart:typed_data';
+
 import 'package:flutter/material.dart';
 
 class GridlinePainter extends CustomPainter {
@@ -24,7 +24,6 @@ class GridlinePainter extends CustomPainter {
     canvas.save();
     
     // 1. Apply the camera matrix natively to the canvas state.
-    // Panning, zooming, and focal points are now handled perfectly by Flutter.
     canvas.transform(transform.storage);
 
     // 2. Bound the grid perfectly to the artboard boundaries (matching MyPainter exactly)
@@ -39,7 +38,7 @@ class GridlinePainter extends CustomPainter {
     // stay exactly 1 physical screen pixel thick on your device glass when you zoom in/out,
     // preventing them from looking fat or muddy when highly magnified.
     final Paint linePaint = Paint()
-      ..color = Colors.black.withOpacity(opacity)
+      ..color = Colors.black.withValues(alpha: opacity)
       ..strokeWidth = lineThickness / zoomScale 
       ..style = PaintingStyle.stroke;
 
@@ -49,7 +48,7 @@ class GridlinePainter extends CustomPainter {
       canvas.drawLine(Offset(x, 0), Offset(x, canvasHeight), linePaint);
     }
 
-    // 6. Draw Horizontal Grid Lines across your absolute canvas height bounds
+    // 6. Draw Horizontal Grid Lines across absolute canvas height bounds
     for (double y = 0; y <= canvasHeight; y += cellSize) {
       canvas.drawLine(Offset(0, y), Offset(canvasWidth, y), linePaint);
     }
