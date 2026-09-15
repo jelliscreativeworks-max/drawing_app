@@ -3,9 +3,7 @@ import 'package:drawing_app/ui/core/commands/canvas_command.dart';
 import 'package:drawing_app/domain/models/draw_data/draw_data.dart';
 import 'package:drawing_app/ui/core/commands/draw_command.dart';
 import 'package:drawing_app/ui/core/draw_tools/draw_tool.dart';
-import 'package:uuid/uuid.dart';
 
-const Uuid uuid = Uuid();
 class FreehandTool extends DrawTool {
   DrawData? _activeStroke;
   bool _isDrawing = false;
@@ -14,12 +12,13 @@ class FreehandTool extends DrawTool {
 
   FreehandTool({required super.toolName, required super.toolIcon, super.fillPaint, super.strokePaint});
 
+  // TODO: Refactor by moving to DrawData
   @override
   void draw(Canvas canvas, DrawData drawData) {
     if (drawData.points.isEmpty) return;
 
     if (drawData.strokeSettings != null) {
-      _drawIndividualLine(
+      _drawStroke(
         canvas,
         drawData.points,
         drawData.strokeSettings!,
@@ -28,8 +27,8 @@ class FreehandTool extends DrawTool {
   }
 
   
-
-  void _drawIndividualLine(Canvas canvas, List<Offset> points, Paint paint) {
+  // TODO: Refactor by moving to DrawData
+  void _drawStroke(Canvas canvas, List<Offset> points, Paint paint) {
     if (points.length == 1) {
       canvas.drawPoints(PointMode.points, points, paint);
     } else {

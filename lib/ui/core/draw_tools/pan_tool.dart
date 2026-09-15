@@ -18,6 +18,7 @@ class PanTool extends DrawTool {
   PanTool({
     required super.toolName,
     required super.toolIcon,
+    
     required ToolMatrixPayload camera,
   }) : _camera = camera;
 

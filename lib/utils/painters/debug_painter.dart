@@ -20,23 +20,23 @@ class DebugPainter extends CustomPainter{
   DebugPainter({required this.drawScreenViewModel, required this.toolController,required this.transform, required this.canvasHeight, required this.canvasWidth, required this.device});
 @override
   void paint(Canvas canvas, Size size) {
-    // 1. Open a clean graphics state configuration container anchor frame.
-    canvas.save();
+    // // 1. Open a clean graphics state configuration container anchor frame.
+    // canvas.save();
     
-    // 2. THE CANVASKIT CORE: Apply the camera pan/zoom matrix directly into the painter buffer!
-    canvas.transform(transform.storage);
+    // // 2. THE CANVASKIT CORE: Apply the camera pan/zoom matrix directly into the painter buffer!
+    // canvas.transform(transform.storage);
 
-    // Actual input
-     if(device != PointerDeviceKind.trackpad)canvas.drawCircle(toolController.screenToWorld(toolController.updateDetails.localFocalPoint), 5, debugPaint);
+    // // Actual input
+    //  if(device != PointerDeviceKind.trackpad)canvas.drawCircle(toolController.screenToWorld(toolController.updateDetails.localFocalPoint), 5, debugPaint);
 
     
-    if(device == PointerDeviceKind.trackpad) canvas.drawCircle(handlePinchZoom(toolController.updateDetails.scale), 5, debugPaint2);
+    // if(device == PointerDeviceKind.trackpad) canvas.drawCircle(handlePinchZoom(toolController.updateDetails.scale), 5, debugPaint2);
 
-    // canvas.drawPoints(PointMode.points, [_scaleUpdateDetails.focalPoint], debugPaint);
-    // canvas.drawPoints(PointMode.points, [_drawScreenViewModel.camera.focalPointAtStart], Paint()..color = Colors.blue..strokeWidth = 5..style = PaintingStyle.stroke);
+    // // canvas.drawPoints(PointMode.points, [_scaleUpdateDetails.focalPoint], debugPaint);
+    // // canvas.drawPoints(PointMode.points, [_drawScreenViewModel.camera.focalPointAtStart], Paint()..color = Colors.blue..strokeWidth = 5..style = PaintingStyle.stroke);
 
-    // 6. Close the transformation frame safely to protect peripheral rendering streams.
-    canvas.restore();
+    // // 6. Close the transformation frame safely to protect peripheral rendering streams.
+    // canvas.restore();
   }
  
  Offset handlePinchZoom(double gestureScale) {

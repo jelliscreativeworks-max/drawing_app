@@ -123,27 +123,15 @@ class DrawScreenViewModel extends ChangeNotifier {
 
     _undoHistory.add(command);
     _redoHistory.clear(); 
-
-    // Verify if the layer specified by the command still actually exists in our visual list
     final bool targetLayerStillExists = _layers.any((l) => l.id == command.layerId);
-
     if (targetLayerStillExists) {
       _rebuildCacheForLayer(command.layerId);
       _markLayerAsDirtyById(command.layerId);
     } else {
-      // If the layer was removed from memory (like undoing an AddLayerCommand),
-      // log its ID straight into the pending deletions queue tracker.
-      // This tells the background daemon to completely delete the file from the disk.
+      // This block already handles logging the ID for deletion perfectly!
       _pendingLayerDeletionsLog.add(command.layerId);
-      
-      // Clean up internal runtime caching lookups instantly
       _cachedLayerHistories.remove(command.layerId);
       layerSnapshots.remove(command.layerId);
-    }
-
-    // Capture explicit forward DeleteLayerCommand signals uniformly
-    if (command is DeleteLayerCommand) {
-      _pendingLayerDeletionsLog.add(command.layerId);
     }
 
     // 2. Heal your index pointer channels safely inside the reduced boundaries
@@ -182,25 +170,14 @@ class DrawScreenViewModel extends ChangeNotifier {
     command.undo(context);
     _redoHistory.add(command);
 
-    // Verify if the layer specified by the command still exists AFTER the undo pass.
-    // If we just undid an AddLayerCommand, this evaluates to false.
     final bool targetLayerStillExists = _layers.any((l) => l.id == command.layerId);
-
     if (targetLayerStillExists) {
       _rebuildCacheForLayer(command.layerId);
       _markLayerAsDirtyById(command.layerId);
     } else {
-      // If the layer was removed by the undo action, 
-      // queue its ID straight into your pending file system deletions log
       _pendingLayerDeletionsLog.add(command.layerId);
-      
-      // Clear out internal runtime tracking lookups instantly
       _cachedLayerHistories.remove(command.layerId);
       layerSnapshots.remove(command.layerId);
-    }
-
-    if (command is DeleteLayerCommand) {
-      _pendingLayerDeletionsLog.remove(command.layerId);
     }
 
     // =========================================================================
@@ -478,22 +455,28 @@ class DrawScreenViewModel extends ChangeNotifier {
         // =====================================================================
         // 🟢 TASK E: RUN HARD DISK PURGES LAST (PREVENTS GHOST RE-WRITES)
         // =====================================================================
-        // Executing file erasures strictly after all canvas metadata alterations 
-        // have concluded guarantees that your local filesystem services never 
-        // accidentally auto-generate or re-write empty folders for the removed layer!
         if (layersToPurgeThisPass.isNotEmpty) {
-          final List<String> deletionsBatch = List<String>.from(layersToPurgeThisPass);
+          // Deduplicate the list using a set to stop identical concurrent IDs!
+          final List<String> deletionsBatch = layersToPurgeThisPass.toSet().toList();
           layersToPurgeThisPass.clear();
 
+          // Pull the active canvas ID directly from the state token
+          final String activeCanvasId = _currentCanvas!.id;
+
           for (final String layerIdToDelete in deletionsBatch) {
-            final Result<void> deleteResult = await _layerDataRepository.deleteLayer(layerIdToDelete);
+            // Pass BOTH the active project id and layer id down to the repository
+            final Result<void> deleteResult = await _layerDataRepository.deleteLayer(
+              canvasId: activeCanvasId,
+              id: layerIdToDelete,
+            );
             
             if (deleteResult is Error) {
               log.w('Failed to purge disk record file for deleted layer $layerIdToDelete: ${(deleteResult).error}');
-              _pendingLayerDeletionsLog.add(layerIdToDelete); // Re-queue if severe system lock
+              _pendingLayerDeletionsLog.add(layerIdToDelete); 
             }
           }
         }
+
       }
 
       notifyListeners();

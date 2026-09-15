@@ -8,7 +8,7 @@ import 'package:drawing_app/ui/core/commands/erase_draw_command.dart';
 import 'package:drawing_app/utils/history_consumer.dart';
 
 class EraseTool extends DrawTool implements HistoryConsumer {
-  EraseTool({required super.toolName, required super.toolIcon});
+  EraseTool({required super.toolName, required super.toolIcon, required});
 
   final List<CanvasHistoryEntry> _erasedDrawData = [];
   List<DrawData> _drawHistory = const [];
@@ -22,18 +22,18 @@ class EraseTool extends DrawTool implements HistoryConsumer {
   /// High-performance geometric collision routing engine that handles 
   /// outline-only strokes, pure fills, composite shapes, and single-dot taps flawlessly.
   void _checkCollisions(Offset p1, Offset p2) {
+
     final double eraserRadius = (strokePaint?.strokeWidth ?? 20.0) / 2.0;
 
     for (int i = 0; i < _drawHistory.length; i++) {
       final data = _drawHistory[i];
-      
+
       if (data.layerId != _currentLayerId) continue;
       if (data.points.isEmpty) continue;
 
       // Prevent duplicate logging during the active gesture session
       final bool alreadyCached = _erasedDrawData.any((entry) => entry.drawData == data);
       if (alreadyCached) continue;
-
       bool hitDetected = false;
 
       // =======================================================================
@@ -59,13 +59,25 @@ class EraseTool extends DrawTool implements HistoryConsumer {
       else {
         // 1. CHANNELS PASS A: Check for interior region fills
         if (data.strokeSettings == null || data.fillSettings != null || data.strokeSettings!.style == PaintingStyle.fill) {
+          print('Filled?');
           if (_isPointInsidePolygon(p2, data.points) || _isPointInsidePolygon(p1, data.points)) {
             hitDetected = true;
+          } else if(data.points.length == 2){ //Circle stuff
+              if(_isPointInsideCircle(p1, data, eraserRadius) || _isPointInsideCircle(p2, data, eraserRadius)){
+                hitDetected = true;
+              }
+              
           }
+
         }
+
+        
 
         // 2. CHANNELS PASS B: Check for outline border segment crossings
         if (!hitDetected && data.strokeSettings != null && data.strokeSettings!.style != PaintingStyle.fill) {
+          print('Outline?');
+   
+
           for (int s = 0; s < data.points.length - 1; s++) {
             final Offset v1 = data.points[s];
             final Offset v2 = data.points[s + 1];
@@ -79,6 +91,13 @@ class EraseTool extends DrawTool implements HistoryConsumer {
             }
           }
         }
+
+
+        if(data.points.length == 2){
+            if(_isPointInsideCircle(p1, data, eraserRadius) || _isPointInsideCircle(p2, data, eraserRadius)){
+              hitDetected = true;
+            }
+          }
       }
 
           // 3. TRANSACTION REGISTER
@@ -102,6 +121,7 @@ class EraseTool extends DrawTool implements HistoryConsumer {
 
     }
   }
+
 
 
   @override
@@ -175,6 +195,7 @@ class EraseTool extends DrawTool implements HistoryConsumer {
   bool _isPointInsidePolygon(Offset point, List<Offset> polygon) {
     int intersectCount = 0;
     for (int i = 0; i < polygon.length; i++) {
+      print(i);
       final Offset next = polygon[(i + 1) % polygon.length];
       final Offset curr = polygon[i];
 
@@ -185,6 +206,25 @@ class EraseTool extends DrawTool implements HistoryConsumer {
     }
     return intersectCount % 2 != 0;
   }
+
+bool _isPointInsideCircle(Offset eraserPoint, DrawData data, double eraserSize){
+    final double distanceToCenter = (eraserPoint - data.points[0]).distance;
+    
+    if(data.fillSettings != null){
+        bool insideFill = distanceToCenter <= (data.points[1].dx + (eraserSize / 2));
+        if(insideFill) return true;
+    }
+
+    if(data.strokeSettings != null){
+      final double distanceToPerimeter = (distanceToCenter - data.points[1].dx).abs();
+      final double collisionTolerance = (data.strokeSettings!.strokeWidth / 2) + (eraserSize / 2);
+
+      return distanceToPerimeter <= collisionTolerance;
+    }
+
+    return false;
+}
+
 bool _intersects(Offset p1, Offset p2, Offset v1, Offset v2, double combinedRadius) {
     final double pad = combinedRadius;
     if (max(p1.dx, p2.dx) < min(v1.dx, v2.dx) - pad ||

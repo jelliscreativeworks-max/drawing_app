@@ -102,44 +102,42 @@ class LayerDataRepositoryLocal implements LayerDataRepository {
   // }
 
 
-  @override
-  Future<Result<void>> deleteLayer(String id) async {
-    // 1. Attempt to look up the item in our temporary memory list cache
-    final layerToDelete = _cachedLayers.where((l) => l.id == id).firstOrNull;
+@override
+Future<Result<void>> deleteLayer({
+  required String canvasId,
+  required String id,
+}) async {
+  // 1. Attempt to look up the item in our temporary memory list cache
+  final layerToDelete = _cachedLayers.where((l) => l.id == id).firstOrNull;
 
-    try {
-      if (layerToDelete != null) {
-        // --- CASE A: Standard Cached Layer Deletion ---
-        // The file was previously written to disk, so delete it normally
-        await _localDataService.deleteDrawLayer(layerToDelete);
-        
-        // Evict it from the memory stack cache array loop
-        _cachedLayers.removeWhere((l) => l.id == id);
-      } else {
-        // --- CASE B: 🟢 THE UNCACHED PATH SHIELD (FIXES UNDO ADD-LAYER) ---
-        // If the layer is missing from the cache because it was pristine/blank,
-        // we synthesize a lightweight token carrying your local project tracking string!
-        // This gives your local data service a flawless path mapping to clear the directory.
-        final mockLayerToken = LayerData(
-          id: id,
-          canvasId: _cachedProjectId ?? '', // 🟢 Bypasses the null cache block!
-          index: 0,
-          name: 'Temporary Cleanup Token',
-          layerDrawHistory: const [],
-        );
+  try {
+    if (layerToDelete != null) {
+      // --- CASE A: Standard Cached Layer Deletion ---
+      await _localDataService.deleteDrawLayer(layerToDelete);
+      _cachedLayers.removeWhere((l) => l.id == id);
+    } else {
+      // --- CASE B: 🟢 THE UNCACHED PATH SHIELD ---
+      // We pass the canvasId directly from the viewModel argument!
+      final mockLayerToken = LayerData(
+        id: id,
+        canvasId: canvasId, // 💡 No longer using _cachedProjectId!
+        index: 0,
+        name: 'Temporary Cleanup Token',
+        layerDrawHistory: const [],
+      );
 
-        log.i('Uncached deletion intercept running for layer $id inside project $_cachedProjectId.');
-        
-        // Command your local service to physically delete the file structure off the disk drive!
-        await _localDataService.deleteDrawLayer(mockLayerToken);
-      }
+      log.i('Uncached deletion intercept running for layer $id inside project $canvasId.');
       
-      return Result.ok(null);
-    } catch (e) {
-      log.e('Failed to execute hard disk file erasure for layer $id: $e');
-      return Result.error(Exception('Failed to delete layer file $id: $e'));
+      await _localDataService.deleteDrawLayer(mockLayerToken);
     }
+    
+    return Result.ok(null);
+  } catch (e) {
+    log.e('Failed to execute hard disk file erasure for layer $id: $e');
+    return Result.error(Exception('Failed to delete layer file $id: $e'));
   }
+}
+
 
 
 

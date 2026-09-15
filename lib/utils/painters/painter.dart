@@ -1,4 +1,6 @@
 
+import 'dart:ui';
+
 import 'package:flutter/material.dart';
 import 'package:drawing_app/domain/models/draw_data/draw_data.dart';
 import 'package:drawing_app/ui/core/draw_tools/draw_tool.dart';
@@ -14,8 +16,10 @@ class MyPainter extends CustomPainter {
   final Matrix4 transform;
   final double canvasWidth;
   final double canvasHeight;
+  final PointerDeviceKind deviceKind;
 
   const MyPainter({
+    required this.deviceKind,
     required this.drawHistory, 
     required this.tools, 
     required this.transform,

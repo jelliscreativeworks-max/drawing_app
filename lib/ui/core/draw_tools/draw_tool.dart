@@ -4,12 +4,18 @@ import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
   import 'dart:math';
 
+import 'package:uuid/uuid.dart';
+
+const Uuid uuid = Uuid();
 abstract class DrawTool {
   final String toolName;
   final Icon toolIcon;
+  
 
   Paint? strokePaint;
   Paint? fillPaint;
+
+  
 
   DrawTool({required this.toolName, required this.toolIcon, this.strokePaint, this.fillPaint});
 

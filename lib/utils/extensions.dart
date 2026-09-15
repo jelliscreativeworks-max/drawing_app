@@ -1,6 +1,52 @@
 import 'dart:math';
 import 'package:flutter/material.dart';
 
+
+extension ListExtensions<T> on List<T>{
+
+  /// Returns a copy of this list where [index] is replaced by [element], [index] must be non negative and less than the length of this list
+  List<T> replaceAt(int index, T element){
+    if(length <= index || index < 0) throw RangeError.index(index, this);
+    return List<T>.from(this)..[index] = element;
+  }
+}
+
+extension OffsetPointDetection on List<Offset>{
+  double? distanceFromPoint(Offset point, int index){
+    if(index >= length) return null;
+
+    return (point - this[index]).distance;
+  }
+
+
+
+  int? closestIndexToPoint(Offset point){
+    if(isEmpty) return null;
+
+    late int closestIndex;
+    double? shortestDistance;
+
+    for(int i = 0; i < length; i++){
+      double newDist = (point - this[i]).distance;
+      if(shortestDistance == null){
+        shortestDistance = newDist;
+        closestIndex = i;
+      } else if(newDist < shortestDistance){
+          shortestDistance = newDist;
+          closestIndex = i;
+      } else{
+        continue;
+      }
+    }
+    if(shortestDistance != null){
+      return closestIndex;
+    } else{
+      return null;
+    }
+
+  }
+}
+
 extension LineSegmentCollisionDetector on Offset {
   /// Determines if a line segment tracking between [p1] and [p2] intersects or passes 
   /// within a specific [threshold] distance of a vector line segment between [v1] and [v2].

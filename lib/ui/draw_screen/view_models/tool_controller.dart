@@ -1,9 +1,13 @@
 import 'package:drawing_app/domain/models/draw_data/draw_data.dart';
 import 'package:drawing_app/ui/core/commands/canvas_command.dart';
+import 'package:drawing_app/ui/core/draw_tools/circle_tool.dart';
 import 'package:drawing_app/ui/core/draw_tools/draw_tool.dart';
 import 'package:drawing_app/ui/core/draw_tools/erase_tool.dart';
 import 'package:drawing_app/ui/core/draw_tools/freehand_tool.dart';
+import 'package:drawing_app/ui/core/draw_tools/line_tool.dart';
 import 'package:drawing_app/ui/core/draw_tools/pan_tool.dart';
+import 'package:drawing_app/ui/core/draw_tools/path_tool.dart';
+import 'package:drawing_app/ui/core/draw_tools/rectangle_tool.dart';
 import 'package:drawing_app/ui/draw_screen/view_models/draw_screen_view_model.dart';
 import 'package:drawing_app/utils/history_consumer.dart';
 import 'package:flutter/gestures.dart';
@@ -22,12 +26,11 @@ class ToolController extends ChangeNotifier {
   double activeStrokeWidth = 5.0;
 
   final Set<int> _activePointerIds = {};
-   Set<int> get activePointerIds => _activePointerIds;
+  Set<int> get activePointerIds => _activePointerIds;
 
   late final Map<Type, DrawTool> tools;
   late DrawTool _currentTool;
   bool _panToolOverrideActive = false;
-
 
   DrawData? get activePreview => _currentTool.activePreview;
 
@@ -61,6 +64,29 @@ class ToolController extends ChangeNotifier {
         toolName: 'Erase Tool',
         toolIcon: Icon(Symbols.ink_eraser),
       ),
+      CircleTool: CircleTool(
+        toolIcon: Icon(Icons.circle),
+        toolName: 'Circle Tool',
+        fillPaint: Paint()..color = Colors.grey,
+      ),
+      RectangleTool: RectangleTool(
+        toolName: 'Rectangle Tool',
+        toolIcon: Icon(Icons.square),
+        strokePaint: Paint()
+          ..color = Colors.black
+          ..strokeWidth = 5
+          ..style = PaintingStyle.stroke,
+        fillPaint: Paint()..color = Colors.grey,
+      ),
+      LineTool: LineTool(
+        toolIcon: Icon(Icons.horizontal_rule),
+        toolName: 'Line Tool',
+        strokePaint: Paint()
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 5
+          ..color = Colors.black,
+      ),
+      PathTool: PathTool(toolIcon: Icon(Icons.polyline),fillPaint: Paint()..color = Colors.blue, toolName: 'Path Tool', strokePaint: Paint()..strokeWidth = 5..color = Colors.black..style = PaintingStyle.stroke..strokeJoin..strokeJoin = StrokeJoin.round)
     };
     if (initialTool != null) {
       _currentTool = tools.containsKey(initialTool)
@@ -69,7 +95,6 @@ class ToolController extends ChangeNotifier {
     } else {
       _currentTool = tools[PanTool]!;
     }
-
   }
 
   void selectTool<T extends DrawTool>() {
@@ -137,7 +162,8 @@ class ToolController extends ChangeNotifier {
   void onPointerMove(PointerMoveEvent event) {
     if (!drawEnabled) return;
     // Handle Middle Click drag tracking directly
-    if (event.buttons == kTertiaryButton || _panToolOverrideActive && _lastDeviceKind == PointerDeviceKind.mouse) {
+    if (event.buttons == kTertiaryButton ||
+        _panToolOverrideActive && _lastDeviceKind == PointerDeviceKind.mouse) {
       final panTool = tools[PanTool] as PanTool;
 
       if (!panTool.isActive) {
@@ -177,7 +203,7 @@ class ToolController extends ChangeNotifier {
   void onPointerCancel(PointerCancelEvent event) {
     if (!drawEnabled) return;
     _activePointerIds.remove(event.pointer);
-    
+
     if (_panToolOverrideActive) {
       tools[PanTool]!.onDrawEnd();
       _panToolOverrideActive = false;
@@ -185,45 +211,44 @@ class ToolController extends ChangeNotifier {
     }
   }
 
+  void onPointerPanZoomStart(PointerPanZoomStartEvent event) {
+    if (!drawEnabled) return;
 
-void onPointerPanZoomStart(PointerPanZoomStartEvent event) {
-  if (!drawEnabled) return;
-  
-  // 1. Log that we are actively on a trackpad interaction loop
-  _lastDeviceKind = PointerDeviceKind.trackpad;
+    // 1. Log that we are actively on a trackpad interaction loop
+    _lastDeviceKind = PointerDeviceKind.trackpad;
 
-  // 2. Continuously sync the camera focal point to the trackpad's hover location
-  _viewModel.camera.focalPointAtStart = event.localPosition;
-  _viewModel.camera.scaleStart = _viewModel.camera.currentScale;
-  _viewModel.camera.previousGestureScale = 1.0;
-  
-  // 3. Keep world pivot calculation accurate for your tools
-  _viewModel.camera.worldPivotAtStart = screenToWorld(event.localPosition);
+    // 2. Continuously sync the camera focal point to the trackpad's hover location
+    _viewModel.camera.focalPointAtStart = event.localPosition;
+    _viewModel.camera.scaleStart = _viewModel.camera.currentScale;
+    _viewModel.camera.previousGestureScale = 1.0;
 
-  // Trigger your PanTool initialization hook cleanly
-  tools[PanTool]!.onDrawStart(
-    deviceKind: PointerDeviceKind.trackpad,
-    startPoint: event.localPosition,
-    layerId: _viewModel.activeLayerId,
-    nextStrokeIndex: _viewModel.drawHistory.length,
-    color: activeColor,
-    strokeWidth: activeStrokeWidth,
-  );
-}
-void onPointerPanZoomUpdate(PointerPanZoomUpdateEvent event) {
-  if (!drawEnabled) return;
+    // 3. Keep world pivot calculation accurate for your tools
+    _viewModel.camera.worldPivotAtStart = screenToWorld(event.localPosition);
 
-  _viewModel.camera.focalPointAtStart = event.localPosition;
+    // Trigger your PanTool initialization hook cleanly
+    tools[PanTool]!.onDrawStart(
+      deviceKind: PointerDeviceKind.trackpad,
+      startPoint: event.localPosition,
+      layerId: _viewModel.activeLayerId,
+      nextStrokeIndex: _viewModel.drawHistory.length,
+      color: activeColor,
+      strokeWidth: activeStrokeWidth,
+    );
+  }
 
-  tools[PanTool]!.onUpdateTool(
-    newPoint: event.localPanDelta, // Pure tracking delta
-    gestureScale: event.scale, 
-    deviceKind: PointerDeviceKind.trackpad,
-  );
-  
-  _viewModel.forceCanvasRefresh();
-}
+  void onPointerPanZoomUpdate(PointerPanZoomUpdateEvent event) {
+    if (!drawEnabled) return;
 
+    _viewModel.camera.focalPointAtStart = event.localPosition;
+
+    tools[PanTool]!.onUpdateTool(
+      newPoint: event.localPanDelta, // Pure tracking delta
+      gestureScale: event.scale,
+      deviceKind: PointerDeviceKind.trackpad,
+    );
+
+    _viewModel.forceCanvasRefresh();
+  }
 
   // 🟢 Handles Trackpad Touch-Lift Cleanup
   void onPointerPanZoomEnd(PointerPanZoomEndEvent event) {
@@ -237,15 +262,15 @@ void onPointerPanZoomUpdate(PointerPanZoomUpdateEvent event) {
     }
   }
 
-
   void handleScaleStart(ScaleStartDetails details, PointerDeviceKind device) {
-    if(!drawEnabled) return;
+    if (!drawEnabled) return;
 
-    if (device == PointerDeviceKind.trackpad || _lastDeviceKind == PointerDeviceKind.trackpad) return;
-  
-  
+    if (device == PointerDeviceKind.trackpad ||
+        _lastDeviceKind == PointerDeviceKind.trackpad)
+      return;
+
     startDetails = details;
-    
+
     if (details.pointerCount > 1 && _currentTool is! PanTool) {
       _panToolOverrideActive = true;
       if (_currentTool.isActive) {
@@ -254,25 +279,28 @@ void onPointerPanZoomUpdate(PointerPanZoomUpdateEvent event) {
       }
     }
 
-    if (_currentTool.isActive && !_panToolOverrideActive) return;
+    // if (_currentTool.isActive && !_panToolOverrideActive) return;
     _viewModel.camera.focalPointAtStart = details.localFocalPoint;
     _viewModel.camera.scaleStart = _viewModel.camera.currentScale;
     _viewModel.camera.previousGestureScale = 1.0;
 
-    _viewModel.camera.worldPivotAtStart = screenToWorld(details.localFocalPoint);
+    _viewModel.camera.worldPivotAtStart = screenToWorld(
+      details.localFocalPoint,
+    );
 
-    final Offset targetPosition = _currentTool is PanTool || _panToolOverrideActive
+    final Offset targetPosition =
+        _currentTool is PanTool || _panToolOverrideActive
         ? details.localFocalPoint
         : _viewModel.camera.worldPivotAtStart;
 
-
     if (_currentTool is HistoryConsumer && _panToolOverrideActive == false) {
-      List<DrawData> drawHistory = _viewModel.getHistoryForLayer(_viewModel.activeLayerId);
+      List<DrawData> drawHistory = _viewModel.getHistoryForLayer(
+        _viewModel.activeLayerId,
+      );
       (_currentTool as HistoryConsumer).setHistorySnapshot(drawHistory);
     }
 
-    if(_panToolOverrideActive && _currentTool is! PanTool){
-
+    if (_panToolOverrideActive && _currentTool is! PanTool) {
       tools[PanTool]!.onDrawStart(
         deviceKind: device,
         startPoint: targetPosition,
@@ -281,7 +309,7 @@ void onPointerPanZoomUpdate(PointerPanZoomUpdateEvent event) {
         color: activeColor,
         strokeWidth: activeStrokeWidth,
       );
-    } else{
+    } else {
       _currentTool.onDrawStart(
         deviceKind: device,
         startPoint: targetPosition,
@@ -306,14 +334,14 @@ void onPointerPanZoomUpdate(PointerPanZoomUpdateEvent event) {
     if (_currentTool is PanTool || _panToolOverrideActive) {
       if (_currentTool is PanTool) {
         _currentTool.onUpdateTool(
-          newPoint: details.localFocalPoint, 
-          gestureScale: details.scale, 
+          newPoint: details.localFocalPoint,
+          gestureScale: details.scale,
           deviceKind: _lastDeviceKind,
         );
       } else {
         tools[PanTool]!.onUpdateTool(
-          newPoint: details.localFocalPoint, 
-          gestureScale: details.scale, 
+          newPoint: details.localFocalPoint,
+          gestureScale: details.scale,
           deviceKind: _lastDeviceKind,
         );
       }
@@ -321,8 +349,8 @@ void onPointerPanZoomUpdate(PointerPanZoomUpdateEvent event) {
     } else {
       final Offset worldPosition = screenToWorld(details.localFocalPoint);
       _currentTool.onUpdateTool(
-        newPoint: worldPosition, 
-        gestureScale: details.scale, 
+        newPoint: worldPosition,
+        gestureScale: details.scale,
         deviceKind: _lastDeviceKind,
       );
       notifyListeners();
@@ -330,16 +358,14 @@ void onPointerPanZoomUpdate(PointerPanZoomUpdateEvent event) {
   }
 
   void handleScaleEnd() {
-    if(!drawEnabled) return;
- 
+    if (!drawEnabled) return;
 
-    if(_panToolOverrideActive){
+    if (_panToolOverrideActive) {
       tools[PanTool]!.onDrawEnd();
       _panToolOverrideActive = false;
       _activePointerIds.clear();
       notifyListeners();
-    }
-    else if(_currentTool.isActive){
+    } else if (_currentTool.isActive) {
       final command = _currentTool.onDrawEnd();
       if (command != null) {
         _viewModel.executeCommand(command);
@@ -348,7 +374,7 @@ void onPointerPanZoomUpdate(PointerPanZoomUpdateEvent event) {
     }
   }
 
-  void disableDrawing(){
+  void disableDrawing() {
     handleScaleEnd();
     _panToolOverrideActive = false;
     drawEnabled = false;
@@ -356,7 +382,7 @@ void onPointerPanZoomUpdate(PointerPanZoomUpdateEvent event) {
     notifyListeners();
   }
 
-  void enableDrawing(){
+  void enableDrawing() {
     drawEnabled = true;
     notifyListeners();
   }

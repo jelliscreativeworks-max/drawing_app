@@ -1,4 +1,8 @@
+import 'package:drawing_app/ui/core/draw_tools/circle_tool.dart';
 import 'package:drawing_app/ui/core/draw_tools/erase_tool.dart';
+import 'package:drawing_app/ui/core/draw_tools/line_tool.dart';
+import 'package:drawing_app/ui/core/draw_tools/path_tool.dart';
+import 'package:drawing_app/ui/core/draw_tools/rectangle_tool.dart';
 import 'package:flutter/material.dart';
 import 'package:drawing_app/ui/draw_screen/view_models/tool_controller.dart';
 import 'package:drawing_app/ui/core/draw_tools/freehand_tool.dart'; // Assumed concrete file paths
@@ -25,6 +29,10 @@ class BottomToolBarButtons extends StatelessWidget {
         final panToolInstance = toolController.tools[PanTool];
         final freehandToolInstance = toolController.tools[FreehandTool];
         final eraserToolInstance = toolController.tools[EraseTool];
+        final rectangleToolInstance = toolController.tools[RectangleTool];
+        final lineToolInstance = toolController.tools[LineTool];
+        final circleToolInstance = toolController.tools[CircleTool];
+        final pathToolInstance = toolController.tools[PathTool];
 
         return Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -40,7 +48,7 @@ class BottomToolBarButtons extends StatelessWidget {
                 // 🟢 FIXED: Uses type generics to cleanly trigger the selection assignment
                 onPressed: () => toolController.selectTool<PanTool>(),
                 // 🟢 FIXED: References runtimeType checks to highlight the active menu selection
-                color: toolController.currentTool is PanTool ? Colors.blueAccent : Colors.white70,
+                color: toolController.currentTool is PanTool ? Colors.blueAccent : Colors.black87,
               ),
 
             // ==========================================
@@ -52,19 +60,56 @@ class BottomToolBarButtons extends StatelessWidget {
                 icon: freehandToolInstance.toolIcon,
                 tooltip: freehandToolInstance.toolName,
                 onPressed: () => toolController.selectTool<FreehandTool>(),
-                color: toolController.currentTool is FreehandTool ? Colors.blueAccent : Colors.white70,
+                color: toolController.currentTool is FreehandTool ? Colors.blueAccent : Colors.black87,
               ),
 
-            // ==========================================
-            // C. VECTOR STROKE ERASER TOOL
-            // ==========================================
-            if (eraserToolInstance != null)
+              if (rectangleToolInstance != null)
+              IconButton(
+                splashRadius: 24,
+                icon: rectangleToolInstance.toolIcon,
+                tooltip: rectangleToolInstance.toolName,
+                onPressed: () => toolController.selectTool<RectangleTool>(),
+                color: toolController.currentTool is RectangleTool ? Colors.blueAccent : Colors.black87,
+              ),
+
+                if (circleToolInstance != null)
+              IconButton(
+                splashRadius: 24,
+                icon: circleToolInstance.toolIcon,
+                tooltip: circleToolInstance.toolName,
+                onPressed: () => toolController.selectTool<CircleTool>(),
+                color: toolController.currentTool is CircleTool ? Colors.blueAccent : Colors.black87,
+              ),
+
+                if (eraserToolInstance != null)
               IconButton(
                 splashRadius: 24,
                 icon: eraserToolInstance.toolIcon,
                 tooltip: eraserToolInstance.toolName,
                 onPressed: () => toolController.selectTool<EraseTool>(),
-                color: toolController.currentTool is EraseTool ? Colors.blueAccent : Colors.white70,
+                color: toolController.currentTool is EraseTool ? Colors.blueAccent : Colors.black87,
+              ),
+
+                    if (pathToolInstance != null)
+              IconButton(
+                splashRadius: 24,
+                icon: pathToolInstance.toolIcon,
+                tooltip: pathToolInstance.toolName,
+                onPressed: () => toolController.selectTool<PathTool>(),
+                color: toolController.currentTool is PathTool ? Colors.blueAccent : Colors.black87,
+              ),
+
+
+            // ==========================================
+            // C. VECTOR STROKE ERASER TOOL
+            // ==========================================
+            if (lineToolInstance != null)
+              IconButton(
+                splashRadius: 24,
+                icon: lineToolInstance.toolIcon,
+                tooltip: lineToolInstance.toolName,
+                onPressed: () => toolController.selectTool<LineTool>(),
+                color: toolController.currentTool is LineTool ? Colors.blueAccent : Colors.black87,
               ),
           ],
         );

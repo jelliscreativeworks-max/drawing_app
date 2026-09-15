@@ -192,6 +192,7 @@ class _DrawScreenState extends State<DrawScreen> {
                                           '${layer.id}_${filteredLayerHistory.length}_${widget.viewModel.transformRevision}',
                                         ),
                                         painter: MyPainter(
+                                          deviceKind: widget.toolController.lastDeviceKind,
                                           canvasHeight:
                                               widget.viewModel.canvasHeight,
                                           canvasWidth:
@@ -218,6 +219,7 @@ class _DrawScreenState extends State<DrawScreen> {
                                     return Positioned.fill(
                                       child: CustomPaint(
                                         painter: MyPainter(
+                                          deviceKind: widget.toolController.lastDeviceKind,
                                           canvasHeight:
                                               widget.viewModel.canvasHeight,
                                           canvasWidth:
