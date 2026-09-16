@@ -1,5 +1,6 @@
 import 'package:drawing_app/domain/models/draw_data/draw_data.dart';
 import 'package:drawing_app/ui/core/commands/canvas_command.dart';
+import 'package:drawing_app/ui/core/draw_tools/canvas_tool.dart';
 import 'package:drawing_app/ui/core/draw_tools/circle_tool.dart';
 import 'package:drawing_app/ui/core/draw_tools/draw_tool.dart';
 import 'package:drawing_app/ui/core/draw_tools/erase_tool.dart';
@@ -22,17 +23,14 @@ class ToolController extends ChangeNotifier {
   ScaleStartDetails startDetails = ScaleStartDetails();
   ScaleUpdateDetails updateDetails = ScaleUpdateDetails();
 
-  Color activeColor = Colors.black;
-  double activeStrokeWidth = 5.0;
-
   final Set<int> _activePointerIds = {};
   Set<int> get activePointerIds => _activePointerIds;
 
-  late final Map<Type, DrawTool> tools;
-  late DrawTool _currentTool;
+  late final Map<Type, CanvasTool> tools;
+  late CanvasTool _currentTool;
   bool _panToolOverrideActive = false;
 
-  DrawData? get activePreview => _currentTool.activePreview;
+  DrawData? get activePreview => _currentTool is DrawTool ? (_currentTool as DrawTool).activePreview : null;
 
   ToolController({required DrawScreenViewModel viewModel})
     : _viewModel = viewModel {
@@ -42,18 +40,17 @@ class ToolController extends ChangeNotifier {
   PointerDeviceKind _lastDeviceKind = PointerDeviceKind.unknown;
   bool drawEnabled = true;
 
-  DrawTool get currentTool => _currentTool;
+  CanvasTool get currentTool => _currentTool;
 
   void initializeTools({Type? initialTool}) {
     tools = {
       FreehandTool: FreehandTool(
         toolName: 'Freehand Tool',
         toolIcon: Icon(Icons.draw),
-        strokePaint: Paint()
-          ..color = Colors.black
+        defaultStrokePaint: Paint()
           ..strokeCap = StrokeCap.round
           ..style = PaintingStyle.stroke
-          ..strokeWidth = 5,
+          ..strokeWidth = 5, renderStroke: true,
       ),
       PanTool: PanTool(
         toolName: 'Pan Tool',
@@ -62,31 +59,30 @@ class ToolController extends ChangeNotifier {
       ),
       EraseTool: EraseTool(
         toolName: 'Erase Tool',
-        toolIcon: Icon(Symbols.ink_eraser),
+        toolIcon: Icon(Symbols.ink_eraser), defaultStrokePaint: Paint()..style = PaintingStyle.stroke..strokeWidth = 20,
       ),
       CircleTool: CircleTool(
         toolIcon: Icon(Icons.circle),
         toolName: 'Circle Tool',
-        fillPaint: Paint()..color = Colors.grey,
+        defaultStrokePaint: Paint()..style = PaintingStyle.stroke..strokeWidth = 5, defaultFillPaint: Paint()..color = Colors.grey, renderStroke: true, renderFill: true,
       ),
       RectangleTool: RectangleTool(
         toolName: 'Rectangle Tool',
-        toolIcon: Icon(Icons.square),
-        strokePaint: Paint()
+        toolIcon: Icon(Icons.square), 
+        defaultStrokePaint: Paint()
           ..color = Colors.black
           ..strokeWidth = 5
-          ..style = PaintingStyle.stroke,
-        fillPaint: Paint()..color = Colors.grey,
+          ..style = PaintingStyle.stroke, defaultFillPaint: Paint()..color = Colors.grey, renderStroke: true, renderFill: true,
       ),
       LineTool: LineTool(
         toolIcon: Icon(Icons.horizontal_rule),
         toolName: 'Line Tool',
-        strokePaint: Paint()
+        defaultStrokePaint: Paint()
           ..style = PaintingStyle.stroke
           ..strokeWidth = 5
-          ..color = Colors.black,
+          ..color = Colors.black, renderStroke: true,
       ),
-      PathTool: PathTool(toolIcon: Icon(Icons.polyline),fillPaint: Paint()..color = Colors.blue, toolName: 'Path Tool', strokePaint: Paint()..strokeWidth = 5..color = Colors.black..style = PaintingStyle.stroke..strokeJoin..strokeJoin = StrokeJoin.round)
+      PathTool: PathTool(toolIcon: Icon(Icons.polyline),defaultFillPaint: Paint()..color = Colors.blue, toolName: 'Path Tool', defaultStrokePaint: Paint()..strokeWidth = 5..color = Colors.black..style = PaintingStyle.stroke..strokeJoin..strokeJoin = StrokeJoin.round, renderFill: true, renderStroke: true)
     };
     if (initialTool != null) {
       _currentTool = tools.containsKey(initialTool)
@@ -97,13 +93,13 @@ class ToolController extends ChangeNotifier {
     }
   }
 
-  void selectTool<T extends DrawTool>() {
+  void selectTool<T extends CanvasTool>() {
     final targetTool = tools[T];
     if (targetTool == null || targetTool == _currentTool) return;
 
     // clear its caches, and emit any final transformation commands before swapping
     if (_currentTool.isActive) {
-      final finalCommand = _currentTool.onDrawEnd();
+      final finalCommand = _currentTool.onToolEnd();
       if (finalCommand != null) {
         _viewModel.executeCommand(finalCommand);
       }
@@ -113,17 +109,9 @@ class ToolController extends ChangeNotifier {
     notifyListeners();
   }
 
-  void updateColor(Color newColor) {
-    activeColor = newColor;
-    notifyListeners();
-  }
-
-  void updateStrokeWidth(double newWidth) {
-    activeStrokeWidth = newWidth;
-    notifyListeners();
-  }
-
   void onPointerDown(PointerDownEvent event) {
+    ToolStartFrame frame = ToolStartFrame(pointerDeviceKind: event.kind, initialPoint: event.localPosition, activeLayerId: _viewModel.activeLayerId, nextStrokeIndex: _viewModel.drawHistory.length);
+
     if (!drawEnabled) return;
     _activePointerIds.add(event.pointer);
     _lastDeviceKind = event.kind;
@@ -134,19 +122,12 @@ class ToolController extends ChangeNotifier {
 
       // End active drawing tools cleanly before shifting the viewport matrix
       if (_currentTool.isActive) {
-        final command = _currentTool.onDrawEnd();
+        final command = _currentTool.onToolEnd();
         if (command != null) _viewModel.executeCommand(command);
       }
 
       // Initialize the pan tool tracking variables cleanly
-      tools[PanTool]!.onDrawStart(
-        deviceKind: event.kind,
-        startPoint: event.localPosition,
-        layerId: _viewModel.activeLayerId,
-        nextStrokeIndex: _viewModel.drawHistory.length,
-        color: activeColor,
-        strokeWidth: activeStrokeWidth,
-      );
+      tools[PanTool]!.onToolStart(frame);
       notifyListeners();
       return;
     }
@@ -154,12 +135,13 @@ class ToolController extends ChangeNotifier {
     // Touch Overrides (Two fingers or more triggers PanTool)
     if (_activePointerIds.length > 1 && _currentTool is! PanTool) {
       _panToolOverrideActive = true;
-      final command = _currentTool.onDrawEnd();
+      final command = _currentTool.onToolEnd();
       if (command != null) _viewModel.executeCommand(command);
     }
   }
 
   void onPointerMove(PointerMoveEvent event) {
+
     if (!drawEnabled) return;
     // Handle Middle Click drag tracking directly
     if (event.buttons == kTertiaryButton ||
@@ -168,22 +150,12 @@ class ToolController extends ChangeNotifier {
 
       if (!panTool.isActive) {
         _panToolOverrideActive = true;
-        panTool.onDrawStart(
-          deviceKind: event.kind,
-          startPoint: event.localPosition,
-          layerId: _viewModel.activeLayerId,
-          nextStrokeIndex: _viewModel.drawHistory.length,
-          color: activeColor,
-          strokeWidth: activeStrokeWidth,
-        );
+        panTool.onToolStart(ToolStartFrame(pointerDeviceKind: event.kind, initialPoint: event.localPosition, activeLayerId: _viewModel.activeLayerId, nextStrokeIndex: _viewModel.drawHistory.length));
       }
 
+    
       // Safe update execution directly via the move position delta
-      panTool.onUpdateTool(
-        newPoint: event.localPosition,
-        gestureScale: 1.0,
-        deviceKind: event.kind,
-      );
+      panTool.onToolUpdate(ToolUpdateFrame(pointerDeviceKind: event.kind, gestureScale: 1.0, newestPoint: event.localPosition, activeLayerId: _viewModel.activeLayerId));
       _viewModel.forceCanvasRefresh();
     }
   }
@@ -194,7 +166,7 @@ class ToolController extends ChangeNotifier {
 
     // Cleanly close down middle-mouse pan action
     if (_panToolOverrideActive && _lastDeviceKind == PointerDeviceKind.mouse) {
-      tools[PanTool]!.onDrawEnd();
+      tools[PanTool]!.onToolEnd();
       _panToolOverrideActive = false;
       notifyListeners();
     }
@@ -205,13 +177,15 @@ class ToolController extends ChangeNotifier {
     _activePointerIds.remove(event.pointer);
 
     if (_panToolOverrideActive) {
-      tools[PanTool]!.onDrawEnd();
+      tools[PanTool]!.onToolEnd();
       _panToolOverrideActive = false;
       notifyListeners();
     }
   }
 
   void onPointerPanZoomStart(PointerPanZoomStartEvent event) {
+    ToolStartFrame frame = ToolStartFrame(pointerDeviceKind: event.kind, initialPoint: event.localPosition, activeLayerId: _viewModel.activeLayerId, nextStrokeIndex: _viewModel.drawHistory.length);
+
     if (!drawEnabled) return;
 
     // 1. Log that we are actively on a trackpad interaction loop
@@ -226,26 +200,17 @@ class ToolController extends ChangeNotifier {
     _viewModel.camera.worldPivotAtStart = screenToWorld(event.localPosition);
 
     // Trigger your PanTool initialization hook cleanly
-    tools[PanTool]!.onDrawStart(
-      deviceKind: PointerDeviceKind.trackpad,
-      startPoint: event.localPosition,
-      layerId: _viewModel.activeLayerId,
-      nextStrokeIndex: _viewModel.drawHistory.length,
-      color: activeColor,
-      strokeWidth: activeStrokeWidth,
-    );
+    tools[PanTool]!.onToolStart(frame);
   }
 
   void onPointerPanZoomUpdate(PointerPanZoomUpdateEvent event) {
+    ToolUpdateFrame frame = ToolUpdateFrame(pointerDeviceKind: event.kind, gestureScale: 1.0, newestPoint: event.localPosition, activeLayerId: _viewModel.activeLayerId);
+
     if (!drawEnabled) return;
 
     _viewModel.camera.focalPointAtStart = event.localPosition;
 
-    tools[PanTool]!.onUpdateTool(
-      newPoint: event.localPanDelta, // Pure tracking delta
-      gestureScale: event.scale,
-      deviceKind: PointerDeviceKind.trackpad,
-    );
+    tools[PanTool]!.onToolUpdate(frame);
 
     _viewModel.forceCanvasRefresh();
   }
@@ -256,7 +221,7 @@ class ToolController extends ChangeNotifier {
     _activePointerIds.remove(event.pointer);
 
     if (_panToolOverrideActive) {
-      tools[PanTool]!.onDrawEnd();
+      tools[PanTool]!.onToolEnd();
       _panToolOverrideActive = false;
       notifyListeners();
     }
@@ -274,7 +239,7 @@ class ToolController extends ChangeNotifier {
     if (details.pointerCount > 1 && _currentTool is! PanTool) {
       _panToolOverrideActive = true;
       if (_currentTool.isActive) {
-        CanvasCommand? command = _currentTool.onDrawEnd();
+        CanvasCommand? command = _currentTool.onToolEnd();
         if (command != null) _viewModel.executeCommand(command);
       }
     }
@@ -300,23 +265,14 @@ class ToolController extends ChangeNotifier {
       (_currentTool as HistoryConsumer).setHistorySnapshot(drawHistory);
     }
 
+    ToolStartFrame frame = ToolStartFrame(pointerDeviceKind: device, initialPoint: targetPosition, activeLayerId: _viewModel.activeLayerId, nextStrokeIndex: _viewModel.drawHistory.length);
     if (_panToolOverrideActive && _currentTool is! PanTool) {
-      tools[PanTool]!.onDrawStart(
-        deviceKind: device,
-        startPoint: targetPosition,
-        layerId: _viewModel.activeLayerId,
-        nextStrokeIndex: _viewModel.drawHistory.length,
-        color: activeColor,
-        strokeWidth: activeStrokeWidth,
+      tools[PanTool]!.onToolStart(
+        frame
       );
     } else {
-      _currentTool.onDrawStart(
-        deviceKind: device,
-        startPoint: targetPosition,
-        layerId: _viewModel.activeLayerId,
-        nextStrokeIndex: _viewModel.drawHistory.length,
-        color: activeColor,
-        strokeWidth: activeStrokeWidth,
+      _currentTool.onToolStart(
+        frame
       );
     }
 
@@ -330,29 +286,22 @@ class ToolController extends ChangeNotifier {
 
     updateDetails = details;
     if (!_currentTool.isActive && _panToolOverrideActive == false) return;
+    ToolUpdateFrame frame = ToolUpdateFrame(pointerDeviceKind: _lastDeviceKind, activeLayerId: _viewModel.activeLayerId, gestureScale: details.scale, newestPoint: details.localFocalPoint);
 
     if (_currentTool is PanTool || _panToolOverrideActive) {
       if (_currentTool is PanTool) {
-        _currentTool.onUpdateTool(
-          newPoint: details.localFocalPoint,
-          gestureScale: details.scale,
-          deviceKind: _lastDeviceKind,
-        );
+        _currentTool.onToolUpdate(frame);
       } else {
-        tools[PanTool]!.onUpdateTool(
-          newPoint: details.localFocalPoint,
-          gestureScale: details.scale,
-          deviceKind: _lastDeviceKind,
+        tools[PanTool]!.onToolUpdate(frame
         );
       }
       _viewModel.forceCanvasRefresh();
     } else {
+
       final Offset worldPosition = screenToWorld(details.localFocalPoint);
-      _currentTool.onUpdateTool(
-        newPoint: worldPosition,
-        gestureScale: details.scale,
-        deviceKind: _lastDeviceKind,
-      );
+
+      frame = ToolUpdateFrame(pointerDeviceKind: _lastDeviceKind, activeLayerId: _viewModel.activeLayerId, gestureScale: details.scale, newestPoint: worldPosition);
+      _currentTool.onToolUpdate(frame);
       notifyListeners();
     }
   }
@@ -361,12 +310,12 @@ class ToolController extends ChangeNotifier {
     if (!drawEnabled) return;
 
     if (_panToolOverrideActive) {
-      tools[PanTool]!.onDrawEnd();
+      tools[PanTool]!.onToolEnd();
       _panToolOverrideActive = false;
       _activePointerIds.clear();
       notifyListeners();
     } else if (_currentTool.isActive) {
-      final command = _currentTool.onDrawEnd();
+      final command = _currentTool.onToolEnd();
       if (command != null) {
         _viewModel.executeCommand(command);
       }

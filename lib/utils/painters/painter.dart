@@ -10,7 +10,7 @@ class MyPainter extends CustomPainter {
   final List<DrawData> drawHistory;
 
   /// 🟢 FIXED: Updated to Type key to align perfectly with your ToolController registry!
-  final Map<Type, DrawTool> tools;
+  // final Map<Type, DrawTool> tools;
 
   // --- Viewport Matrices & Bounding Artboard Injections ---
   final Matrix4 transform;
@@ -21,7 +21,7 @@ class MyPainter extends CustomPainter {
   const MyPainter({
     required this.deviceKind,
     required this.drawHistory, 
-    required this.tools, 
+    // required this.tools, 
     required this.transform,
     required this.canvasWidth,
     required this.canvasHeight,
@@ -46,11 +46,9 @@ class MyPainter extends CustomPainter {
 
     // 5. Loop through and execute your drawing vectors sequentially (Z-index z-depth)
     if (drawHistory.isNotEmpty) {
-      for (final DrawData command in drawHistory) {
-        final DrawTool? tool = _findToolByName(command.toolName);
-        
+      for (final DrawData data in drawHistory) {
         // Hand the canvas context directly back to the tool that knows how to paint itself!
-        tool?.draw(canvas, command);
+        data.draw(canvas);
       }
     }
 
@@ -60,14 +58,6 @@ class MyPainter extends CustomPainter {
     canvas.restore();
   }
 
-  /// Maps the database layout tool string key hashes back to our memory tool instances.
-  DrawTool? _findToolByName(String name) {
-    try {
-      return tools.values.firstWhere((t) => t.toolName == name);
-    } catch (_) {
-      return null;
-    }
-  }
 
   @override
   bool shouldRepaint(covariant MyPainter oldDelegate) {

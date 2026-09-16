@@ -2,12 +2,11 @@ import 'dart:ui';
 
 import 'package:drawing_app/domain/models/canvas_camera.dart';
 import 'package:drawing_app/ui/core/commands/canvas_command.dart';
+import 'package:drawing_app/ui/core/draw_tools/canvas_tool.dart';
 import 'package:flutter/material.dart';
-import 'package:drawing_app/ui/core/draw_tools/draw_tool.dart';
-import 'package:drawing_app/domain/models/draw_data/draw_data.dart';
 import 'package:vector_math/vector_math_64.dart' as vm;
 
-class PanTool extends DrawTool {
+class PanTool extends CanvasTool {
   final ToolMatrixPayload _camera;
 
   bool _isPanning = false;
@@ -22,30 +21,9 @@ class PanTool extends DrawTool {
     required ToolMatrixPayload camera,
   }) : _camera = camera;
 
-  @override
-  void updateFillSettings(_) {}
-
-  @override
-  void updateStrokeSettings(_) {}
 
   @override
   bool get isActive => _isPanning;
-
-  @override
-  DrawData? get activePreview => null; 
-
-  @override
-  void onDrawStart({
-    required PointerDeviceKind deviceKind,
-    required Offset startPoint,
-    required String layerId,
-    required int nextStrokeIndex,
-    required Color color,
-    required double strokeWidth,
-  }) {
-    _isPanning = true;
-    _camera.panStartOrigin = startPoint;
-  }
 
   //Called by ToolController.syncPointerStatesOnReEntry if reentering from window
   void flagWindowReEntryTransition() {
@@ -106,21 +84,31 @@ void _zoom(double scale) {
 }
 
 
-   @override
-  void onUpdateTool({
-    required Offset newPoint, 
-    required double gestureScale, 
-    required PointerDeviceKind deviceKind,
-  }) {
-    if (!_isPanning) return;
+  @override
+  CanvasCommand? onToolEnd() {
+    if(!_isPanning) return null;
+    _isPanning = false;
+    _isFirstFrameAfterReEntry = false;
+    return null;
+  }
+
+  @override
+  void onToolStart(ToolStartFrame toolFrame) {
+        _isPanning = true;
+    _camera.panStartOrigin = toolFrame.initialPoint;
+  }
+
+  @override
+  void onToolUpdate(ToolUpdateFrame toolFrame) {
+        if (!_isPanning) return;
     
-    if (deviceKind == PointerDeviceKind.trackpad) {
-      final bool isZooming = (gestureScale - 1.0).abs() > 0.001;
+    if (toolFrame.pointerDeviceKind == PointerDeviceKind.trackpad) {
+      final bool isZooming = (toolFrame.gestureScale - 1.0).abs() > 0.001;
 
       if (isZooming) {
         // Ignore the trackpad's noisy pan deltas completely to prevent sliding away.
-        _zoom(gestureScale);
-      } else if (newPoint != Offset.zero) {
+        _zoom(toolFrame.gestureScale);
+      } else if (toolFrame.newestPoint != Offset.zero) {
         // two-finger pan scroll (when scale is exactly 1.0)
         if (_isFirstFrameAfterReEntry) {
           _isFirstFrameAfterReEntry = false;
@@ -130,28 +118,17 @@ void _zoom(double scale) {
         _camera.transform = _camera.transform.clone()
           ..translateByVector3(
             vm.Vector3(
-              newPoint.dx / _camera.currentScale,
-              newPoint.dy / _camera.currentScale,
+              toolFrame.newestPoint.dx / _camera.currentScale,
+              toolFrame.newestPoint.dy / _camera.currentScale,
               0.0,
             ),
           );
       }
     } else {
       //Standard single-pointer desktop mouse clicks & touchscreen math 
-      _pan(newPoint);
-      if (deviceKind == PointerDeviceKind.touch) _zoom(gestureScale);
+      _pan(toolFrame.newestPoint);
+      if (toolFrame.pointerDeviceKind == PointerDeviceKind.touch) _zoom(toolFrame.gestureScale);
     }
   }
 
-
-  @override
-  CanvasCommand? onDrawEnd() {
-    if (!_isPanning) return null;
-    _isPanning = false; 
-    _isFirstFrameAfterReEntry = false; // Reset clean
-    return null;
-  }
-
-  @override
-  void draw(Canvas canvas, DrawData stroke) {}
 }

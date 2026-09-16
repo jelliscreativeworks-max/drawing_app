@@ -109,10 +109,9 @@ class _LayerPreviewWidgetState extends State<LayerPreviewWidget> {
         await Future.delayed(Duration.zero);
         
         if (mounted) {
-          final drawToolsMap = widget.toolController.tools;
           widget.viewModel
-              .getSnapshotCommandForLayer(widget.layerId, drawToolsMap)
-              .execute(widget.layerId, drawToolsMap);
+              .getSnapshotCommandForLayer(widget.layerId)
+              .execute(widget.layerId);
         }
       });
     }
@@ -123,8 +122,7 @@ class _LayerPreviewWidgetState extends State<LayerPreviewWidget> {
     final bool layerStillExists = widget.viewModel.layers.any((l) => l.id == widget.layerId);
     if (!layerStillExists) return const SizedBox.shrink();
 
-    final drawToolsMap = widget.toolController.tools;
-    final layerCommand = widget.viewModel.getSnapshotCommandForLayer(widget.layerId, drawToolsMap);
+    final layerCommand = widget.viewModel.getSnapshotCommandForLayer(widget.layerId);
 
     // Listens EXCLUSIVELY to the asynchronous layerCommand task background loops,
     // ensuring your preview cards remain completely immune to real-time zoom or pan matrix updates.

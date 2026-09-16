@@ -62,12 +62,12 @@ class DrawScreenViewModel extends ChangeNotifier {
   late final Command1<void, String> deleteLayer;
 
   // Map of commands storing calls to get layersnapshots to allow them to execute async
-  final Map<String, Command2<void, String, Map<Type,DrawTool>>> _layerSnapshotCommands = {};
+  final Map<String, Command1<void, String>> _layerSnapshotCommands = {};
 
   // Create new command to getsnapshot for layerId and add it to layersnapshots
- Command2<void, String, Map<Type, DrawTool>> getSnapshotCommandForLayer(String layerId, Map<Type,DrawTool> tools) {
+ Command1<void, String> getSnapshotCommandForLayer(String layerId) {
     return _layerSnapshotCommands.putIfAbsent(layerId, () {
-      return Command2<void, String, Map<Type,DrawTool>>(
+      return Command1<void, String>(
         _getLayerSnapshot,
         allowConcurrent: true, // 🟢 Allows multiple layers to process at once!
       );
@@ -250,7 +250,7 @@ class DrawScreenViewModel extends ChangeNotifier {
 
 
   // --- DEFINITIVE DYNAMIC ARTBOARD RESIZER ---
-  void resizeCanvas(double newWidth, double newHeight, Map<Type,DrawTool> tools) {
+  void resizeCanvas(double newWidth, double newHeight) {
     // 1. Safety guard rails protect against zero or negative dimensions
     if (newWidth <= 0 || newHeight <= 0) return;
 
@@ -263,7 +263,7 @@ class DrawScreenViewModel extends ChangeNotifier {
 
     // 4. Force refresh layer snapshot previews to update background framing aspect ratios
     for (var layer in _layers) {
-      getSnapshotCommandForLayer(layer.id, tools).execute(layer.id, tools);
+      getSnapshotCommandForLayer(layer.id).execute(layer.id);
     }
   }
 
@@ -681,8 +681,7 @@ class DrawScreenViewModel extends ChangeNotifier {
 
 
   Future<Result> _getLayerSnapshot(
-    String layerId,
-    Map<Type,DrawTool> tools) async {
+    String layerId) async {
     final List<DrawData> layerHistory =
         _cachedLayerHistories[layerId] ?? const [];
     if (layerHistory.isEmpty) {
@@ -694,7 +693,6 @@ class DrawScreenViewModel extends ChangeNotifier {
       final Uint8List? bytes = await canvasToImageProcessor
           .generateLayerSnapshotFromVectors(
             layerHistory: layerHistory,
-            drawTools: tools,
           );
       if (bytes != null && bytes.isNotEmpty) {
         _layerSnapshots[layerId] = bytes;

@@ -11,6 +11,9 @@ extension ListExtensions<T> on List<T>{
   }
 }
 
+
+
+
 extension OffsetPointDetection on List<Offset>{
   double? distanceFromPoint(Offset point, int index){
     if(index >= length) return null;

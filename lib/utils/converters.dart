@@ -25,6 +25,7 @@ class OffsetConverter implements JsonConverter<Offset, Map<String, dynamic>>{
   }
 }
 
+
 class Uint8ListConverter implements JsonConverter<Uint8List,String>{
   const Uint8ListConverter();
   @override

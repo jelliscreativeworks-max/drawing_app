@@ -2,47 +2,63 @@ import 'dart:ui';
 import 'package:drawing_app/ui/core/commands/canvas_command.dart';
 import 'package:drawing_app/domain/models/draw_data/draw_data.dart';
 import 'package:drawing_app/ui/core/commands/draw_command.dart';
+import 'package:drawing_app/ui/core/draw_tools/canvas_tool.dart';
 import 'package:drawing_app/ui/core/draw_tools/draw_tool.dart';
 
-class FreehandTool extends DrawTool {
-  DrawData? _activeStroke;
+class FreehandTool extends DrawTool implements StrokeToolType {
+  bool _renderStroke;
+  FreehandData? _activeStroke;
   bool _isDrawing = false;
 
+  Paint _strokePaint;
 
-
-  FreehandTool({required super.toolName, required super.toolIcon, super.fillPaint, super.strokePaint});
-
-  // TODO: Refactor by moving to DrawData
-  @override
-  void draw(Canvas canvas, DrawData drawData) {
-    if (drawData.points.isEmpty) return;
-
-    if (drawData.strokeSettings != null) {
-      _drawStroke(
-        canvas,
-        drawData.points,
-        drawData.strokeSettings!,
-      );
-    }
-  }
-
-  
-  // TODO: Refactor by moving to DrawData
-  void _drawStroke(Canvas canvas, List<Offset> points, Paint paint) {
-    if (points.length == 1) {
-      canvas.drawPoints(PointMode.points, points, paint);
-    } else {
-      final path = Path()..moveTo(points.first.dx, points.first.dy);
-      for (int i = 1; i < points.length; i++) {
-        path.lineTo(points[i].dx, points[i].dy);
-      }
-      canvas.drawPath(path, paint);
-    }
-  }
+  FreehandTool({
+    required super.toolName,
+    required super.toolIcon,
+    required Paint defaultStrokePaint,
+    required bool renderStroke,
+  }) : _strokePaint = defaultStrokePaint,
+       _renderStroke = renderStroke;
 
   @override
-  CanvasCommand? onDrawEnd() {
-    if(!_isDrawing || _activeStroke == null) return null;
+  bool get isActive => _isDrawing;
+  @override
+  DrawData? get activePreview => _activeStroke;
+  @override
+  bool get renderStroke => _renderStroke;
+  @override
+  Paint get strokePaint => _strokePaint;
+
+  @override
+  void updateStrokePaint(Paint updatedStrokePaint) =>
+      _strokePaint = updatedStrokePaint;
+  @override
+  void toggleRenderStroke(bool enabled) => _renderStroke = enabled;
+
+  @override
+  void onToolStart(ToolStartFrame toolFrame) {
+    _isDrawing = true;
+    _activeStroke = FreehandData(
+      layerId: toolFrame.activeLayerId,
+      strokePaint: _strokePaint,
+      id: uuid.v4(),
+      index: toolFrame.nextStrokeIndex,
+      points: [toolFrame.initialPoint],
+      renderStroke: _renderStroke,
+    );
+  }
+
+  @override
+  void onToolUpdate(ToolUpdateFrame toolFrame) {
+    if (!_isDrawing) return;
+    final updatedPoints = List<Offset>.from(_activeStroke!.points)
+      ..add(toolFrame.newestPoint);
+    _activeStroke = _activeStroke!.copyWith(points: updatedPoints);
+  }
+
+  @override
+  CanvasCommand? onToolEnd() {
+    if (!_isDrawing || _activeStroke == null) return null;
 
     _isDrawing = false;
 
@@ -50,31 +66,5 @@ class FreehandTool extends DrawTool {
     _activeStroke = null;
 
     return DrawCommand(drawData: completedStroke!);
-
   }
-
-  @override
-  void onDrawStart({    required PointerDeviceKind deviceKind, required Offset startPoint, required String layerId, required int nextStrokeIndex, required Color color, required double strokeWidth}) {
-    _isDrawing = true;
-
-    _activeStroke = DrawData(layerId: layerId, toolName: toolName,id: uuid.v4(),  index: nextStrokeIndex, points: [startPoint], strokeSettings: strokePaint);
-
-  }
-
-  @override
-  void onUpdateTool({required Offset newPoint, required double gestureScale,  required PointerDeviceKind deviceKind,}) {
-    if(!_isDrawing) return;
-    final updatedPoints = List<Offset>.from(_activeStroke!.points)..add(newPoint);
-    _activeStroke =  _activeStroke!.copyWith(points: updatedPoints);
-
-  }
-
-  @override
-  bool get isActive => _isDrawing;
-
-  @override
-  DrawData? get activePreview => _activeStroke;
-
-
-
 }

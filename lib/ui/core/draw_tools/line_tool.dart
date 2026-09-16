@@ -3,34 +3,29 @@ import 'dart:ui';
 import 'package:drawing_app/domain/models/draw_data/draw_data.dart';
 import 'package:drawing_app/ui/core/commands/canvas_command.dart';
 import 'package:drawing_app/ui/core/commands/draw_command.dart';
+import 'package:drawing_app/ui/core/draw_tools/canvas_tool.dart';
 import 'package:drawing_app/ui/core/draw_tools/draw_tool.dart';
 
-class LineTool extends DrawTool{
+class LineTool extends DrawTool implements StrokeToolType{
+  bool _renderStroke;
   bool _isDrawing = false;
-  DrawData? _activeLine;
+  LineData? _activeLine;
 
-  LineTool({required super.toolName, required super.toolIcon, super.strokePaint});
+  Paint _strokePaint;
+
+  @override
+  Paint get strokePaint => _strokePaint;
+
+  LineTool({required super.toolName, required super.toolIcon, required Paint defaultStrokePaint, required bool renderStroke}) : _strokePaint = defaultStrokePaint, _renderStroke = renderStroke;
 
   @override
   DrawData? get activePreview => _activeLine;
 
   @override
-  void draw(Canvas canvas, DrawData drawData) {
-
-    if(drawData.points.length != 2 || drawData.strokeSettings == null) return;
-
-    _drawLine(canvas, drawData);
-  }
-
-  void _drawLine(Canvas canvas, DrawData data){
-    canvas.drawLine(data.points[0], data.points[1], data.strokeSettings!);
-  }
-
-  @override
   bool get isActive => _isDrawing;
 
  @override
-  CanvasCommand? onDrawEnd() {
+  CanvasCommand? onToolEnd() {
     if(!_isDrawing || _activeLine == null) return null;
 
     _isDrawing = false;
@@ -42,21 +37,28 @@ class LineTool extends DrawTool{
 
   }
 
+
+
   @override
-  void onDrawStart({required PointerDeviceKind deviceKind, required Offset startPoint, required String layerId, required int nextStrokeIndex, required Color color, required double strokeWidth}) {
+  void onToolStart(ToolStartFrame toolFrame) {
     _isDrawing = true;
-    _activeLine = DrawData(layerId: layerId, toolName: toolName, index: nextStrokeIndex, strokeSettings: strokePaint, id: uuid.v4(), points: [startPoint]);
+    _activeLine = LineData(layerId: toolFrame.activeLayerId, index: toolFrame.nextStrokeIndex, strokePaint: _strokePaint, id: uuid.v4(), startPoint: toolFrame.initialPoint, endPoint: toolFrame.initialPoint, renderStroke: _renderStroke);
   }
 
   @override
-  void onUpdateTool({required Offset newPoint, required double gestureScale, required PointerDeviceKind deviceKind}) {
+  void onToolUpdate(ToolUpdateFrame toolFrame) {
     if(!_isDrawing) return;
 
-    final startPoint = _activeLine!.points[0];
-    final endPoint = newPoint;
-
-    final List<Offset> newPoints = [startPoint,endPoint];
-    _activeLine = _activeLine!.copyWith(points: newPoints);
+    _activeLine = _activeLine!.copyWith(endPoint: toolFrame.newestPoint);
   }
+
+  @override
+  void updateStrokePaint(Paint updatedStrokePaint) =>  _strokePaint = updatedStrokePaint;
+
+  @override
+  bool get renderStroke => _renderStroke;
   
-}
+  @override
+  void toggleRenderStroke(bool enabled) => _renderStroke = enabled;
+  
+  }

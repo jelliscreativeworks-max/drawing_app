@@ -198,7 +198,6 @@ class _DrawScreenState extends State<DrawScreen> {
                                           canvasWidth:
                                               widget.viewModel.canvasWidth,
                                           drawHistory: filteredLayerHistory,
-                                          tools: widget.toolController.tools,
                                           transform:
                                               widget.viewModel.camera.transform,
                                         ),
@@ -225,7 +224,7 @@ class _DrawScreenState extends State<DrawScreen> {
                                           canvasWidth:
                                               widget.viewModel.canvasWidth,
                                           drawHistory: [preview],
-                                          tools: widget.toolController.tools,
+                      
                                           transform:
                                               widget.viewModel.camera.transform,
                                         ),

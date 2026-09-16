@@ -43,7 +43,7 @@ class CanvasToImageProcessor {
   // 🌟 THE PRODUCTION FIX: Render pure vector arrays directly to an offscreen image buffer!
   Future<Uint8List?> generateLayerSnapshotFromVectors({
     required List<DrawData> layerHistory,
-    required Map<Type, DrawTool> drawTools,
+    // required Map<Type, DrawTool> drawTools,
     double transparency = 1.0,
     double targetWidth = 500.0,
     double targetHeight = 500.0,
@@ -71,9 +71,8 @@ class CanvasToImageProcessor {
     offscreenCanvas.scale(scaleX, scaleY);
 
     // 4. DRAW THE VECTORS PASSIVELY (Completely free from InteractiveViewer pan/zoom offsets!)
-    for (DrawData command in layerHistory) {
-      final tool = drawTools.values.singleWhere((tool) => tool.toolName == command.toolName);
-        tool.draw(offscreenCanvas, command);
+    for (DrawData data in layerHistory) {
+        data.draw(offscreenCanvas);
       }
 
 
