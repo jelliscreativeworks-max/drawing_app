@@ -62,10 +62,8 @@ class FloatingLayerPanel extends StatelessWidget {
                       final int index = entry.key;
                       final layer = entry.value;
 
-                      // 🟢 FIXED: The immediate child MUST hold a clean ValueKey(layer.id).
-                      // This isolates the framework's GlobalKey factories from duplicates!
                       return Padding(
-                        key: ValueKey(layer.id), // Key moved to top child cleanly
+                        key: ValueKey(layer.id), 
                         padding: EdgeInsets.only(
                           left: 8,
                           right: 8,

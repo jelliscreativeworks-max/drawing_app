@@ -95,13 +95,14 @@ class _DrawScreenState extends State<DrawScreen> {
                 children: [
                   Positioned.fill(
                     child: MouseRegion(
-                      onEnter: (_) => widget.toolController.enableDrawing(),
+                      onEnter: (event) => widget.toolController.enableDrawing(event),
                       onExit: (event) => widget.toolController.disableDrawing(),
                       child: Listener(
                         onPointerDown: (event) =>
                             widget.toolController.onPointerDown(event),
-                        onPointerMove: (event) =>
-                            widget.toolController.onPointerMove(event),
+                        onPointerMove: (event) {
+                          widget.toolController.onPointerMove(event);
+                        },
                         onPointerUp: (event) =>
                             widget.toolController.onPointerUp(event),
                         onPointerCancel: (event) =>
@@ -192,7 +193,9 @@ class _DrawScreenState extends State<DrawScreen> {
                                           '${layer.id}_${filteredLayerHistory.length}_${widget.viewModel.transformRevision}',
                                         ),
                                         painter: MyPainter(
-                                          deviceKind: widget.toolController.lastDeviceKind,
+                                          deviceKind: widget
+                                              .toolController
+                                              .lastDeviceKind,
                                           canvasHeight:
                                               widget.viewModel.canvasHeight,
                                           canvasWidth:
@@ -205,7 +208,6 @@ class _DrawScreenState extends State<DrawScreen> {
                                     ),
                                   );
                                 }),
-
                                 // C. Real-Time Active Pointer Stroke Sketch Preview Overlay Channel
                                 // Sits right on top of historical layer lines so in-progress shapes trace accurately!
                                 ListenableBuilder(
@@ -213,20 +215,32 @@ class _DrawScreenState extends State<DrawScreen> {
                                   builder: (context, child) {
                                     final DrawData? preview =
                                         widget.toolController.activePreview;
-                                    if (preview == null) return const SizedBox.shrink();
+
+                                    if (preview == null &&
+                                        !widget
+                                            .toolController
+                                            .currentTool
+                                            .isActive) {
+                                      return const SizedBox.shrink();
+                                    }
 
                                     return Positioned.fill(
                                       child: CustomPaint(
                                         painter: MyPainter(
-                                          deviceKind: widget.toolController.lastDeviceKind,
+                                          deviceKind: widget
+                                              .toolController
+                                              .lastDeviceKind,
                                           canvasHeight:
                                               widget.viewModel.canvasHeight,
                                           canvasWidth:
                                               widget.viewModel.canvasWidth,
-                                          drawHistory: [preview],
-                      
+                                          drawHistory: preview != null
+                                              ? [preview]
+                                              : const [],
                                           transform:
                                               widget.viewModel.camera.transform,
+                                          activeTool:
+                                              widget.toolController.currentTool,
                                         ),
                                       ),
                                     );

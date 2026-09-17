@@ -11,7 +11,6 @@ import 'package:drawing_app/domain/models/draw_data/draw_data.dart';
 import 'package:drawing_app/domain/models/layer_data/layer_data.dart';
 import 'package:drawing_app/ui/core/commands/delete_layer_command.dart';
 import 'package:drawing_app/ui/core/commands/reorder_layer_command.dart';
-import 'package:drawing_app/ui/core/draw_tools/draw_tool.dart';
 import 'package:drawing_app/utils/command.dart';
 import 'package:drawing_app/utils/image_conversion.dart';
 import 'package:drawing_app/utils/result.dart';
@@ -64,12 +63,11 @@ class DrawScreenViewModel extends ChangeNotifier {
   // Map of commands storing calls to get layersnapshots to allow them to execute async
   final Map<String, Command1<void, String>> _layerSnapshotCommands = {};
 
-  // Create new command to getsnapshot for layerId and add it to layersnapshots
  Command1<void, String> getSnapshotCommandForLayer(String layerId) {
     return _layerSnapshotCommands.putIfAbsent(layerId, () {
       return Command1<void, String>(
         _getLayerSnapshot,
-        allowConcurrent: true, // 🟢 Allows multiple layers to process at once!
+        allowConcurrent: true, 
       );
     });
   }
@@ -118,7 +116,6 @@ class DrawScreenViewModel extends ChangeNotifier {
     
     final String activeIdBeforeExecution = activeLayerId;
 
-    // 1. Run the command mutation logic pass (e.g. AddLayerCommand.undo pulls the layer out)
     command.execute(context);
 
     _undoHistory.add(command);
@@ -128,13 +125,11 @@ class DrawScreenViewModel extends ChangeNotifier {
       _rebuildCacheForLayer(command.layerId);
       _markLayerAsDirtyById(command.layerId);
     } else {
-      // This block already handles logging the ID for deletion perfectly!
       _pendingLayerDeletionsLog.add(command.layerId);
       _cachedLayerHistories.remove(command.layerId);
       layerSnapshots.remove(command.layerId);
     }
 
-    // 2. Heal your index pointer channels safely inside the reduced boundaries
     final int verifiedIndex = _layers.indexWhere((l) => l.id == activeIdBeforeExecution);
     if (verifiedIndex != -1) {
       _activeLayerIndex = verifiedIndex;
@@ -144,7 +139,6 @@ class DrawScreenViewModel extends ChangeNotifier {
 
     notifyListeners();
 
-    // 3. Wake up the background auto-save loop to process the file deletions
     if (!saveDirtyProgress.running) {
       saveDirtyProgress.execute();
     }
@@ -166,7 +160,6 @@ class DrawScreenViewModel extends ChangeNotifier {
     final context = CanvasStateContext(layerData: _layers, globalDrawHistory: _drawHistory);
     final String activeIdBeforeUndo = activeLayerId;
 
-    // 1. Execute the rollback mutation
     command.undo(context);
     _redoHistory.add(command);
 
@@ -180,9 +173,6 @@ class DrawScreenViewModel extends ChangeNotifier {
       layerSnapshots.remove(command.layerId);
     }
 
-    // =========================================================================
-    // 2. THE IDENTITY INDEX POINTER HEALER
-    // =========================================================================
     final int verifiedIndex = _layers.indexWhere((l) => l.id == activeIdBeforeUndo);
     if (verifiedIndex != -1) {
       _activeLayerIndex = verifiedIndex;
@@ -192,7 +182,6 @@ class DrawScreenViewModel extends ChangeNotifier {
 
     notifyListeners();
 
-    // Wake up the background auto-save loop to purge the file off of disk
     if (!saveDirtyProgress.running) {
       saveDirtyProgress.execute();
     }
@@ -213,7 +202,6 @@ class DrawScreenViewModel extends ChangeNotifier {
     final context = CanvasStateContext(layerData: _layers, globalDrawHistory: _drawHistory);
     final String activeIdBeforeRedo = activeLayerId;
     
-    // 3. Execute the forward recreation step
     command.execute(context);
     _undoHistory.add(command);
 
@@ -228,7 +216,7 @@ class DrawScreenViewModel extends ChangeNotifier {
       _markLayerAsDirtyById(command.layerId);
     }
 
-    // Recalculate index focus pointers to latch focus securely by identity
+ 
     final int verifiedIndex = _layers.indexWhere((l) => l.id == activeIdBeforeRedo);
     if (verifiedIndex != -1) {
       _activeLayerIndex = verifiedIndex;
@@ -236,8 +224,6 @@ class DrawScreenViewModel extends ChangeNotifier {
       _activeLayerIndex = _activeLayerIndex.clamp(0, _layers.length - 1);
     }
 
-    // Force a fresh collection update layout reference to trick Flutter's 
-    // change detection system into seeing the newly re-inserted redo row
     _layers = List<LayerData>.from(_layers);
 
     notifyListeners();
@@ -249,16 +235,15 @@ class DrawScreenViewModel extends ChangeNotifier {
 
 
 
-  // --- DEFINITIVE DYNAMIC ARTBOARD RESIZER ---
   void resizeCanvas(double newWidth, double newHeight) {
-    // 1. Safety guard rails protect against zero or negative dimensions
+    // Potect against zero or negative dimensions
     if (newWidth <= 0 || newHeight <= 0) return;
 
-    // 2. Assign the fresh bounding dimensions cleanly to your internal states
+    // Assign the bounding dimensions to internal states
     _canvasWidth = newWidth;
     _canvasHeight = newHeight;
     _transformRevision++;
-    // 3. Increment the revision counter to force the RepaintBoundary to clear its texture cache
+    // Increment the revision counter to force the RepaintBoundary to clear its texture cache
     notifyListeners();
 
     // 4. Force refresh layer snapshot previews to update background framing aspect ratios
@@ -279,16 +264,16 @@ class DrawScreenViewModel extends ChangeNotifier {
 
 // TODO
   void resetView(Size viewportSize) {
-    // 1. Calculate the empty padding space remaining when scale is exactly 1.0
+    // Calculate the empty padding space remaining when scale is exactly 1.0
     final double extraWidth = viewportSize.width - _canvasWidth;
     final double extraHeight = viewportSize.height - _canvasHeight;
 
-    // 2. Divide by 2 to find the exact midpoint coordinates
+    // Divide by 2 to find the exact midpoint coordinates
     final double centerX = extraWidth / 2.0;
     final double centerY = extraHeight / 2.0;
 
-    // 3. Reset the master camera matrix back to default 100% scale and centered pan!
-    // We instantiate a fresh Identity matrix, which naturally resets scale components to 1.0.
+    // Reset the master camera matrix back to default 100% scale and centered pan
+    // Instantiate a new Identity matrix, which naturally resets scale components to 1.0.
     camera.transform = Matrix4.identity();
 
     // Index 12 is translation X, and Index 13 is translation Y in column-major layout.
@@ -307,7 +292,6 @@ class DrawScreenViewModel extends ChangeNotifier {
   }
 
   Future<Result<void>> _loadProject(String canvasId) async {
-    // 1. Fetch the primary canvas aggregate meta-data container file
     final loadedCanvasResult = await _canvasDataRepository.getCanvasData(
       canvasId,
     );
@@ -319,7 +303,6 @@ class DrawScreenViewModel extends ChangeNotifier {
         return Result.error(loadedCanvasResult.error);
     }
 
-    // 2. Load all historical drawing sub-layers allocated to this canvas ID
     final loadedLayersResult = await _layerDataRepository.getAllCanvasLayers(
       canvasId,
     );
@@ -339,15 +322,12 @@ class DrawScreenViewModel extends ChangeNotifier {
 
         _layers = loadedLayers;
 
-
-        // 3. Clean out temporary state memory tracks before reconstruction
         _cachedLayerHistories.clear();
         _drawHistory.clear();
         _undoHistory.clear();
         _redoHistory.clear();
         _layerSnapshots.clear();
 
-        // 4. Reconstruct structural histories layer by layer
         for (var layer in _layers) {
           _cachedLayerHistories[layer.id] = List<DrawData>.from(
             layer.layerDrawHistory,
@@ -357,7 +337,6 @@ class DrawScreenViewModel extends ChangeNotifier {
 
         _activeLayerIndex = 0;
 
-        // 5. Commit structural data vectors to screen
         notifyListeners();
 
       case Error():
@@ -370,17 +349,13 @@ class DrawScreenViewModel extends ChangeNotifier {
     if (oldIndex < 0 || oldIndex >= _layers.length) return;
     if (newIndex < 0 || newIndex > _layers.length) return;
 
-    // 1. Package the move operation cleanly into your command architecture
     final reorderCommand = ReorderLayerCommand(
       layerId: _layers[oldIndex].id,
       oldIndex: oldIndex,
       newIndex: newIndex,
-      currentHistoryLength: _drawHistory.length, // 🟢 Binds chronologically to the top of the timeline
+      currentHistoryLength: _drawHistory.length, 
     );
 
-    // 2. Dispatch straight down the unified execution command engine pipeline pass.
-    // This handles moving the item, flushing layer caches, marking files dirty, 
-    // and waking up the automated disk-write autosave loops automatically.
     executeCommand(reorderCommand);
   }
    Future<Result<void>> _saveDirtyProgress() async {
@@ -393,23 +368,15 @@ class DrawScreenViewModel extends ChangeNotifier {
     try {
       bool working = true;
       
-      // Local transaction tracking array to hold onto target keys during this pass
+
       final List<String> layersToPurgeThisPass = [];
 
       while (working) {
-        // =====================================================================
-        // TASK A: RE-ROUTE DELETIONS QUEUE
-        // =====================================================================
         if (_pendingLayerDeletionsLog.isNotEmpty) {
-          // Move the IDs into our deferred tracking loop block, but wait to clear 
-          // files until after the structural canvas metadata flushes safely.
           layersToPurgeThisPass.addAll(_pendingLayerDeletionsLog);
           _pendingLayerDeletionsLog.clear(); 
         }
 
-        // =====================================================================
-        // TASK B: PACK MEMORY HISTORY MAPS INTO REPOSITORY LAYER MODELS
-        // =====================================================================
         final List<LayerData> packagedLayers = _layers.map((LayerData layer) {
           return layer.copyWith(
             layerDrawHistory: List<DrawData>.from(_cachedLayerHistories[layer.id] ?? const []),
@@ -424,17 +391,12 @@ class DrawScreenViewModel extends ChangeNotifier {
           return originalLayerRecord.isDirty;
         }).toList();
 
-        // =====================================================================
-        // LOOP EXIT GATEWAY
-        // =====================================================================
+
         if (dirtyLayers.isEmpty && _pendingLayerDeletionsLog.isEmpty && layersToPurgeThisPass.isEmpty) {
           working = false;
           break;
         }
 
-        // =====================================================================
-        // TASK C: COMMIT VECTOR PACKAGES TO THE REPOSITORY DISK
-        // =====================================================================
         if (dirtyLayers.isNotEmpty) {
           final Result<void> saveResult = await _layerDataRepository.saveDirtyLayers(dirtyLayers);
           
@@ -447,24 +409,16 @@ class DrawScreenViewModel extends ChangeNotifier {
               .toList();
         }
 
-        // =====================================================================
-        // TASK D: UPDATE CANVAS LAYER ID INDEX SEQUENCE MANIFESTS
-        // =====================================================================
         await _synchronizeCanvasMetadata();
 
-        // =====================================================================
-        // 🟢 TASK E: RUN HARD DISK PURGES LAST (PREVENTS GHOST RE-WRITES)
-        // =====================================================================
         if (layersToPurgeThisPass.isNotEmpty) {
-          // Deduplicate the list using a set to stop identical concurrent IDs!
+          // Deduplicate the list using a set to stop identical concurrent IDs
           final List<String> deletionsBatch = layersToPurgeThisPass.toSet().toList();
           layersToPurgeThisPass.clear();
 
-          // Pull the active canvas ID directly from the state token
           final String activeCanvasId = _currentCanvas!.id;
 
           for (final String layerIdToDelete in deletionsBatch) {
-            // Pass BOTH the active project id and layer id down to the repository
             final Result<void> deleteResult = await _layerDataRepository.deleteLayer(
               canvasId: activeCanvasId,
               id: layerIdToDelete,
@@ -505,14 +459,12 @@ class DrawScreenViewModel extends ChangeNotifier {
     final deletedLayer = _layers[targetIndex];
     final String currentActiveLayerId = activeLayerId;
 
-    // 🟢 FIXED: Match exact domain capsule parameters footprint
     final deleteCommand = DeleteLayerCommand(
       layerId: layerId, 
       index: targetIndex, 
       deletedLayer: deletedLayer,
     );
 
-    // 🟢 FIXED: Fire purely down the memory pipeline loop to support clean reversible time travel
     executeCommand(deleteCommand);
 
     if (currentActiveLayerId == layerId) {
@@ -527,10 +479,8 @@ class DrawScreenViewModel extends ChangeNotifier {
   }
 
 
-  /// Instantiates a pristine, empty drawing sheet directly above the current active 
-  /// layer selection slot, dropping it down the central execution pipeline loop.
+  /// Creates a new, empty layer directly above the current active layer
   Future<Result<void>> _createAndAddLayer() async {
-    // 1. Context Validation Guard: Verify a project canvas is actively mounted
     if (_currentCanvas == null) {
       return Result.error(
         Exception("Canvas must not be null before creating layers"),
@@ -538,70 +488,54 @@ class DrawScreenViewModel extends ChangeNotifier {
     }
 
     final String newUniqueId = uuid.v4();
-    
-    // 2. Position calculation: We insert it exactly 1 visual layer depth slot 
-    // above our current active focus layer row index
+
     final int targetedInsertionIndex = _activeLayerIndex + 1;
     final int nextDisplayNumber = _layers.length + 1;
 
-    // 3. Construct your clean domain model record matching your terminologies
-    final LayerData pristineLayer = LayerData(
+    final LayerData newLayer = LayerData(
       id: newUniqueId,
       index: targetedInsertionIndex,
       name: 'Layer $nextDisplayNumber',
       canvasId: _currentCanvas!.id,
-      isDirty: true, // Flagged true so the auto-save registers its initial blueprint
+      isDirty: true, 
       isVisible: true,
       layerDrawHistory: const [],
     );
 
-    // 4. Instantiate the transaction command using your explicit parameter footprint
     final command = AddLayerCommand(
       layerId: newUniqueId,
       index: targetedInsertionIndex,
-      layerData: pristineLayer,
+      layerData: newLayer,
     );
 
-    // 5. Fire it down your centralized transactional pipeline loop.
-    // This handles memory tracking updates, logs histories, clears cache maps,
-    // and automatically schedules your background asynchronous autosave block daemon.
     executeCommand(command);
-
-    // 6. Automatically shift the user's active focus selection onto their brand new drawing sheet
     _activeLayerIndex = targetedInsertionIndex;
-    
-    // 7. Request immediate UI panel redraw
     notifyListeners();
 
     return Result.ok(null);
   }
 
   Future<Result<void>> _initializeNewProject() async {
-    // 1. Generate unique identity structural keys upfront 
     final String initialCanvasId = uuid.v4();
     final String initialLayerId = uuid.v4();
 
-    // 2. Draft the blueprint for the primary metadata container manifest
     final templateCanvas = CanvasData(
-      id: initialCanvasId, // Safe from database key overwriting deadlocks
+      id: initialCanvasId, 
       name: 'Untitled Drawing',
-      layerIds: [initialLayerId], // Pre-populate the initial layout token mapping
+      layerIds: [initialLayerId], 
     );
 
-
-            // 4. Construct the pristine baseline drawing layer model container
         final initialLayer = LayerData(
           id: initialLayerId,
-          index: 0, // Hardcoded structural index 0 is safe from list range crashes
+          index: 0,
           name: 'Layer 1',
           canvasId: initialCanvasId,
-          isDirty: true, // Flagged true so the file system writes its initialization parameters
+          isDirty: true, 
           isVisible: true,
           layerDrawHistory: const [],
         );
 
 
-    // 3. Commit the aggregate blueprint down to the local file storage repository
     final result = await _canvasDataRepository.createCanvasData(templateCanvas);
 
     switch (result) {
@@ -619,14 +553,13 @@ class DrawScreenViewModel extends ChangeNotifier {
         _cachedLayerHistories[initialLayerId] = [];
         
         _drawHistory.clear();
-        _undoHistory.clear(); // Flawless clean timeline history on startup
+        _undoHistory.clear();
         _redoHistory.clear();
         _layerSnapshots.clear();
         _pendingLayerDeletionsLog.clear();
         
         _activeLayerIndex = 0;
 
-        // 6. Request immediate UI layout view tree redraw
         notifyListeners();
 
         return Result.ok(null);
@@ -660,15 +593,10 @@ class DrawScreenViewModel extends ChangeNotifier {
   Future<void> _synchronizeCanvasMetadata() async {
     if (_currentCanvas == null) return;
     
-    // Rebuild the manifest layer mapping strictly using 
-    // the live, active elements currently sitting inside _layers
-    // If an AddLayer undo step just removed the layer from memory, this ensures 
-    // its ID string token is completely purged from the document description block.
     final updatedCanvas = _currentCanvas!.copyWith(
       layerIds: _layers.map((layer) => layer.id).toList(),
     );
     
-    // Push the clean, pruned manifest down to local storage files
     final canvasSaveResult = await _canvasDataRepository.modifyCanvasData(updatedCanvas);
     
     if (canvasSaveResult is Ok<CanvasData>) {

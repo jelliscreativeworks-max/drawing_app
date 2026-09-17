@@ -1,71 +1,58 @@
-
 import 'dart:ui';
-
 import 'package:flutter/material.dart';
 import 'package:drawing_app/domain/models/draw_data/draw_data.dart';
-import 'package:drawing_app/ui/core/draw_tools/draw_tool.dart';
+import 'package:drawing_app/ui/core/draw_tools/canvas_tool.dart'; // Ensure correct path mapping
 
 class MyPainter extends CustomPainter {
-  /// A pre-filtered vector timeline belonging exclusively to this isolated sheet layer.
   final List<DrawData> drawHistory;
-
-  /// 🟢 FIXED: Updated to Type key to align perfectly with your ToolController registry!
-  // final Map<Type, DrawTool> tools;
-
-  // --- Viewport Matrices & Bounding Artboard Injections ---
   final Matrix4 transform;
   final double canvasWidth;
   final double canvasHeight;
   final PointerDeviceKind deviceKind;
+  
+
+  final CanvasTool? activeTool;
 
   const MyPainter({
     required this.deviceKind,
     required this.drawHistory, 
-    // required this.tools, 
     required this.transform,
     required this.canvasWidth,
     required this.canvasHeight,
+    this.activeTool, // Optional parameter maintains perfect backward compatibility
   });
 
   @override
   void paint(Canvas canvas, Size size) {
-    // 1. Open a clean graphics state configuration container anchor frame.
     canvas.save();
-    
-    // 2. THE CANVASKIT CORE: Apply the camera pan/zoom matrix directly into the painter buffer!
     canvas.transform(transform.storage);
 
-    
-
-    // 3. Define the rigid bounding layout box dimensions of your paper document sheet.
     final Rect artboardRect = Rect.fromLTWH(0, 0, canvasWidth, canvasHeight);
-
-    // 4. HARDWARE-CLIP ANYTHING PAST THE EXPANDABLE ARTBOARD LIMITS.
-    // 🟢 FIXED: Enabled doAntiAlias to guarantee a perfectly smooth paper boundary edge at any zoom.
     canvas.clipRect(artboardRect, doAntiAlias: true);
 
-    // 5. Loop through and execute your drawing vectors sequentially (Z-index z-depth)
+    // Render whatever drawing sequence data stream is passed into the list loop
     if (drawHistory.isNotEmpty) {
       for (final DrawData data in drawHistory) {
-        // Hand the canvas context directly back to the tool that knows how to paint itself!
         data.draw(canvas);
       }
     }
 
-    
+    // Allow tools to draw non-data UI decorators (like path node rings) over the lines
+    // Pass the current matrix scale factor so sizes stay completely uniform when zooming
+    if (activeTool != null) {
+      final double currentScale = transform.getMaxScaleOnAxis();
+      activeTool!.drawToolOverlay(canvas, deviceKind, currentScale);
+    }
 
-    // 6. Close the transformation frame safely to protect peripheral rendering streams.
     canvas.restore();
   }
 
-
   @override
   bool shouldRepaint(covariant MyPainter oldDelegate) {
-    // HIGH-PERFORMANCE GPU CACHING OPTIMIZATION:
-    // Skips heavy vector repaint loops entirely unless data values or matrix dimensions actively update.
     return oldDelegate.drawHistory != drawHistory || 
            oldDelegate.transform != transform ||
            oldDelegate.canvasWidth != canvasWidth ||
-           oldDelegate.canvasHeight != canvasHeight;
+           oldDelegate.canvasHeight != canvasHeight ||
+           oldDelegate.activeTool != activeTool;
   }
 }

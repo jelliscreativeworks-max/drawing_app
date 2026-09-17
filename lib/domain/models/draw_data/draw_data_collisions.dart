@@ -3,7 +3,10 @@ part of 'draw_data.dart';
 /// Ray-casting algorithm for Point-in-Polygon evaluation.
 /// Determines if an eraser position lands entirely inside a fill region shape.
 bool _isPointInsidePolygon(Offset otherPosition, List<Offset> targetPolygon) {
-  if(targetPolygon.length < 4) throw RangeError.range(targetPolygon.length, 4, null);
+  // 🟢 FIXED: If a path hasn't reached your 4-point structural closure requirement,
+  // return false immediately instead of crashing the CustomPainter loop!
+  if (targetPolygon.length < 4) return false;
+
   int intersectCount = 0;
   for (int i = 0; i < targetPolygon.length; i++) {
     final Offset next = targetPolygon[(i + 1) % targetPolygon.length];
@@ -20,6 +23,7 @@ bool _isPointInsidePolygon(Offset otherPosition, List<Offset> targetPolygon) {
   }
   return intersectCount % 2 != 0;
 }
+
 
 bool _isPointInsidePoint({
   required Offset targetPoint,

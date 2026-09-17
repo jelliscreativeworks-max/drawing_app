@@ -19,7 +19,33 @@ part of 'draw_data.dart';
           _isPointInsidePoint(targetPoint: data._points[0], targetRadius: data.strokePaint.strokeWidth / 2, otherRadius: otherRadius, fromPoint: fromPoint, toPoint: toPoint) :
           _isPointInsideLine(borderPoints: data._points, targetLineRadius: data.strokePaint.strokeWidth / 2, otherRadius: otherRadius, fromPoint: fromPoint, toPoint: toPoint), 
       line: (data) => _isPointInsideLine(borderPoints: [data.startPoint, data.endPoint], targetLineRadius: data.strokePaint.strokeWidth / 2, otherRadius: otherRadius, fromPoint: fromPoint, toPoint: toPoint), 
-      path: (data) => data.closed || !data.renderStroke ? _isPointInsidePolygon(toPoint, data._points) : _isPointInsideLine(borderPoints: data._points, targetLineRadius: data.strokePaint.strokeWidth / 2, otherRadius: otherRadius, fromPoint: fromPoint, toPoint: toPoint), 
+      path: (data) {
+        // 1. Safety optimization: If it doesn't have enough vertices to be valid, drop it early
+        if (data._points.length < 2) return false;
+
+        bool isHit = false;
+
+        // 2. Check the Solid Interior Fill Zone
+        // If the shape is filled (or explicitly un-stroked), run your ray-caster math
+        if (data.renderFill || !data.renderStroke) {
+          isHit = _isPointInsidePolygon(toPoint, data._points);
+        }
+
+        // 3. Check the Outer Line Boundary (Stroke thickness)
+        // If the interior didn't hit but the shape renders an outline stroke,
+        // run the line segment swipe check to see if the brush crossed the border line!
+        if (!isHit && data.renderStroke) {
+          isHit = _isPointInsideLine(
+            borderPoints: data._points,
+            targetLineRadius: data.strokePaint.strokeWidth / 2,
+            otherRadius: otherRadius,
+            fromPoint: fromPoint,
+            toPoint: toPoint,
+          );
+        }
+
+        return isHit;
+      },
       rectangle: (data) => () {
           // Unroll variables cleanly 
           final RectVertices rectPoints = data.vertices;

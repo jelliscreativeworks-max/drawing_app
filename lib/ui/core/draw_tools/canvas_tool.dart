@@ -1,9 +1,7 @@
 import 'package:drawing_app/ui/core/commands/canvas_command.dart';
-import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 
 import 'dart:ui';
-import 'package:flutter/gestures.dart';
 
 typedef CanvasCoordinateSpace = ({Offset screen, Offset world}); 
 
@@ -24,7 +22,6 @@ class ToolStartFrame {
     required this.nextStrokeIndex,
   });
 
-  /// Factory helper that automatically unrolls clean unified spaces instantly
   factory ToolStartFrame.compute({
     required PointerDeviceKind deviceKind,
     required Offset rawScreenPoint,
@@ -47,7 +44,7 @@ class ToolUpdateFrame {
   final CanvasCoordinateSpace points;
   final String activeLayerId;
   
-  /// Exposes the precise physical movement vector delta directly to your tool instances
+
   final Offset delta; 
 
   Offset get screenPoint => points.screen;
@@ -101,5 +98,11 @@ abstract class CanvasTool {
     void onToolUpdate(ToolUpdateFrame toolFrame);
     CanvasCommand? onToolEnd();
 
+    void onPanOverrideStart(){}
+    void onPanOverrideEnd(){}
+
+    void drawToolOverlay(Canvas canvas, PointerDeviceKind device, double scale){}
+
+    void cancel(){}
     
 }

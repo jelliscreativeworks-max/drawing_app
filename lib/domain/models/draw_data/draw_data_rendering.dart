@@ -27,35 +27,6 @@
       // Keep stroke open during the active drag/draw sequence
       canvas.drawPath(path, data.strokePaint);
     }
-// TODO: Preview System Needs to Know Active State/Device Info
-    // // double previewSize = _lastDeviceKind == PointerDeviceKind.touch ? 40 : data.strokeSettings!.strokeWidth;
-    // // 4. Render Active Tool Target Previews (Only on the drawing instance)
-    // if (data == _activePath) {
-    //   final previewPaint = Paint()
-    //     ..style = PaintingStyle.fill
-    //     ..strokeWidth = data.strokeSettings!.strokeWidth;
-
-    //   // prioritize loop closing detection over termination detection
-    //   if (shouldClosePath(data)) {
-    //     canvas.drawCircle(points.first, previewSize, previewPaint..color = Colors.green);
-    //   } else if (withinEnd(data)) {
-    //     canvas.drawCircle(
-    //       points[points.length - 2],
-    //       previewSize,
-    //       previewPaint..color = points.length <= 3 ? Colors.red : Colors.green,
-    //     );
-    //   } else {
-    //     canvas.drawCircle(points.last, previewSize, previewPaint..color = Colors.grey);
-    //     canvas.drawCircle(
-    //       points.last,
-    //        previewSize,
-    //       previewPaint
-    //         ..color = Colors.black
-    //         ..style = PaintingStyle.stroke
-    //         ..strokeWidth = 0,
-    //     );
-    //   }
-    // }
   }
 
   void _drawLine(Canvas canvas, LineData data){

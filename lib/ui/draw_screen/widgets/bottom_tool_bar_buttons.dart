@@ -37,23 +37,15 @@ class BottomToolBarButtons extends StatelessWidget {
         return Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            // ==========================================
-            // A. CAMERA VIEWPORT NAVIGATION PAN TOOL
-            // ==========================================
             if (panToolInstance != null)
               IconButton(
                 splashRadius: 24,
                 icon: panToolInstance.toolIcon,
                 tooltip: panToolInstance.toolName,
-                // 🟢 FIXED: Uses type generics to cleanly trigger the selection assignment
                 onPressed: () => toolController.selectTool<PanTool>(),
-                // 🟢 FIXED: References runtimeType checks to highlight the active menu selection
                 color: toolController.currentTool is PanTool ? Colors.blueAccent : Colors.black87,
               ),
 
-            // ==========================================
-            // B. VECTOR LINE FREEHAND DRAW TOOL
-            // ==========================================
             if (freehandToolInstance != null)
               IconButton(
                 splashRadius: 24,
@@ -99,10 +91,6 @@ class BottomToolBarButtons extends StatelessWidget {
                 color: toolController.currentTool is PathTool ? Colors.blueAccent : Colors.black87,
               ),
 
-
-            // ==========================================
-            // C. VECTOR STROKE ERASER TOOL
-            // ==========================================
             if (lineToolInstance != null)
               IconButton(
                 splashRadius: 24,

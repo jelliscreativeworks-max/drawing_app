@@ -81,8 +81,6 @@ class PanTool extends CanvasTool {
       if (isZooming) {
         _zoom(toolFrame.rawScale);
       } else if (toolFrame.screenPoint != Offset.zero) {
-        // 🟢 RESTORED: Your original scale-divided matrix translation,
-        // running smoothly with the restored localPanDelta incremental vectors.
         _camera.transform = _camera.transform.clone()
           ..translateByVector3(
             vm.Vector3(

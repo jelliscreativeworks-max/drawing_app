@@ -1,6 +1,5 @@
 import 'dart:async';
 import 'package:drawing_app/domain/models/draw_data/draw_data.dart';
-import 'package:drawing_app/ui/core/draw_tools/draw_tool.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'dart:ui' as ui;
@@ -64,13 +63,13 @@ class CanvasToImageProcessor {
       Rect.fromLTWH(0, 0, targetWidth, targetHeight),
     );
 
-    // 3. OPTIONAL COORD SCALE NUDGE: Scale down your massive 2000x2000 coordinates 
-    // to cleanly fit inside your compact 500x500 thumbnail box preview window frame
+    // 3. OPTIONAL COORD SCALE NUDGE: Scale down 2000x2000 coordinates 
+    // to cleanly fit inside 500x500 thumbnail box preview window frame
     final double scaleX = targetWidth / 2000.0;
     final double scaleY = targetHeight / 2000.0;
     offscreenCanvas.scale(scaleX, scaleY);
 
-    // 4. DRAW THE VECTORS PASSIVELY (Completely free from InteractiveViewer pan/zoom offsets!)
+    // 4. DRAW THE VECTORS PASSIVELY
     for (DrawData data in layerHistory) {
         data.draw(offscreenCanvas);
       }
