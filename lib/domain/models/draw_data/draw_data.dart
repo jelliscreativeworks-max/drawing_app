@@ -11,6 +11,7 @@ part 'draw_data_rendering.dart';
 part 'draw_data_collisions.dart';
 part 'draw_data_extensions.dart';
 
+
 @freezed
 sealed class DrawData with _$DrawData{
   // const DrawData._();

@@ -20,13 +20,41 @@ part of 'draw_data.dart';
           _isPointInsideLine(borderPoints: data._points, targetLineRadius: data.strokePaint.strokeWidth / 2, otherRadius: otherRadius, fromPoint: fromPoint, toPoint: toPoint), 
       line: (data) => _isPointInsideLine(borderPoints: [data.startPoint, data.endPoint], targetLineRadius: data.strokePaint.strokeWidth / 2, otherRadius: otherRadius, fromPoint: fromPoint, toPoint: toPoint), 
       path: (data) => data.closed || !data.renderStroke ? _isPointInsidePolygon(toPoint, data._points) : _isPointInsideLine(borderPoints: data._points, targetLineRadius: data.strokePaint.strokeWidth / 2, otherRadius: otherRadius, fromPoint: fromPoint, toPoint: toPoint), 
-      rectangle: (data) => !data.renderStroke || data.renderFill ? _isPointInsidePolygon(toPoint, data.tlBrToList()) : _isPointInsideLine(borderPoints: data.tlBrToList(), targetLineRadius: data.strokePaint.strokeWidth / 2, otherRadius: otherRadius, fromPoint: fromPoint, toPoint: toPoint));
+      rectangle: (data) => () {
+          // Unroll variables cleanly 
+          final RectVertices rectPoints = data.vertices;
+          
+          bool isHit = false;
+          if (data.renderFill || !data.renderStroke) {
+            isHit = _isPointInsideRectPolygon(toPoint, rectPoints);
+          }
+          if (!isHit && data.renderStroke) {
+            isHit = _isPointOnRectStroke(
+              rectPoints,
+              data.strokePaint.strokeWidth / 2,
+              otherRadius,
+              fromPoint,
+              toPoint,
+            );
+          }
+          return isHit;
+        }());
   }
 }
+
+
+typedef RectVertices = (Offset topLeft, Offset topRight, Offset botRight, Offset botLeft);
 
 extension RectDataExtensions on RectData{
   List<Offset> tlBrToList(){
     return [topLeft, Offset(topLeft.dx, botRight.dy), botRight, Offset(botRight.dx, topLeft.dy)];
   }
+
+    RectVertices get vertices => (
+    topLeft,
+    Offset(botRight.dx, topLeft.dy), // Top Right
+    botRight,
+    Offset(topLeft.dx, botRight.dy), // Bottom Left
+  );
 
 }

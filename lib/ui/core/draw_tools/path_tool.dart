@@ -100,10 +100,10 @@ class PathTool extends DrawTool implements StrokeToolType, FillToolType{
     @override
   void onToolStart(ToolStartFrame toolFrame) {
     if(_isDrawing){ 
-      _activePath = _activePath!.copyWith(points: [..._activePath!.points, toolFrame.initialPoint]);
+      _activePath = _activePath!.copyWith(points: [..._activePath!.points, toolFrame.worldPoint]);
     } else{
       _isDrawing = true;
-      _activePath = PathData(layerId: toolFrame.activeLayerId, index: toolFrame.nextStrokeIndex, id: uuid.v4(), strokePaint: strokePaint, fillPaint: fillPaint, renderFill: _renderFill, renderStroke: _renderStroke, points: [toolFrame.initialPoint]);
+      _activePath = PathData(layerId: toolFrame.activeLayerId, index: toolFrame.nextStrokeIndex, id: uuid.v4(), strokePaint: strokePaint, fillPaint: fillPaint, renderFill: _renderFill, renderStroke: _renderStroke, points: [toolFrame.worldPoint]);
     }
     _pointCount++;
   }
@@ -112,7 +112,7 @@ class PathTool extends DrawTool implements StrokeToolType, FillToolType{
   @override
   void onToolUpdate(ToolUpdateFrame toolFrame) {
     if(_isDrawing){
-      final points = [..._activePath!.points.take(_pointCount), toolFrame.newestPoint];
+      final points = [..._activePath!.points.take(_pointCount), toolFrame.worldPoint];
       _activePath = _activePath!.copyWith(points: points);
     }
   }

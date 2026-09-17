@@ -26,6 +26,10 @@ class ToolController extends ChangeNotifier {
   final Set<int> _activePointerIds = {};
   Set<int> get activePointerIds => _activePointerIds;
 
+
+  Offset _lastTrackedScreenPoint = Offset.zero;
+
+
   late final Map<Type, CanvasTool> tools;
   late CanvasTool _currentTool;
   bool _panToolOverrideActive = false;
@@ -110,11 +114,21 @@ class ToolController extends ChangeNotifier {
   }
 
   void onPointerDown(PointerDownEvent event) {
-    ToolStartFrame frame = ToolStartFrame(pointerDeviceKind: event.kind, initialPoint: event.localPosition, activeLayerId: _viewModel.activeLayerId, nextStrokeIndex: _viewModel.drawHistory.length);
-
     if (!drawEnabled) return;
     _activePointerIds.add(event.pointer);
     _lastDeviceKind = event.kind;
+
+    // 1. Establish the baseline anchor tracking point immediately on click down
+    _lastTrackedScreenPoint = event.localPosition;
+
+    // 2. Generate the self-aware ToolStartFrame through the computed factory
+    final ToolStartFrame frame = ToolStartFrame.compute(
+      deviceKind: event.kind,
+      rawScreenPoint: event.localPosition,
+      layerId: _viewModel.activeLayerId,
+      strokeIndex: _viewModel.drawHistory.length,
+      screenToWorldConverter: (screenPoint) => screenToWorld(screenPoint),
+    );
 
     // Handle Middle Click Panning (Even if a drawing tool is active)
     if (event.buttons == kTertiaryButton) {
@@ -141,22 +155,45 @@ class ToolController extends ChangeNotifier {
   }
 
   void onPointerMove(PointerMoveEvent event) {
-
     if (!drawEnabled) return;
+
     // Handle Middle Click drag tracking directly
     if (event.buttons == kTertiaryButton ||
-        _panToolOverrideActive && _lastDeviceKind == PointerDeviceKind.mouse) {
+        (_panToolOverrideActive && _lastDeviceKind == PointerDeviceKind.mouse)) {
       final panTool = tools[PanTool] as PanTool;
 
       if (!panTool.isActive) {
         _panToolOverrideActive = true;
-        panTool.onToolStart(ToolStartFrame(pointerDeviceKind: event.kind, initialPoint: event.localPosition, activeLayerId: _viewModel.activeLayerId, nextStrokeIndex: _viewModel.drawHistory.length));
+        
+        final ToolStartFrame startFrame = ToolStartFrame.compute(
+          deviceKind: event.kind,
+          rawScreenPoint: event.localPosition,
+          layerId: _viewModel.activeLayerId,
+          strokeIndex: _viewModel.drawHistory.length,
+          screenToWorldConverter: (screenPoint) => screenToWorld(screenPoint),
+        );
+        panTool.onToolStart(startFrame);
+        
+        // Match base coordinates since a tool start resets the interaction path
+        _lastTrackedScreenPoint = event.localPosition;
       }
 
-    
-      // Safe update execution directly via the move position delta
-      panTool.onToolUpdate(ToolUpdateFrame(pointerDeviceKind: event.kind, gestureScale: 1.0, newestPoint: event.localPosition, activeLayerId: _viewModel.activeLayerId));
+      // 1. Build the updated frame payload containing the precise movement delta
+      final ToolUpdateFrame updateFrame = ToolUpdateFrame.computeUpdate(
+        deviceKind: event.kind,
+        currentScreenPoint: event.localPosition,
+        currentScale: 1.0, // Fixed unit scale during raw un-pinch mouse moves
+        layerId: _viewModel.activeLayerId,
+        priorScreenPoint: _lastTrackedScreenPoint,
+        screenToWorldConverter: (screenPoint) => screenToWorld(screenPoint),
+      );
+
+      // 2. Execute the matrix shift update directly on your PanTool instance
+      panTool.onToolUpdate(updateFrame);
       _viewModel.forceCanvasRefresh();
+
+      // 3. Cache the current location to keep subsequent frame deltas consecutive
+      _lastTrackedScreenPoint = event.localPosition;
     }
   }
 
@@ -184,8 +221,6 @@ class ToolController extends ChangeNotifier {
   }
 
   void onPointerPanZoomStart(PointerPanZoomStartEvent event) {
-    ToolStartFrame frame = ToolStartFrame(pointerDeviceKind: event.kind, initialPoint: event.localPosition, activeLayerId: _viewModel.activeLayerId, nextStrokeIndex: _viewModel.drawHistory.length);
-
     if (!drawEnabled) return;
 
     // 1. Log that we are actively on a trackpad interaction loop
@@ -199,112 +234,148 @@ class ToolController extends ChangeNotifier {
     // 3. Keep world pivot calculation accurate for your tools
     _viewModel.camera.worldPivotAtStart = screenToWorld(event.localPosition);
 
+    // 4. Anchor our tracking pointer baseline to prevent initial delta jumps
+    _lastTrackedScreenPoint = event.localPosition;
+
+    // 5. Generate the unified frame payload containing zero-allocation spatial fields
+    final ToolStartFrame frame = ToolStartFrame.compute(
+      deviceKind: event.kind,
+      rawScreenPoint: event.localPosition,
+      layerId: _viewModel.activeLayerId,
+      strokeIndex: _viewModel.drawHistory.length,
+      screenToWorldConverter: (screenPoint) => screenToWorld(screenPoint),
+    );
+
     // Trigger your PanTool initialization hook cleanly
     tools[PanTool]!.onToolStart(frame);
   }
 
-  void onPointerPanZoomUpdate(PointerPanZoomUpdateEvent event) {
-    ToolUpdateFrame frame = ToolUpdateFrame(pointerDeviceKind: event.kind, gestureScale: 1.0, newestPoint: event.localPosition, activeLayerId: _viewModel.activeLayerId);
-
+   void onPointerPanZoomUpdate(PointerPanZoomUpdateEvent event) {
     if (!drawEnabled) return;
 
     _viewModel.camera.focalPointAtStart = event.localPosition;
 
-    tools[PanTool]!.onToolUpdate(frame);
+    // 🟢 RESTORED: Feed the raw, incremental frame-to-frame localPanDelta vector.
+    // This perfectly matches your old logic before the refactor!
+    final ToolUpdateFrame frame = ToolUpdateFrame(
+      pointerDeviceKind: event.kind,
+      rawScale: event.scale,
+      activeLayerId: _viewModel.activeLayerId,
+      delta: Offset.zero, // Keep isolated to prevent double-panning bugs
+      points: (
+        screen: event.localPanDelta, // True incremental pixel changes
+        world: screenToWorld(event.localPosition),
+      ),
+    );
 
+    tools[PanTool]!.onToolUpdate(frame);
     _viewModel.forceCanvasRefresh();
   }
+
 
   // 🟢 Handles Trackpad Touch-Lift Cleanup
   void onPointerPanZoomEnd(PointerPanZoomEndEvent event) {
     if (!drawEnabled) return;
     _activePointerIds.remove(event.pointer);
 
-    if (_panToolOverrideActive) {
-      tools[PanTool]!.onToolEnd();
+    // Trackpad gestures initialize PanTool actions directly. We always clear it down safely here.
+    final panTool = tools[PanTool]!;
+    if (panTool.isActive) {
+      final command = panTool.onToolEnd();
+      if (command != null) _viewModel.executeCommand(command);
       _panToolOverrideActive = false;
       notifyListeners();
     }
   }
 
-  void handleScaleStart(ScaleStartDetails details, PointerDeviceKind device) {
-    if (!drawEnabled) return;
 
-    if (device == PointerDeviceKind.trackpad ||
-        _lastDeviceKind == PointerDeviceKind.trackpad)
-      return;
+void handleScaleStart(ScaleStartDetails details, PointerDeviceKind device) {
+  if (!drawEnabled) return;
 
-    startDetails = details;
+  // 1. Guard against duplicate execution streams from trackpad events
+  if (device == PointerDeviceKind.trackpad || _lastDeviceKind == PointerDeviceKind.trackpad) {
+    return;
+  }
 
-    if (details.pointerCount > 1 && _currentTool is! PanTool) {
-      _panToolOverrideActive = true;
-      if (_currentTool.isActive) {
-        CanvasCommand? command = _currentTool.onToolEnd();
-        if (command != null) _viewModel.executeCommand(command);
-      }
+  startDetails = details;
+  _lastDeviceKind = device; // Make sure to cache the current active device kind
+
+  // 2. Handle Multi-touch updates: Override active drawing tools if extra fingers tap down
+  if (details.pointerCount > 1 && _currentTool is! PanTool) {
+    _panToolOverrideActive = true;
+    if (_currentTool.isActive) {
+      CanvasCommand? command = _currentTool.onToolEnd();
+      if (command != null) _viewModel.executeCommand(command);
     }
+  }
 
-    // if (_currentTool.isActive && !_panToolOverrideActive) return;
-    _viewModel.camera.focalPointAtStart = details.localFocalPoint;
-    _viewModel.camera.scaleStart = _viewModel.camera.currentScale;
-    _viewModel.camera.previousGestureScale = 1.0;
+  // 3. Synchronize camera spatial state properties
+  _viewModel.camera.focalPointAtStart = details.localFocalPoint;
+  _viewModel.camera.scaleStart = _viewModel.camera.currentScale;
+  _viewModel.camera.previousGestureScale = 1.0;
+  _viewModel.camera.worldPivotAtStart = screenToWorld(details.localFocalPoint);
 
-    _viewModel.camera.worldPivotAtStart = screenToWorld(
-      details.localFocalPoint,
-    );
+  // 4. CRITICAL FIX: Initialize your delta tracking property for handleScaleUpdate
+  _lastTrackedScreenPoint = details.localFocalPoint;
 
-    final Offset targetPosition =
-        _currentTool is PanTool || _panToolOverrideActive
-        ? details.localFocalPoint
-        : _viewModel.camera.worldPivotAtStart;
+  // 5. Handle consumer history snapshot caching for undo/redo tracking
+  if (_currentTool is HistoryConsumer && !_panToolOverrideActive) {
+    List<DrawData> drawHistory = _viewModel.getHistoryForLayer(_viewModel.activeLayerId);
+    (_currentTool as HistoryConsumer).setHistorySnapshot(drawHistory);
+  }
 
-    if (_currentTool is HistoryConsumer && _panToolOverrideActive == false) {
-      List<DrawData> drawHistory = _viewModel.getHistoryForLayer(
-        _viewModel.activeLayerId,
-      );
-      (_currentTool as HistoryConsumer).setHistorySnapshot(drawHistory);
-    }
+  // 6. Generate the unified frame payload using the raw screen coordinate
+  final ToolStartFrame frame = ToolStartFrame.compute(
+    deviceKind: device,
+    rawScreenPoint: details.localFocalPoint, // Always feed raw screen space here!
+    layerId: _viewModel.activeLayerId,
+    strokeIndex: _viewModel.drawHistory.length,
+    screenToWorldConverter: (screenPoint) => screenToWorld(screenPoint),
+  );
 
-    ToolStartFrame frame = ToolStartFrame(pointerDeviceKind: device, initialPoint: targetPosition, activeLayerId: _viewModel.activeLayerId, nextStrokeIndex: _viewModel.drawHistory.length);
-    if (_panToolOverrideActive && _currentTool is! PanTool) {
-      tools[PanTool]!.onToolStart(
-        frame
-      );
+  // 7. Route the frame cleanly out to the targeted tool execution branch
+  if (_panToolOverrideActive && _currentTool is! PanTool) {
+    tools[PanTool]!.onToolStart(frame);
+  } else {
+    _currentTool.onToolStart(frame);
+  }
+
+  notifyListeners();
+}
+
+void handleScaleUpdate(ScaleUpdateDetails details) {
+  if (!drawEnabled) return;
+  if (_lastDeviceKind == PointerDeviceKind.trackpad) return;
+
+  updateDetails = details;
+  if (!_currentTool.isActive && !_panToolOverrideActive) return;
+
+  // 1. Generate the self-aware, zero-allocation ToolUpdateFrame
+  final ToolUpdateFrame frame = ToolUpdateFrame.computeUpdate(
+    deviceKind: _lastDeviceKind,
+    currentScreenPoint: details.localFocalPoint,
+    currentScale: details.scale,
+    layerId: _viewModel.activeLayerId,
+    priorScreenPoint: _lastTrackedScreenPoint,
+    screenToWorldConverter: (screenPoint) => screenToWorld(screenPoint),
+  );
+
+  // 2. Route the frame cleanly to the active tool layout instance
+  if (_currentTool is PanTool || _panToolOverrideActive) {
+    if (_currentTool is PanTool) {
+      _currentTool.onToolUpdate(frame);
     } else {
-      _currentTool.onToolStart(
-        frame
-      );
+      tools[PanTool]!.onToolUpdate(frame);
     }
-
+    _viewModel.forceCanvasRefresh();
+  } else {
+    _currentTool.onToolUpdate(frame);
     notifyListeners();
   }
 
-  void handleScaleUpdate(ScaleUpdateDetails details) {
-    if (!drawEnabled) return;
-
-    if (_lastDeviceKind == PointerDeviceKind.trackpad) return;
-
-    updateDetails = details;
-    if (!_currentTool.isActive && _panToolOverrideActive == false) return;
-    ToolUpdateFrame frame = ToolUpdateFrame(pointerDeviceKind: _lastDeviceKind, activeLayerId: _viewModel.activeLayerId, gestureScale: details.scale, newestPoint: details.localFocalPoint);
-
-    if (_currentTool is PanTool || _panToolOverrideActive) {
-      if (_currentTool is PanTool) {
-        _currentTool.onToolUpdate(frame);
-      } else {
-        tools[PanTool]!.onToolUpdate(frame
-        );
-      }
-      _viewModel.forceCanvasRefresh();
-    } else {
-
-      final Offset worldPosition = screenToWorld(details.localFocalPoint);
-
-      frame = ToolUpdateFrame(pointerDeviceKind: _lastDeviceKind, activeLayerId: _viewModel.activeLayerId, gestureScale: details.scale, newestPoint: worldPosition);
-      _currentTool.onToolUpdate(frame);
-      notifyListeners();
-    }
-  }
+  // 3. Update the historical delta tracking position for the next frame tick
+  _lastTrackedScreenPoint = details.localFocalPoint;
+}
 
   void handleScaleEnd() {
     if (!drawEnabled) return;

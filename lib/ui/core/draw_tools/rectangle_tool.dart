@@ -44,13 +44,13 @@ class RectangleTool extends DrawTool implements StrokeToolType, FillToolType {
   @override
   void onToolStart(ToolStartFrame toolFrame) {
     _isDrawing = true;
-    _activeRect = RectData(layerId: toolFrame.activeLayerId, index: toolFrame.nextStrokeIndex, fillPaint: fillPaint, strokePaint: strokePaint, id: uuid.v4(), topLeft: toolFrame.initialPoint, botRight: toolFrame.initialPoint, renderFill: _renderFill, renderStroke: _renderStroke);
+    _activeRect = RectData(layerId: toolFrame.activeLayerId, index: toolFrame.nextStrokeIndex, fillPaint: fillPaint, strokePaint: strokePaint, id: uuid.v4(), topLeft: toolFrame.worldPoint, botRight: toolFrame.worldPoint, renderFill: _renderFill, renderStroke: _renderStroke);
   }
 
   @override
   void onToolUpdate(ToolUpdateFrame toolFrame) {
     if(!_isDrawing) return;
-    _activeRect = _activeRect!.copyWith(botRight: toolFrame.newestPoint);
+    _activeRect = _activeRect!.copyWith(botRight: toolFrame.worldPoint);
   }
 
   @override

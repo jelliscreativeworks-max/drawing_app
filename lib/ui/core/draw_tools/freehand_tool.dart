@@ -43,7 +43,7 @@ class FreehandTool extends DrawTool implements StrokeToolType {
       strokePaint: _strokePaint,
       id: uuid.v4(),
       index: toolFrame.nextStrokeIndex,
-      points: [toolFrame.initialPoint],
+      points: [toolFrame.worldPoint],
       renderStroke: _renderStroke,
     );
   }
@@ -52,7 +52,7 @@ class FreehandTool extends DrawTool implements StrokeToolType {
   void onToolUpdate(ToolUpdateFrame toolFrame) {
     if (!_isDrawing) return;
     final updatedPoints = List<Offset>.from(_activeStroke!.points)
-      ..add(toolFrame.newestPoint);
+      ..add(toolFrame.worldPoint);
     _activeStroke = _activeStroke!.copyWith(points: updatedPoints);
   }
 

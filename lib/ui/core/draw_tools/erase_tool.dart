@@ -43,17 +43,17 @@ class EraseTool extends DrawTool implements HistoryConsumer, StrokeToolType {
   void onToolStart(ToolStartFrame toolFrame) {
     _isErasing = true;
     _currentLayerId = toolFrame.activeLayerId;
-    _lastActivePoint = toolFrame.initialPoint;
+    _lastActivePoint = toolFrame.worldPoint;
     _erasedDrawData.clear();
 
-    _checkCollisions(toolFrame.initialPoint, toolFrame.initialPoint);
+    _checkCollisions(toolFrame.worldPoint, toolFrame.worldPoint);
   }
 
   @override
   void onToolUpdate(ToolUpdateFrame toolFrame) {
     if (!_isErasing || _lastActivePoint == null) return;
-    _checkCollisions(_lastActivePoint!, toolFrame.newestPoint);
-    _lastActivePoint = toolFrame.newestPoint;
+    _checkCollisions(_lastActivePoint!, toolFrame.worldPoint);
+    _lastActivePoint = toolFrame.worldPoint;
   }
 
   @override

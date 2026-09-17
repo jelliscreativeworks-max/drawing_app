@@ -44,32 +44,51 @@ class Uint8ListConverter implements JsonConverter<Uint8List,String>{
   
 }
 
-  // TODO: Modify Paint json conversion to store additional properties
+
 class PaintConverter implements JsonConverter<Paint, Map<String, dynamic>> {
   const PaintConverter();
 
   @override
   Paint fromJson(Map<String, dynamic> json) {
-    return Paint()
-      ..color = Color(json['color'] as int)
-      ..strokeWidth = (json['strokeWidth'] as num).toDouble()
-      ..blendMode = BlendMode.values[json['blendMode'] as int]
-      ..style = PaintingStyle.values[json['style'] as int]
-      ..strokeCap = StrokeCap.values[json['strokeCap'] as int]; 
-      
+    final paint = Paint()
+      ..strokeWidth = (json['strokeWidth'] as num).toDouble();
+
+    // 1. Safe Color parsing checking for both signed and unsigned 32-bit integers
+    final int colorValue = json['color'] as int;
+    paint.color = Color(colorValue.toUnsigned(32));
+
+    // 2. Crash-proof Enum parsing using safe range guard fallbacks
+    final int blendIndex = json['blendMode'] as int;
+    paint.blendMode = blendIndex >= 0 && blendIndex < BlendMode.values.length
+        ? BlendMode.values[blendIndex]
+        : BlendMode.srcOver; // Default fallback if enum definition changes
+
+    final int styleIndex = json['style'] as int;
+    paint.style = styleIndex >= 0 && styleIndex < PaintingStyle.values.length
+        ? PaintingStyle.values[styleIndex]
+        : PaintingStyle.stroke;
+
+    final int capIndex = json['strokeCap'] as int;
+    paint.strokeCap = capIndex >= 0 && capIndex < StrokeCap.values.length
+        ? StrokeCap.values[capIndex]
+        : StrokeCap.round;
+
+    return paint;
   }
 
   @override
   Map<String, dynamic> toJson(Paint object) {
     return {
+      // toARGB32() is perfect, but ensure it forces an unsigned 32-bit structure
       'color': object.color.toARGB32(),
       'strokeWidth': object.strokeWidth,
       'blendMode': object.blendMode.index,
       'style': object.style.index,
-      'strokeCap': object.strokeCap.index
+      'strokeCap': object.strokeCap.index,
     };
   }
 }
+
 
 
 class ColorConverter implements JsonConverter<Color, int> {

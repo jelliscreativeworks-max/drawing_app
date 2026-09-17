@@ -72,6 +72,50 @@ bool _isPointInsideCircle({
   return false;
 }
 
+/// Ray-casting algorithm adapted for high-performance structural tuple vertices.
+bool _isPointInsideRectPolygon(Offset otherPosition, RectVertices vertices) {
+  // Unpack the four corners instantly without list iterations
+  final (v0, v1, v2, v3) = vertices;
+  final edges = [v0, v1, v2, v3]; 
+  
+  int intersectCount = 0;
+  for (int i = 0; i < 4; i++) {
+    final Offset curr = edges[i];
+    final Offset next = edges[(i + 1) % 4];
+
+    if (((curr.dy > otherPosition.dy) != (next.dy > otherPosition.dy)) &&
+        (otherPosition.dx <
+            (next.dx - curr.dx) *
+                    (otherPosition.dy - curr.dy) /
+                    (next.dy - curr.dy) +
+                curr.dx)) {
+      intersectCount++;
+    }
+  }
+  return intersectCount % 2 != 0;
+}
+
+/// Boundary segment inspector adapted for structural tuple vertices.
+bool _isPointOnRectStroke(
+  RectVertices vertices,
+  double targetLineRadius,
+  double otherRadius,
+  Offset fromPoint,
+  Offset toPoint,
+) {
+  final (v0, v1, v2, v3) = vertices;
+  final edges = [v0, v1, v2, v3];
+  final double combinedBrushRadius = otherRadius * 2 + targetLineRadius;
+
+  for (int i = 0; i < 4; i++) {
+    if (_intersects(fromPoint, toPoint, edges[i], edges[(i + 1) % 4], combinedBrushRadius)) {
+      return true;
+    }
+  }
+  return false;
+}
+
+
 bool _isPointInsideLine({
   required List<Offset> borderPoints,
   required double targetLineRadius,

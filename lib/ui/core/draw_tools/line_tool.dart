@@ -42,14 +42,14 @@ class LineTool extends DrawTool implements StrokeToolType{
   @override
   void onToolStart(ToolStartFrame toolFrame) {
     _isDrawing = true;
-    _activeLine = LineData(layerId: toolFrame.activeLayerId, index: toolFrame.nextStrokeIndex, strokePaint: _strokePaint, id: uuid.v4(), startPoint: toolFrame.initialPoint, endPoint: toolFrame.initialPoint, renderStroke: _renderStroke);
+    _activeLine = LineData(layerId: toolFrame.activeLayerId, index: toolFrame.nextStrokeIndex, strokePaint: _strokePaint, id: uuid.v4(), startPoint: toolFrame.worldPoint, endPoint: toolFrame.worldPoint, renderStroke: _renderStroke);
   }
 
   @override
   void onToolUpdate(ToolUpdateFrame toolFrame) {
     if(!_isDrawing) return;
 
-    _activeLine = _activeLine!.copyWith(endPoint: toolFrame.newestPoint);
+    _activeLine = _activeLine!.copyWith(endPoint: toolFrame.worldPoint);
   }
 
   @override

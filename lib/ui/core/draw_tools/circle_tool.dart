@@ -60,7 +60,7 @@ class CircleTool extends DrawTool implements StrokeToolType, FillToolType {
       strokePaint: _strokePaint,
       index: toolFrame.nextStrokeIndex,
       id: uuid.v4(),
-      center: toolFrame.initialPoint,
+      center: toolFrame.worldPoint,
       radius: double.minPositive,
       renderFill: _renderFill,
       renderStroke: _renderFill,
@@ -71,7 +71,7 @@ class CircleTool extends DrawTool implements StrokeToolType, FillToolType {
   void onToolUpdate(ToolUpdateFrame toolFrame) {
     if (!_isDrawing) return;
     final double radius =
-        (toolFrame.newestPoint - _circlePreview!.center).distance;
+        (toolFrame.points.world - _circlePreview!.center).distance;
     _circlePreview = _circlePreview!.copyWith(radius: radius);
   }
 
