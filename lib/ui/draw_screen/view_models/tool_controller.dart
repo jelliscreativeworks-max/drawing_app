@@ -115,7 +115,11 @@ class ToolController extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// On mouse/touch down, does not trigger from a [PointerDownEvent.trackpad]. Runs before [onHandleScaleStart] is called.
+  /// Adds pointer ids to a set for tracking unique pointers and serves as the initilization point for tools
     void onPointerDown(PointerDownEvent event) {
+    
+    
     if (event.kind == PointerDeviceKind.touch || event.kind == PointerDeviceKind.stylus) {
       drawEnabled = true; 
     }

@@ -29,7 +29,7 @@ class DrawScreenViewModel extends ChangeNotifier {
 
     deleteLayer = Command1(_deleteLayer);
     loadProject = Command1(_loadProject);
-    initProject = Command0(_initializeNewProject);
+    // initProject = Command1(_initializeNewProject);
     createLayer = Command0(_createAndAddLayer);
     saveDirtyProgress = Command0(_saveDirtyProgress);
   }
@@ -37,12 +37,8 @@ class DrawScreenViewModel extends ChangeNotifier {
   static const canvasBackgroundColor = Colors.white;
 
   // Canvas Dimensions Fields
-  double _canvasWidth = 2000.0;
-  double _canvasHeight = 2000.0;
-
-  // Canvas Dimensions Getters
-  double get canvasWidth => _canvasWidth;
-  double get canvasHeight => _canvasHeight;
+  // double _canvasWidth = 2000.0;
+  // double _canvasHeight = 2000.0;
 
   // Logger 
   Logger log = Logger();
@@ -55,7 +51,7 @@ class DrawScreenViewModel extends ChangeNotifier {
 
   // Async Commands
   late final Command1<void, String> loadProject;
-  late final Command0 initProject;
+  late final Command1<void, Size> initProject;
   late final Command0 createLayer;
   late final Command0 saveDirtyProgress;
   late final Command1<void, String> deleteLayer;
@@ -75,10 +71,10 @@ class DrawScreenViewModel extends ChangeNotifier {
   bool isLayerMenuOpen = false;
   final List<String> _pendingLayerDeletionsLog = [];
 
-  CanvasData? _currentCanvas;
+  CanvasDataCreated? _currentCanvas;
   List<LayerData> _layers = [];
 
-  CanvasData? get currentCanvas => _currentCanvas;
+  CanvasData get currentCanvas => _currentCanvas ?? CanvasData.placeholder();
   List<LayerData> get layers => _layers;
   Map<String, Uint8List> get layerSnapshots => _layerSnapshots;
   List<DrawData> get drawHistory => _drawHistory;
@@ -235,13 +231,23 @@ class DrawScreenViewModel extends ChangeNotifier {
 
 
 
-  void resizeCanvas(double newWidth, double newHeight) {
-    // Potect against zero or negative dimensions
-    if (newWidth <= 0 || newHeight <= 0) return;
+  void resizeCanvas(double newWidth, double newHeight) async {
 
-    // Assign the bounding dimensions to internal states
-    _canvasWidth = newWidth;
-    _canvasHeight = newHeight;
+    // Potect against zero or negative dimensions
+    if (newWidth <= 0 || newHeight <= 0 || _currentCanvas == null) return; //TODO: current canvas should never be null after moving canvas creation to seperate model
+
+    CanvasDataCreated prevData = _currentCanvas!.copyWith(canvasSize: Size(newWidth, newHeight));
+
+
+    final modResult = await _canvasDataRepository.modifyCanvasData(prevData);
+
+    switch(modResult){
+      case Ok<CanvasDataCreated>():
+        _currentCanvas = modResult.value;
+      case Error():
+        log.e(modResult.error);
+        return;
+    }
     _transformRevision++;
     // Increment the revision counter to force the RepaintBoundary to clear its texture cache
     notifyListeners();
@@ -265,8 +271,8 @@ class DrawScreenViewModel extends ChangeNotifier {
 // TODO
   void resetView(Size viewportSize) {
     // Calculate the empty padding space remaining when scale is exactly 1.0
-    final double extraWidth = viewportSize.width - _canvasWidth;
-    final double extraHeight = viewportSize.height - _canvasHeight;
+    final double extraWidth = viewportSize.width - currentCanvas.currentWidth;
+    final double extraHeight = viewportSize.height - currentCanvas.currentHeight;
 
     // Divide by 2 to find the exact midpoint coordinates
     final double centerX = extraWidth / 2.0;
@@ -515,65 +521,68 @@ class DrawScreenViewModel extends ChangeNotifier {
     return Result.ok(null);
   }
 
-  Future<Result<void>> _initializeNewProject() async {
-    final String initialCanvasId = uuid.v4();
-    final String initialLayerId = uuid.v4();
+  // // TODO: This should live inside a project creation screen. That way the router only needs to send the new id
+  // Future<Result<void>> _initializeNewProject(Size canvasSize) async {
 
-    final templateCanvas = CanvasData(
-      id: initialCanvasId, 
-      name: 'Untitled Drawing',
-      layerIds: [initialLayerId], 
-    );
+  //   final String initialCanvasId = uuid.v4();
+  //   final String initialLayerId = uuid.v4();
 
-        final initialLayer = LayerData(
-          id: initialLayerId,
-          index: 0,
-          name: 'Layer 1',
-          canvasId: initialCanvasId,
-          isDirty: true, 
-          isVisible: true,
-          layerDrawHistory: const [],
-        );
+  //   final templateCanvas = CanvasDataNew(
+  //     canvasSize: canvasSize,
+  //     id: initialCanvasId, 
+  //     name: 'Untitled Drawing',
+  //     layerIds: [initialLayerId], 
+  //   );
+
+  //       final initialLayer = LayerData(
+  //         id: initialLayerId,
+  //         index: 0,
+  //         name: 'Layer 1',
+  //         canvasId: initialCanvasId,
+  //         isDirty: true, 
+  //         isVisible: true,
+  //         layerDrawHistory: const [],
+  //       );
 
 
-    final result = await _canvasDataRepository.createCanvasData(templateCanvas);
+  //   final result = await _canvasDataRepository.createCanvasData(templateCanvas);
 
-    switch (result) {
-      case Ok<CanvasData>():
+  //   switch (result) {
+  //     case Ok<CanvasDataNew>():
 
-      final layerResult = await _layerDataRepository.saveDirtyLayers([initialLayer]);
+  //     final layerResult = await _layerDataRepository.saveDirtyLayers([initialLayer]);
 
-      switch(layerResult){
-        case Ok():
-          _currentCanvas = result.value;
+  //     switch(layerResult){
+  //       case Ok():
+  //         _currentCanvas = result.value;
           
-        _layers = [initialLayer];
+  //       _layers = [initialLayer];
         
-        _cachedLayerHistories.clear();
-        _cachedLayerHistories[initialLayerId] = [];
+  //       _cachedLayerHistories.clear();
+  //       _cachedLayerHistories[initialLayerId] = [];
         
-        _drawHistory.clear();
-        _undoHistory.clear();
-        _redoHistory.clear();
-        _layerSnapshots.clear();
-        _pendingLayerDeletionsLog.clear();
+  //       _drawHistory.clear();
+  //       _undoHistory.clear();
+  //       _redoHistory.clear();
+  //       _layerSnapshots.clear();
+  //       _pendingLayerDeletionsLog.clear();
         
-        _activeLayerIndex = 0;
+  //       _activeLayerIndex = 0;
 
-        notifyListeners();
+  //       notifyListeners();
 
-        return Result.ok(null);
-        case Error():
-          return Result.error(layerResult.error);
-      }
-
-
+  //       return Result.ok(null);
+  //       case Error():
+  //         return Result.error(layerResult.error);
+  //     }
 
 
-      case Error():
-        return Result.error(result.error);
-    }
-  }
+
+
+  //     case Error():
+  //       return Result.error(result.error);
+  //   }
+  // }
 
 
   void _rebuildCacheForLayer(String layerId) {
@@ -599,7 +608,7 @@ class DrawScreenViewModel extends ChangeNotifier {
     
     final canvasSaveResult = await _canvasDataRepository.modifyCanvasData(updatedCanvas);
     
-    if (canvasSaveResult is Ok<CanvasData>) {
+    if (canvasSaveResult is Ok<CanvasDataCreated>) {
       _currentCanvas = canvasSaveResult.value;
     } else {
       log.w('Failed to synchronize project canvas structure metadata maps.');

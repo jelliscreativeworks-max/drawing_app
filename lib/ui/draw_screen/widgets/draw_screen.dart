@@ -1,5 +1,6 @@
 import 'package:drawing_app/domain/models/draw_data/draw_data.dart';
 import 'package:drawing_app/domain/models/layer_data/layer_data.dart';
+import 'package:drawing_app/router/routes.dart';
 import 'package:drawing_app/ui/draw_screen/view_models/tool_controller.dart';
 import 'package:drawing_app/utils/painters/background_painter.dart';
 import 'package:drawing_app/utils/painters/debug_painter.dart';
@@ -11,6 +12,7 @@ import 'package:drawing_app/ui/draw_screen/view_models/draw_screen_view_model.da
 import 'package:flutter/gestures.dart';
 
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
 class DrawScreen extends StatefulWidget {
@@ -48,7 +50,7 @@ class _DrawScreenState extends State<DrawScreen> {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 IconButton(
-                  onPressed: () => Navigator.of(context).pop(),
+                  onPressed: () => context.go(Routes.home),
                   icon: const Icon(Icons.arrow_back_rounded),
                 ),
                 IconButton(
@@ -62,16 +64,7 @@ class _DrawScreenState extends State<DrawScreen> {
                 // Visual indicators can watch widget.viewModel.saveDirtyProgress.running here
                 IconButton(
                   onPressed: () {},
-                  icon: widget.viewModel.saveDirtyProgress.running
-                      ? const SizedBox(
-                          width: 18,
-                          height: 18,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2,
-                            color: Colors.white70,
-                          ),
-                        )
-                      : const Icon(Icons.more_vert),
+                  icon:  const Icon(Icons.more_vert),
                 ),
               ],
             ),
@@ -160,15 +153,15 @@ class _DrawScreenState extends State<DrawScreen> {
                           child: ClipRect(
                             child: Stack(
                               children: [
-                                // A. Infinite Workspace Canvas Blueprint Background Paint
+             
                                 Positioned.fill(
                                   child: CustomPaint(
                                     painter: BackgroundPainter(
                                       transform:
                                           widget.viewModel.camera.transform,
-                                      canvasWidth: widget.viewModel.canvasWidth,
+                                      canvasWidth: widget.viewModel.currentCanvas.currentWidth,
                                       canvasHeight:
-                                          widget.viewModel.canvasHeight,
+                                          widget.viewModel.currentCanvas.currentHeight,
                                       cellSize: 35.0,
                                       lineThickness: 1.2,
                                     ),
@@ -186,7 +179,7 @@ class _DrawScreenState extends State<DrawScreen> {
                                         layer.id,
                                       );
 
-                                  return Positioned.fill(
+                                  return widget.viewModel.loadProject.running ? SizedBox.shrink() : Positioned.fill(
                                     child: RepaintBoundary(
                                       child: CustomPaint(
                                         key: ValueKey(
@@ -197,9 +190,9 @@ class _DrawScreenState extends State<DrawScreen> {
                                               .toolController
                                               .lastDeviceKind,
                                           canvasHeight:
-                                              widget.viewModel.canvasHeight,
+                                              widget.viewModel.currentCanvas.currentHeight,
                                           canvasWidth:
-                                              widget.viewModel.canvasWidth,
+                                              widget.viewModel.currentCanvas.currentWidth,
                                           drawHistory: filteredLayerHistory,
                                           transform:
                                               widget.viewModel.camera.transform,
@@ -231,9 +224,9 @@ class _DrawScreenState extends State<DrawScreen> {
                                               .toolController
                                               .lastDeviceKind,
                                           canvasHeight:
-                                              widget.viewModel.canvasHeight,
+                                              widget.viewModel.currentCanvas.currentHeight,
                                           canvasWidth:
-                                              widget.viewModel.canvasWidth,
+                                              widget.viewModel.currentCanvas.currentWidth,
                                           drawHistory: preview != null
                                               ? [preview]
                                               : const [],
@@ -247,25 +240,25 @@ class _DrawScreenState extends State<DrawScreen> {
                                   },
                                 ),
 
-                                Consumer<ToolController>(
-                                  builder: (context, toolController, child) {
-                                    return Positioned.fill(
-                                      child: CustomPaint(
-                                        painter: DebugPainter(
-                                          drawScreenViewModel: widget.viewModel,
-                                          toolController: toolController,
-                                          transform:
-                                              widget.viewModel.camera.transform,
-                                          canvasHeight:
-                                              widget.viewModel.canvasHeight,
-                                          canvasWidth:
-                                              widget.viewModel.canvasWidth,
-                                          device: toolController.lastDeviceKind,
-                                        ),
-                                      ),
-                                    );
-                                  },
-                                ),
+                                // Consumer<ToolController>(
+                                //   builder: (context, toolController, child) {
+                                //     return Positioned.fill(
+                                //       child: CustomPaint(
+                                //         painter: DebugPainter(
+                                //           drawScreenViewModel: widget.viewModel,
+                                //           toolController: toolController,
+                                //           transform:
+                                //               widget.viewModel.camera.transform,
+                                //           canvasHeight:
+                                //               widget.viewModel.currentCanvas.currentHeight,
+                                //           canvasWidth:
+                                //               widget.viewModel.currentCanvas.currentWidth,
+                                //           device: toolController.lastDeviceKind,
+                                //         ),
+                                //       ),
+                                //     );
+                                //   },
+                                // ),
 
                                 // D. Persistent Document Guideline Grids Overlay
                                 Positioned.fill(
@@ -276,9 +269,9 @@ class _DrawScreenState extends State<DrawScreen> {
                                     painter: GridlinePainter(
                                       transform:
                                           widget.viewModel.camera.transform,
-                                      canvasWidth: widget.viewModel.canvasWidth,
+                                      canvasWidth: widget.viewModel.currentCanvas.currentWidth,
                                       canvasHeight:
-                                          widget.viewModel.canvasHeight,
+                                          widget.viewModel.currentCanvas.currentHeight,
                                       cellSize: 35.0,
                                       lineThickness: 1.2,
                                     ),
@@ -329,17 +322,16 @@ class _DrawScreenState extends State<DrawScreen> {
                     ),
                   ),
 
-                  // Fullscreen Initial Loading Blocker
-                  if (widget.viewModel.loadProject.running ||
-                      widget.viewModel.initProject.running)
-                    Positioned.fill(
-                      child: Container(
-                        color: Colors.black54,
-                        child: const Center(
-                          child: CircularProgressIndicator(color: Colors.white),
-                        ),
-                      ),
-                    ),
+                  // // Fullscreen Initial Loading Blocker
+                  // if (widget.viewModel.loadProject.running)
+                  //   Positioned.fill(
+                  //     child: Container(
+                  //       color: Colors.transparent,
+                  //       child: const Center(
+                  //         child: CircularProgressIndicator(color: Colors.blue),
+                  //       ),
+                  //     ),
+                  //   ),
 
                   // Sidebar Layers Panel overlay
                   if (widget.viewModel.isLayerMenuOpen)

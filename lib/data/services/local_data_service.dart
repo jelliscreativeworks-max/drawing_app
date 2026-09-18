@@ -34,9 +34,9 @@ class LocalDataService {
     String json = jsonEncode(data);
     await file.writeAsString(json);
   }
-
-  Future<List<CanvasData>> loadCanvasDataList() async {
-    final List<CanvasData> loadedData = [];
+  // TODO: Change Projects to Canvases. One project could have more than one canvas and a canvas is not a project
+  Future<List<CanvasDataCreated>> loadCanvasDataList() async {
+    final List<CanvasDataCreated> loadedData = [];
     final dir = Directory('${await _localPath}/projects');
 
     if (!await dir.exists()) return loadedData;
@@ -49,7 +49,7 @@ class LocalDataService {
           try {
             final data = await metaFile.readAsString();
             final json = jsonDecode(data) as Map<String, dynamic>;
-            loadedData.add(CanvasData.fromJson(json));
+            loadedData.add(CanvasDataCreated.fromJson(json));
           } catch (e) {
             _log.e('Failed to parse metadata for ${projectDir.path}: $e');
           }
@@ -76,7 +76,7 @@ class LocalDataService {
     }
   }
 
-  Future<void> saveCanvasData(CanvasData data) async {
+  Future<void> saveCanvasData(CanvasDataCreated data) async {
     final mappedData = data.toJson();
 
     await _writeJsonToFile(mappedData, 'projects/${data.id}/project_meta.json');

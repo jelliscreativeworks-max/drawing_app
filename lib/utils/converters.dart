@@ -44,6 +44,26 @@ class Uint8ListConverter implements JsonConverter<Uint8List,String>{
   
 }
 
+class SizeConverter implements JsonConverter<Size, Map<String, dynamic>>{
+  const SizeConverter();
+
+  @override
+  Size fromJson(Map<String, dynamic> json) {
+    return Size(
+      json['width'] as double,
+      json['height'] as double);
+  }
+
+  @override
+  Map<String, dynamic> toJson(Size object) {
+    return {
+      'width' : object.width,
+      'height' : object.height
+    };
+  }
+  
+}
+
 
 class PaintConverter implements JsonConverter<Paint, Map<String, dynamic>> {
   const PaintConverter();

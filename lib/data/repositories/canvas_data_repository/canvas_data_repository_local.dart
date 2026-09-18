@@ -10,7 +10,7 @@ class CanvasDataRepositoryLocal extends CanvasDataRepository{
   CanvasDataRepositoryLocal({required LocalDataService localDataService}) : _localDataService = localDataService;
 
   final LocalDataService _localDataService;
-  final _canvasDataList = List<CanvasData>.empty(growable: true);
+  final _canvasDataList = List<CanvasDataCreated>.empty(growable: true);
   bool _loaded = false;
 
     Future<Result<void>> _ensureLoaded() async {
@@ -23,7 +23,7 @@ class CanvasDataRepositoryLocal extends CanvasDataRepository{
   }
 
   @override
-  Future<Result<CanvasData>> createCanvasData(CanvasData data) async {
+  Future<Result<CanvasDataCreated>> createCanvasData(CanvasDataCreated data) async {
     final loadCheck = await _ensureLoaded();
     if (loadCheck is Error) return Result.error((loadCheck).error);
 
@@ -48,10 +48,10 @@ class CanvasDataRepositoryLocal extends CanvasDataRepository{
   }
 
   @override
-  Future<Result<List<CanvasData>>> getCanvasDataList() async {
+  Future<Result<List<CanvasDataCreated>>> getCanvasDataList() async {
     if(!_loaded){
       try{
-        List<CanvasData> list = await _localDataService.loadCanvasDataList();
+        List<CanvasDataCreated> list = await _localDataService.loadCanvasDataList();
         _canvasDataList.clear();
         _canvasDataList.addAll(list);
         _loaded = true;
@@ -64,7 +64,7 @@ class CanvasDataRepositoryLocal extends CanvasDataRepository{
   }
 
   @override
-  Future<Result<CanvasData>> getCanvasData(String id) async {
+  Future<Result<CanvasDataCreated>> getCanvasData(String id) async {
     final loadCheck = await _ensureLoaded();
     if (loadCheck is Error) return Result.error((loadCheck).error);
 
@@ -76,7 +76,7 @@ class CanvasDataRepositoryLocal extends CanvasDataRepository{
     return Result.ok(canvasData);
   }
 
-  Future<Result<void>> _saveCanvasData(CanvasData data) async{
+  Future<Result<void>> _saveCanvasData(CanvasDataCreated data) async{
     final loadCheck = await _ensureLoaded();
     if (loadCheck is Error) return Result.error((loadCheck).error);
 
@@ -114,7 +114,7 @@ class CanvasDataRepositoryLocal extends CanvasDataRepository{
   }
 
   @override
-  Future<Result<CanvasData>> modifyCanvasData(CanvasData canvasData) async {
+  Future<Result<CanvasDataCreated>> modifyCanvasData(CanvasDataCreated canvasData) async {
     if(!_loaded){
       final loadResult = await getCanvasDataList();
       switch (loadResult){
