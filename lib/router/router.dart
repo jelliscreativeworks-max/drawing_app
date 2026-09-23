@@ -5,7 +5,6 @@ import 'package:drawing_app/ui/draw_screen/view_models/tool_controller.dart';
 import 'package:drawing_app/ui/canvases_screen/view_models/canvases_screen_view_model.dart';
 import 'package:drawing_app/ui/canvases_screen/widgets/canvases_screen.dart';
 import 'package:drawing_app/ui/draw_screen/widgets/draw_screen.dart';
-import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 GoRouter router() => GoRouter(
