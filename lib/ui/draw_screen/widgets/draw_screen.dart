@@ -95,7 +95,7 @@ class _DrawScreenState extends State<DrawScreen> {
                         onPointerPanZoomStart: (event) => widget.toolController.handleEvent(event, event.kind),
                         onPointerPanZoomUpdate: (event) => widget.toolController.handleEvent(event, event.kind),
                         onPointerPanZoomEnd: (event) => widget.toolController.handleEvent(event, event.kind),
-
+                        onPointerSignal: (event) => widget.toolController.handleEvent(event, event.kind),
                         child: GestureDetector(
                           onScaleStart: (details) => widget.toolController.handleEvent(details, details.kind ?? widget.toolController.lastDeviceKind),
                           onScaleUpdate: (details) => widget.toolController.handleEvent(details, widget.toolController.lastDeviceKind),

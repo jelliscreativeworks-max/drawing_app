@@ -3,6 +3,8 @@ import 'package:drawing_app/ui/core/tool_input_handler/tool_input_handler.dart';
 import 'package:flutter/gestures.dart';
 
 class MouseInputHandler extends ToolInputHandler {
+
+
   MouseInputHandler({required super.onToolPress, required super.onToolUpdate, required super.onToolRelease, required super.onPanStart, required super.onPanUpdate, required super.onPanEnd});
 
   /// All scale event functions are meant to be primary mouse button only. The pointerdown is still used but only to set the pointer device last kind and button int
@@ -86,6 +88,26 @@ class MouseInputHandler extends ToolInputHandler {
 
     onPanEnd(releasedInput);
 
+  }
+
+  @override
+  void onPointerSignal(PointerSignalEvent event) {
+    if(event is PointerScrollEvent){
+         ToolStartInput startInput = ToolStartInput.compute(
+      kind: event.kind, 
+      rawScreenPoint: event.localPosition, 
+      screenToWorldConverter: (screenPoint) => screenToWorld(screenPoint)
+      );
+
+          
+      onPanStart(startInput);
+      ToolUpdateInput updateInput = ToolUpdateInput.compute(kind: lastDeviceKind,currentScreenPoint: event.localPosition, currentScale: 1 - event.scrollDelta.dy.sign * 0.25,   screenToWorldConverter: (screenPoint) => screenToWorld(screenPoint), lastScreenPoint: lastScreenPoint, customDelta: Offset.zero);
+      onPanUpdate(updateInput);
+
+
+      final releasedInput = ToolReleasedInput(lastUsedDevice: event.kind);
+      onPanEnd(releasedInput);
+    }
   }
 
 

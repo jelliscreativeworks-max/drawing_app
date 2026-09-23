@@ -52,6 +52,8 @@ abstract class ToolInputHandler {
         onScaleUpdate(event);
       case ScaleEndDetails():
         onScaleEnd(event);
+      case PointerSignalEvent():
+        onPointerSignal(event);
     }
   }
 
@@ -67,7 +69,8 @@ abstract class ToolInputHandler {
   void onScaleStart(ScaleStartDetails details) {}
   void onScaleUpdate(ScaleUpdateDetails details) {}
   void onScaleEnd(ScaleEndDetails details) {}
-
+  
+  void onPointerSignal(PointerSignalEvent event){}
 
   void disableInput();
 

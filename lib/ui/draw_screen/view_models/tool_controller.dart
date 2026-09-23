@@ -84,6 +84,7 @@ class ToolController extends ChangeNotifier {
   CanvasTool get currentTool => _currentTool;
 
   void handleEvent<T>(T event, PointerDeviceKind device){
+    print(device);
     if(inputHandlers[device] == null) return; //For unsupported devices
     if(_lastDeviceKind != PointerDeviceKind.unknown && _lastDeviceKind != device){
       inputHandlers[_lastDeviceKind]!.disableInput();
