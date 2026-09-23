@@ -1,9 +1,9 @@
 import 'dart:ui';
 
 import 'package:drawing_app/domain/models/draw_data/draw_data.dart';
+import 'package:drawing_app/domain/models/tool_input_data/tool_input_data.dart';
 import 'package:drawing_app/ui/core/commands/canvas_command.dart';
 import 'package:drawing_app/ui/core/commands/draw_command.dart';
-import 'package:drawing_app/ui/core/draw_tools/canvas_tool.dart';
 import 'package:drawing_app/ui/core/draw_tools/draw_tool.dart';
 
 class LineTool extends DrawTool implements StrokeToolType{
@@ -40,16 +40,16 @@ class LineTool extends DrawTool implements StrokeToolType{
 
 
   @override
-  void onToolStart(ToolStartFrame toolFrame) {
+  void onToolStart(ToolStartInput toolStartInput, String layerId, int strokeIndex) {
     _isDrawing = true;
-    _activeLine = LineData(layerId: toolFrame.activeLayerId, index: toolFrame.nextStrokeIndex, strokePaint: _strokePaint, id: uuid.v4(), startPoint: toolFrame.worldPoint, endPoint: toolFrame.worldPoint, renderStroke: _renderStroke);
+    _activeLine = LineData(layerId: layerId, index: strokeIndex, strokePaint: _strokePaint, id: uuid.v4(), startPoint: toolStartInput.worldPoint, endPoint: toolStartInput.worldPoint, renderStroke: _renderStroke);
   }
 
   @override
-  void onToolUpdate(ToolUpdateFrame toolFrame) {
+  void onToolUpdate(ToolUpdateInput toolUpdateInput, String layerId) {
     if(!_isDrawing) return;
 
-    _activeLine = _activeLine!.copyWith(endPoint: toolFrame.worldPoint);
+    _activeLine = _activeLine!.copyWith(endPoint: toolUpdateInput.worldPoint);
   }
 
   @override

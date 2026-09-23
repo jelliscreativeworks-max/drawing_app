@@ -3,17 +3,14 @@ import 'package:drawing_app/domain/models/layer_data/layer_data.dart';
 import 'package:drawing_app/router/routes.dart';
 import 'package:drawing_app/ui/draw_screen/view_models/tool_controller.dart';
 import 'package:drawing_app/utils/painters/background_painter.dart';
-import 'package:drawing_app/utils/painters/debug_painter.dart';
+// import 'package:drawing_app/utils/painters/debug_painter.dart';
 import 'package:drawing_app/utils/painters/gridline_painter.dart';
 import 'package:drawing_app/utils/painters/painter.dart';
 import 'package:drawing_app/ui/draw_screen/widgets/bottom_tool_bar_buttons.dart';
 import 'package:drawing_app/ui/draw_screen/widgets/layer_menu_anchor_view.dart';
 import 'package:drawing_app/ui/draw_screen/view_models/draw_screen_view_model.dart';
-import 'package:flutter/gestures.dart';
-
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import 'package:provider/provider.dart';
 
 class DrawScreen extends StatefulWidget {
   const DrawScreen({
@@ -91,65 +88,20 @@ class _DrawScreenState extends State<DrawScreen> {
                       onEnter: (event) => widget.toolController.enableDrawing(event),
                       onExit: (event) => widget.toolController.disableDrawing(),
                       child: Listener(
-                        onPointerDown: (event) =>
-                            widget.toolController.onPointerDown(event),
-                        onPointerMove: (event) {
-                          widget.toolController.onPointerMove(event);
-                        },
-                        onPointerUp: (event) =>
-                            widget.toolController.onPointerUp(event),
-                        onPointerCancel: (event) =>
-                            widget.toolController.onPointerCancel(event),
+                        onPointerDown: (event) => widget.toolController.handleEvent(event, event.kind),
+                        onPointerMove: (event) => widget.toolController.handleEvent(event, event.kind),
+                        onPointerUp: (event) => widget.toolController.handleEvent(event, event.kind),
+                        onPointerCancel: (event) => widget.toolController.handleEvent(event, event.kind),
+                        onPointerPanZoomStart: (event) => widget.toolController.handleEvent(event, event.kind),
+                        onPointerPanZoomUpdate: (event) => widget.toolController.handleEvent(event, event.kind),
+                        onPointerPanZoomEnd: (event) => widget.toolController.handleEvent(event, event.kind),
 
-                        onPointerPanZoomStart: (event) =>
-                            widget.toolController.onPointerPanZoomStart(event),
-                        onPointerPanZoomUpdate: (event) =>
-                            widget.toolController.onPointerPanZoomUpdate(event),
-                        onPointerPanZoomEnd: (event) =>
-                            widget.toolController.onPointerPanZoomEnd(event),
-
-                        child: RawGestureDetector(
-                          gestures: {
-                            ScaleGestureRecognizer:
-                                GestureRecognizerFactoryWithHandlers<
-                                  ScaleGestureRecognizer
-                                >(
-                                  () => ScaleGestureRecognizer(
-                                    allowedButtonsFilter: (int buttons) {
-                                      // 1. Mobile touch tracking (bitmask is always 0)
-                                      if (buttons == 0) return true;
-
-                                      // 2. Reject middle mouse button (4) completely from the Scale Arena.
-                                      // This allows the raw Listener to manage it cleanly without arena collisions.
-                                      if ((buttons & kMiddleMouseButton) != 0) {
-                                        return false;
-                                      }
-
-                                      // 3. For all other scenarios (Pan Tool, Freehand, Erase), allow Left Click (1)
-                                      return (buttons & kPrimaryMouseButton !=
-                                          0);
-                                    },
-                                  ),
-                                  (ScaleGestureRecognizer instance) {
-                                    instance
-                                      ..onStart = (ScaleStartDetails details) {
-                                        // _panStartOffset = _canvasOffset;
-                                        widget.toolController.handleScaleStart(
-                                          details,
-                                          details.kind!,
-                                        );
-                                      }
-                                      ..onUpdate =
-                                          (ScaleUpdateDetails details) {
-                                            widget.toolController
-                                                .handleScaleUpdate(details);
-                                          }
-                                      ..onEnd = (ScaleEndDetails details) {
-                                        widget.toolController.handleScaleEnd();
-                                      };
-                                  },
-                                ),
-                          },
+                        child: GestureDetector(
+                          onScaleStart: (details) => widget.toolController.handleEvent(details, details.kind ?? widget.toolController.lastDeviceKind),
+                          onScaleUpdate: (details) => widget.toolController.handleEvent(details, widget.toolController.lastDeviceKind),
+                          onScaleEnd: (details) => widget.toolController.handleEvent(details, widget.toolController.lastDeviceKind),
+                         
+                          
                           child: ClipRect(
                             child: Stack(
                               children: [

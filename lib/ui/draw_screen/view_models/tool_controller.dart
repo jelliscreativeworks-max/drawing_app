@@ -1,4 +1,5 @@
 import 'package:drawing_app/domain/models/draw_data/draw_data.dart';
+import 'package:drawing_app/domain/models/tool_input_data/tool_input_data.dart';
 import 'package:drawing_app/ui/core/draw_tools/canvas_tool.dart';
 import 'package:drawing_app/ui/core/draw_tools/circle_tool.dart';
 import 'package:drawing_app/ui/core/draw_tools/draw_tool.dart';
@@ -8,12 +9,15 @@ import 'package:drawing_app/ui/core/draw_tools/line_tool.dart';
 import 'package:drawing_app/ui/core/draw_tools/pan_tool.dart';
 import 'package:drawing_app/ui/core/draw_tools/path_tool.dart';
 import 'package:drawing_app/ui/core/draw_tools/rectangle_tool.dart';
+import 'package:drawing_app/ui/core/tool_input_handler/mouse_input_handler.dart';
+import 'package:drawing_app/ui/core/tool_input_handler/tool_input_handler.dart';
+import 'package:drawing_app/ui/core/tool_input_handler/touch_input_handler.dart';
+import 'package:drawing_app/ui/core/tool_input_handler/trackpad_input_handler.dart';
 import 'package:drawing_app/ui/draw_screen/view_models/draw_screen_view_model.dart';
 import 'package:drawing_app/utils/history_consumer.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:material_symbols_icons/symbols.dart';
-import 'package:vector_math/vector_math_64.dart' as vm;
 
 class ToolController extends ChangeNotifier {
   final DrawScreenViewModel _viewModel;
@@ -26,24 +30,157 @@ class ToolController extends ChangeNotifier {
   Set<int> get activePointerIds => _activePointerIds;
 
 
-  Offset _lastTrackedScreenPoint = Offset.zero;
+  late final Map<PointerDeviceKind, ToolInputHandler> _inputHandlers;
+  Map<PointerDeviceKind, ToolInputHandler> get inputHandlers => _inputHandlers;
+
+
+  late PanTool _panTool;
+
+
+  // Offset _lastTrackedScreenPoint = Offset.zero;
 
 
   late final Map<Type, CanvasTool> tools;
   late CanvasTool _currentTool;
-  bool _panToolOverrideActive = false;
 
   DrawData? get activePreview => _currentTool is DrawTool ? (_currentTool as DrawTool).activePreview : null;
 
   ToolController({required DrawScreenViewModel viewModel})
     : _viewModel = viewModel {
     initializeTools();
+
+    _inputHandlers = {
+      PointerDeviceKind.mouse : MouseInputHandler(
+        onToolPress: (p0) => handleToolPressed(p0), 
+        onToolUpdate: (p0) => handleToolUpdate(p0), 
+        onToolRelease: (toolInput) => handleToolReleased(toolInput), 
+        onPanStart: (toolInput) => handlePanStart(toolInput),
+        onPanUpdate: (toolInput) => handlePanUpdate(toolInput),
+        onPanEnd: (toolInput) => handlePanEnd(toolInput),
+      ),
+      PointerDeviceKind.touch : TouchInputHandler(
+        onToolPress: (p0) => handleToolPressed(p0), 
+        onToolUpdate: (p0) => handleToolUpdate(p0), 
+        onToolRelease: (toolInput) => handleToolReleased(toolInput), 
+        onPanStart: (toolInput) => handlePanStart(toolInput),
+        onPanUpdate: (toolInput) => handlePanUpdate(toolInput),
+        onPanEnd: (toolInput) => handlePanEnd(toolInput),
+      ),
+      PointerDeviceKind.trackpad: TrackpadInputHandler(
+        onToolPress: (_){},
+        onToolUpdate: (_){},
+        onToolRelease: (_){},
+        onPanStart:(toolInput) => handlePanStart(toolInput),
+        onPanUpdate: (toolInput) => handlePanUpdate(toolInput),
+        onPanEnd: (toolInput) => handlePanEnd(toolInput),
+      ),
+    };
   }
+
   PointerDeviceKind get lastDeviceKind => _lastDeviceKind;
   PointerDeviceKind _lastDeviceKind = PointerDeviceKind.unknown;
   bool drawEnabled = true;
 
   CanvasTool get currentTool => _currentTool;
+
+  void handleEvent<T>(T event, PointerDeviceKind device){
+    if(inputHandlers[device] == null) return; //For unsupported devices
+    if(_lastDeviceKind != PointerDeviceKind.unknown && _lastDeviceKind != device){
+      inputHandlers[_lastDeviceKind]!.disableInput();
+    }
+    inputHandlers[device]!.handleEvent(event, _viewModel.camera.transform);
+    _lastDeviceKind = device;
+    
+  }
+
+  void handleToolPressed(ToolStartInput input){
+    if(!drawEnabled || _panTool.isActive) return;  
+
+    if(_currentTool is PanTool){
+      handlePanStart(input);
+      return;
+    }
+
+    if(_currentTool is HistoryConsumer){
+      (_currentTool as HistoryConsumer).setHistorySnapshot(_viewModel.drawHistory);
+    }
+
+    _lastDeviceKind = input.kind;
+    _currentTool.onToolStart(input, _viewModel.activeLayerId, _viewModel.drawHistory.length);
+
+    
+    notifyListeners();
+
+
+  }
+
+  void handleToolUpdate(ToolUpdateInput input){
+    
+    if(!drawEnabled) return;
+
+    if(_currentTool is PanTool){
+      handlePanUpdate(input);
+      return;
+    }
+
+    _lastDeviceKind = input.kind;
+    _currentTool.onToolUpdate(input, _viewModel.activeLayerId);
+
+    notifyListeners();
+    }
+
+  
+
+  void handleToolReleased(ToolReleasedInput input){
+    if(!drawEnabled) return;
+    _endActiveTool();
+    
+  }
+
+  void _endActiveTool(){
+        if(_currentTool.isActive){
+      final command = _currentTool.onToolEnd();
+      if(command != null){
+        _viewModel.executeCommand(command);
+      }
+        notifyListeners();
+      }
+  }
+
+  void handlePanStart(ToolStartInput input){
+
+    // if(_panTool.isActive) return;
+
+      // If we are about to override the currently selected tool end it
+    if(_currentTool is !PanTool){_endActiveTool();}
+
+      _viewModel.camera.focalPointAtStart = input.screenPoint;
+  _viewModel.camera.scaleStart = _viewModel.camera.currentScale;
+  _viewModel.camera.previousGestureScale = 1.0;
+  _viewModel.camera.worldPivotAtStart = input.worldPoint;
+  
+
+    _lastDeviceKind = input.kind;
+    _panTool.onToolStart(input, _viewModel.activeLayerId, _viewModel.drawHistory.length);
+    notifyListeners();
+  }
+
+  void handlePanUpdate(ToolUpdateInput input){
+
+    if(!_panTool.isActive) return;
+
+    _lastDeviceKind = input.kind;
+    _panTool.onToolUpdate(input, _viewModel.activeLayerId);
+    _viewModel.forceCanvasRefresh();
+    notifyListeners();
+  }
+
+  void handlePanEnd(ToolReleasedInput input){
+    if(!_panTool.isActive) return;
+    _lastDeviceKind = input.lastUsedDevice;
+    _panTool.onToolEnd();
+    notifyListeners();
+  }
 
   void initializeTools({Type? initialTool}) {
     tools = {
@@ -94,6 +231,8 @@ class ToolController extends ChangeNotifier {
     } else {
       _currentTool = tools[PanTool]!;
     }
+
+    _panTool = tools[PanTool]! as PanTool;
   }
 
   void selectTool<T extends CanvasTool>() {
@@ -115,325 +254,326 @@ class ToolController extends ChangeNotifier {
     notifyListeners();
   }
 
-  /// On mouse/touch down, does not trigger from a [PointerDownEvent.trackpad]. Runs before [onHandleScaleStart] is called.
-  /// Adds pointer ids to a set for tracking unique pointers and serves as the initilization point for tools
-    void onPointerDown(PointerDownEvent event) {
+//   /// On mouse/touch down, does not trigger from a [PointerDownEvent.trackpad]. Runs before [onHandleScaleStart] is called.
+//   /// Adds pointer ids to a set for tracking unique pointers and serves as the initilization point for tools
+//     void onPointerDown(PointerDownEvent event) {
     
     
-    if (event.kind == PointerDeviceKind.touch || event.kind == PointerDeviceKind.stylus) {
-      drawEnabled = true; 
-    }
+//     if (event.kind == PointerDeviceKind.touch || event.kind == PointerDeviceKind.stylus) {
+//       drawEnabled = true; 
+//     }
 
-    if (!drawEnabled) return;
-    _activePointerIds.add(event.pointer);
-    _lastDeviceKind = event.kind;
-    _lastTrackedScreenPoint = event.localPosition;
+//     if (!drawEnabled) return;
+//     _activePointerIds.add(event.pointer);
+//     _lastDeviceKind = event.kind;
+//     _lastTrackedScreenPoint = event.localPosition;
 
-    final ToolStartFrame frame = ToolStartFrame.compute(
-      deviceKind: event.kind,
-      rawScreenPoint: event.localPosition,
-      layerId: _viewModel.activeLayerId,
-      strokeIndex: _viewModel.drawHistory.length,
-      screenToWorldConverter: (screenPoint) => screenToWorld(screenPoint),
-    );
+//     final ToolStartFrame frame = ToolStartFrame.compute(
+//       deviceKind: event.kind,
+//       rawScreenPoint: event.localPosition,
+//       layerId: _viewModel.activeLayerId,
+//       strokeIndex: _viewModel.drawHistory.length,
+//       screenToWorldConverter: (screenPoint) => screenToWorld(screenPoint),
+//     );
 
-    // Handle Middle Click Panning (Viewport override)
-    if (event.buttons == kTertiaryButton) {
-      _panToolOverrideActive = true;
-      if (_currentTool.isActive) {
-        final command = _currentTool.onToolEnd();
-        if (command != null) _viewModel.executeCommand(command);
-      }
-      tools[PanTool]!.onToolStart(frame);
-      notifyListeners();
-      return;
-    }
+//     // Handle Middle Click Panning (Viewport override)
+//     if (event.buttons == kTertiaryButton) {
+//       _panToolOverrideActive = true;
+//       if (_currentTool.isActive) {
+//         final command = _currentTool.onToolEnd();
+//         if (command != null) _viewModel.executeCommand(command);
+//       }
+//       tools[PanTool]!.onToolStart(frame);
+//       notifyListeners();
+//       return;
+//     }
 
-    // Touch Overrides (Two fingers or more triggers PanTool)
-    if (_activePointerIds.length > 1 && _currentTool is! PanTool) {
-      _panToolOverrideActive = true;
-      if (_currentTool.isActive) {
-        final command = _currentTool.onToolEnd();
-        if (command != null) _viewModel.executeCommand(command);
-      }
-      tools[PanTool]!.onToolStart(frame);
-      notifyListeners();
-      return;
-    }
+//     // Touch Overrides (Two fingers or more triggers PanTool)
+//     if (_activePointerIds.length > 1 && _currentTool is! PanTool) {
+//       _panToolOverrideActive = true;
+//       if (_currentTool.isActive) {
+//         final command = _currentTool.onToolEnd();
+//         if (command != null) _viewModel.executeCommand(command);
+//       }
+//       tools[PanTool]!.onToolStart(frame);
+//       notifyListeners();
+//       return;
+//     }
 
-    // Initialize drawing workspace cleanly
-    if (!_panToolOverrideActive) {
-      _currentTool.onToolStart(frame);
-      notifyListeners();
-    }
-  }
-  void onPointerMove(PointerMoveEvent event) {
-    if (!drawEnabled) return;
+//     // Initialize drawing workspace cleanly
+//     if (!_panToolOverrideActive) {
+//       _currentTool.onToolStart(frame);
+//       notifyListeners();
+//     }
+//   }
+//   void onPointerMove(PointerMoveEvent event) {
+//     if (!drawEnabled) return;
 
-    // Handle Middle Click drag tracking directly
-    if (event.buttons == kTertiaryButton ||
-        (_panToolOverrideActive && _lastDeviceKind == PointerDeviceKind.mouse)) {
-      final panTool = tools[PanTool] as PanTool;
+//     // Handle Middle Click drag tracking directly
+//     if (event.buttons == kTertiaryButton ||
+//         (_panToolOverrideActive && _lastDeviceKind == PointerDeviceKind.mouse)) {
+//       final panTool = tools[PanTool] as PanTool;
 
-      if (!panTool.isActive) {
-        _panToolOverrideActive = true;
+//       if (!panTool.isActive) {
+//         _panToolOverrideActive = true;
         
-        final ToolStartFrame startFrame = ToolStartFrame.compute(
-          deviceKind: event.kind,
-          rawScreenPoint: event.localPosition,
-          layerId: _viewModel.activeLayerId,
-          strokeIndex: _viewModel.drawHistory.length,
-          screenToWorldConverter: (screenPoint) => screenToWorld(screenPoint),
-        );
-        panTool.onToolStart(startFrame);
-      }
+//         final ToolStartFrame startFrame = ToolStartFrame.compute(
+//           deviceKind: event.kind,
+//           rawScreenPoint: event.localPosition,
+//           layerId: _viewModel.activeLayerId,
+//           strokeIndex: _viewModel.drawHistory.length,
+//           screenToWorldConverter: (screenPoint) => screenToWorld(screenPoint),
+//         );
+//         panTool.onToolStart(startFrame);
+//       }
 
-      final ToolUpdateFrame updateFrame = ToolUpdateFrame.computeUpdate(
-        deviceKind: event.kind,
-        currentScreenPoint: event.localPosition,
-        currentScale: 1.0,
-        layerId: _viewModel.activeLayerId,
-        priorScreenPoint: _lastTrackedScreenPoint,
-        screenToWorldConverter: (screenPoint) => screenToWorld(screenPoint),
-      );
+//       final ToolUpdateFrame updateFrame = ToolUpdateFrame.computeUpdate(
+//         deviceKind: event.kind,
+//         currentScreenPoint: event.localPosition,
+//         currentScale: 1.0,
+//         layerId: _viewModel.activeLayerId,
+//         priorScreenPoint: _lastTrackedScreenPoint,
+//         screenToWorldConverter: (screenPoint) => screenToWorld(screenPoint),
+//       );
 
-      panTool.onToolUpdate(updateFrame);
-      _viewModel.forceCanvasRefresh();
-    } else {
-      // Route standard pointer movements to your active drawing tool
-      if (_currentTool.isActive && !_panToolOverrideActive) {
-        final ToolUpdateFrame updateFrame = ToolUpdateFrame.computeUpdate(
-          deviceKind: event.kind,
-          currentScreenPoint: event.localPosition,
-          currentScale: 1.0,
-          layerId: _viewModel.activeLayerId,
-          priorScreenPoint: _lastTrackedScreenPoint,
-          screenToWorldConverter: (screenPoint) => screenToWorld(screenPoint),
-        );
+//       panTool.onToolUpdate(updateFrame);
+//       _viewModel.forceCanvasRefresh();
+//     } else {
+//       // Route standard pointer movements to your active drawing tool
+//       if (_currentTool.isActive && !_panToolOverrideActive) {
+//         final ToolUpdateFrame updateFrame = ToolUpdateFrame.computeUpdate(
+//           deviceKind: event.kind,
+//           currentScreenPoint: event.localPosition,
+//           currentScale: 1.0,
+//           layerId: _viewModel.activeLayerId,
+//           priorScreenPoint: _lastTrackedScreenPoint,
+//           screenToWorldConverter: (screenPoint) => screenToWorld(screenPoint),
+//         );
 
-        _currentTool.onToolUpdate(updateFrame);
-        notifyListeners();
-      }
-    }
+//         _currentTool.onToolUpdate(updateFrame);
+//         notifyListeners();
+//       }
+//     }
 
-    // Keep subsequent frame deltas perfectly consecutive
-    _lastTrackedScreenPoint = event.localPosition;
-  }
-
-
-  void onPointerUp(PointerUpEvent event) {
-    if (!drawEnabled) return;
-    _activePointerIds.remove(event.pointer);
-
-    // Cleanly close down middle-mouse pan action
-    if (_panToolOverrideActive && _lastDeviceKind == PointerDeviceKind.mouse) {
-      final panTool = tools[PanTool]!;
-      if (panTool.isActive) {
-        final command = panTool.onToolEnd();
-        if (command != null) _viewModel.executeCommand(command);
-      }
-      _panToolOverrideActive = false;
-      _currentTool.onPanOverrideEnd();
-      notifyListeners();
-    } else {
-      // Clean up standard single-pointer drawing gestures safely on pointer up
-      if (_currentTool.isActive) {
-        final command = _currentTool.onToolEnd();
-        if (command != null) {
-          _viewModel.executeCommand(command);
-        }
-        notifyListeners();
-      }
-    }
-  }
-
-  void onPointerCancel(PointerCancelEvent event) {
-    if (!drawEnabled) return;
-    _activePointerIds.remove(event.pointer);
-
-    final panTool = tools[PanTool]!;
-    if (panTool.isActive) {
-      final command = panTool.onToolEnd();
-      if (command != null) _viewModel.executeCommand(command);
-    }
-
-    if (_panToolOverrideActive) {
-      _panToolOverrideActive = false;
-      _currentTool.onPanOverrideEnd();
-      notifyListeners();
-    } else {
-      if (_currentTool.isActive) {
-        final command = _currentTool.onToolEnd();
-        if (command != null) _viewModel.executeCommand(command);
-        notifyListeners();
-      }
-    }
-  }
+//     // Keep subsequent frame deltas perfectly consecutive
+//     _lastTrackedScreenPoint = event.localPosition;
+//   }
 
 
-  void onPointerPanZoomStart(PointerPanZoomStartEvent event) {
-    if (!drawEnabled) return;
+//   void onPointerUp(PointerUpEvent event) {
+//     if (!drawEnabled) return;
+//     _activePointerIds.remove(event.pointer);
 
-    _lastDeviceKind = PointerDeviceKind.trackpad;
+//     // Cleanly close down middle-mouse pan action
+//     if (_panToolOverrideActive && _lastDeviceKind == PointerDeviceKind.mouse) {
+//       final panTool = tools[PanTool]!;
+//       if (panTool.isActive) {
+//         final command = panTool.onToolEnd();
+//         if (command != null) _viewModel.executeCommand(command);
+//       }
+//       _panToolOverrideActive = false;
+//       _currentTool.onPanOverrideEnd();
+//       notifyListeners();
+//     } else {
+//       // Clean up standard single-pointer drawing gestures safely on pointer up
+//       if (_currentTool.isActive) {
+//         final command = _currentTool.onToolEnd();
+//         if (command != null) {
+//           _viewModel.executeCommand(command);
+//         }
+//         notifyListeners();
+//       }
+//     }
+//   }
 
-    _viewModel.camera.focalPointAtStart = event.localPosition;
-    _viewModel.camera.scaleStart = _viewModel.camera.currentScale;
-    _viewModel.camera.previousGestureScale = 1.0;
-    _viewModel.camera.worldPivotAtStart = screenToWorld(event.localPosition);
+//   void onPointerCancel(PointerCancelEvent event) {
+//     if (!drawEnabled) return;
+//     _activePointerIds.remove(event.pointer);
 
-    _lastTrackedScreenPoint = event.localPosition;
+//     final panTool = tools[PanTool]!;
+//     if (panTool.isActive) {
+//       final command = panTool.onToolEnd();
+//       if (command != null) _viewModel.executeCommand(command);
+//     }
 
-    final ToolStartFrame frame = ToolStartFrame.compute(
-      deviceKind: event.kind,
-      rawScreenPoint: event.localPosition,
-      layerId: _viewModel.activeLayerId,
-      strokeIndex: _viewModel.drawHistory.length,
-      screenToWorldConverter: (screenPoint) => screenToWorld(screenPoint),
-    );
+//     if (_panToolOverrideActive) {
+//       _panToolOverrideActive = false;
+//       _currentTool.onPanOverrideEnd();
+//       notifyListeners();
+//     } else {
+//       if (_currentTool.isActive) {
+//         final command = _currentTool.onToolEnd();
+//         if (command != null) _viewModel.executeCommand(command);
+//         notifyListeners();
+//       }
+//     }
+//   }
 
-    tools[PanTool]!.onToolStart(frame);
-  }
 
-  void onPointerPanZoomUpdate(PointerPanZoomUpdateEvent event) {
-    if (!drawEnabled) return;
+//   void onPointerPanZoomStart(PointerPanZoomStartEvent event) {
+//     if (!drawEnabled) return;
 
-    _viewModel.camera.focalPointAtStart = event.localPosition;
+//     _lastDeviceKind = PointerDeviceKind.trackpad;
 
-    final ToolUpdateFrame frame = ToolUpdateFrame(
-      pointerDeviceKind: event.kind,
-      rawScale: event.scale,
-      activeLayerId: _viewModel.activeLayerId,
-      delta: Offset.zero, 
-      points: (
-        screen: event.localPanDelta, 
-        world: screenToWorld(event.localPosition),
-      ),
-    );
+//     _viewModel.camera.focalPointAtStart = event.localPosition;
+//     _viewModel.camera.scaleStart = _viewModel.camera.currentScale;
+//     _viewModel.camera.previousGestureScale = 1.0;
+//     _viewModel.camera.worldPivotAtStart = screenToWorld(event.localPosition);
 
-    tools[PanTool]!.onToolUpdate(frame);
-    _viewModel.forceCanvasRefresh();
-  }
+//     _lastTrackedScreenPoint = event.localPosition;
 
-  void onPointerPanZoomEnd(PointerPanZoomEndEvent event) {
-    if (!drawEnabled) return;
-    _activePointerIds.remove(event.pointer);
+//     final ToolStartFrame frame = ToolStartFrame.compute(
+//       deviceKind: event.kind,
+//       rawScreenPoint: event.localPosition,
+//       layerId: _viewModel.activeLayerId,
+//       strokeIndex: _viewModel.drawHistory.length,
+//       screenToWorldConverter: (screenPoint) => screenToWorld(screenPoint),
+//     );
 
-    final panTool = tools[PanTool]!;
-    if (panTool.isActive) {
-      final command = panTool.onToolEnd();
-      if (command != null) _viewModel.executeCommand(command);
-    }
+//     tools[PanTool]!.onToolStart(frame);
+//   }
+
+//   void onPointerPanZoomUpdate(PointerPanZoomUpdateEvent event) {
+//     if (!drawEnabled) return;
+
+//     _viewModel.camera.focalPointAtStart = event.localPosition;
+
+//     final ToolUpdateFrame frame = ToolUpdateFrame(
+//       pointerDeviceKind: event.kind,
+//       rawScale: event.scale,
+//       activeLayerId: _viewModel.activeLayerId,
+//       delta: Offset.zero, 
+//       points: (
+//         screen: event.localPanDelta, 
+//         world: screenToWorld(event.localPosition),
+//       ),
+//     );
+
+//     tools[PanTool]!.onToolUpdate(frame);
+//     _viewModel.forceCanvasRefresh();
+//   }
+
+//   void onPointerPanZoomEnd(PointerPanZoomEndEvent event) {
+//     if (!drawEnabled) return;
+//     _activePointerIds.remove(event.pointer);
+
+//     final panTool = tools[PanTool]!;
+//     if (panTool.isActive) {
+//       final command = panTool.onToolEnd();
+//       if (command != null) _viewModel.executeCommand(command);
+//     }
     
-    _panToolOverrideActive = false;
-    _currentTool.onPanOverrideEnd();
-    notifyListeners();
-  }
+//     _panToolOverrideActive = false;
+//     _currentTool.onPanOverrideEnd();
+//     notifyListeners();
+//   }
 
 
 
 
-  void handleScaleUpdate(ScaleUpdateDetails details) {
-  if (!drawEnabled) return;
-  if (_lastDeviceKind == PointerDeviceKind.trackpad) return;
+//   void handleScaleUpdate(ScaleUpdateDetails details) {
+//   if (!drawEnabled) return;
+//   if (_lastDeviceKind == PointerDeviceKind.trackpad) return;
 
-  updateDetails = details;
-  if (!_currentTool.isActive && !_panToolOverrideActive) return;
+//   updateDetails = details;
+//   if (!_currentTool.isActive && !_panToolOverrideActive) return;
 
-  final ToolUpdateFrame frame = ToolUpdateFrame.computeUpdate(
-    deviceKind: _lastDeviceKind,
-    currentScreenPoint: details.localFocalPoint,
-    currentScale: details.scale,
-    layerId: _viewModel.activeLayerId,
-    priorScreenPoint: _lastTrackedScreenPoint,
-    screenToWorldConverter: (screenPoint) => screenToWorld(screenPoint),
-  );
+//   final ToolUpdateFrame frame = ToolUpdateFrame.computeUpdate(
+//     deviceKind: _lastDeviceKind,
+//     currentScreenPoint: details.localFocalPoint,
+//     currentScale: details.scale,
+//     layerId: _viewModel.activeLayerId,
+//     priorScreenPoint: _lastTrackedScreenPoint,
+//     screenToWorldConverter: (screenPoint) => screenToWorld(screenPoint),
+//   );
 
-  if (_currentTool is PanTool || _panToolOverrideActive) {
-    if (_currentTool is PanTool) {
-      _currentTool.onToolUpdate(frame);
-    } else {
-      tools[PanTool]!.onToolUpdate(frame);
-    }
-    _viewModel.forceCanvasRefresh();
-  } else {
-    _currentTool.onToolUpdate(frame);
-    notifyListeners();
-  }
+//   if (_currentTool is PanTool || _panToolOverrideActive) {
+//     if (_currentTool is PanTool) {
+//       _currentTool.onToolUpdate(frame);
+//     } else {
+//       tools[PanTool]!.onToolUpdate(frame);
+//     }
+//     _viewModel.forceCanvasRefresh();
+//   } else {
+//     _currentTool.onToolUpdate(frame);
+//     notifyListeners();
+//   }
 
-  _lastTrackedScreenPoint = details.localFocalPoint;
-}
+//   _lastTrackedScreenPoint = details.localFocalPoint;
+// }
  
-void handleScaleStart(ScaleStartDetails details, PointerDeviceKind device) {
-  if (!drawEnabled) return;
-  if (device == PointerDeviceKind.trackpad || _lastDeviceKind == PointerDeviceKind.trackpad) return;
+// void handleScaleStart(ScaleStartDetails details, PointerDeviceKind device) {
+//   if (!drawEnabled) return;
+//   if (device == PointerDeviceKind.trackpad || _lastDeviceKind == PointerDeviceKind.trackpad) return;
 
-  startDetails = details;
-  _lastDeviceKind = device;
+//   startDetails = details;
+//   _lastDeviceKind = device;
 
-  // 1. Triggered strictly during an intentional multi-finger touch pan/zoom layout shift
-  if (details.pointerCount > 1 && _currentTool is! PanTool) {
-    _panToolOverrideActive = true;
+//   // 1. Triggered strictly during an intentional multi-finger touch pan/zoom layout shift
+//   if (details.pointerCount > 1 && _currentTool is! PanTool) {
+//     _panToolOverrideActive = true;
     
-    if (_currentTool.isActive) {
-      final command = _currentTool.onToolEnd();
-      if (command != null) _viewModel.executeCommand(command);
-    }
+//     if (_currentTool.isActive) {
+//       final command = _currentTool.onToolEnd();
+//       if (command != null) _viewModel.executeCommand(command);
+//     }
 
-    _currentTool.onPanOverrideStart();
-  }
+//     _currentTool.onPanOverrideStart();
+//   }
 
-  // 2. Synchronize Viewport Matrix Camera Properties
-  _viewModel.camera.focalPointAtStart = details.localFocalPoint;
-  _viewModel.camera.scaleStart = _viewModel.camera.currentScale;
-  _viewModel.camera.previousGestureScale = 1.0;
-  _viewModel.camera.worldPivotAtStart = screenToWorld(details.localFocalPoint);
-  _lastTrackedScreenPoint = details.localFocalPoint;
+//   // 2. Synchronize Viewport Matrix Camera Properties
+//   _viewModel.camera.focalPointAtStart = details.localFocalPoint;
+//   _viewModel.camera.scaleStart = _viewModel.camera.currentScale;
+//   _viewModel.camera.previousGestureScale = 1.0;
+//   _viewModel.camera.worldPivotAtStart = screenToWorld(details.localFocalPoint);
+//   _lastTrackedScreenPoint = details.localFocalPoint;
 
-  if (_currentTool is HistoryConsumer && !_panToolOverrideActive) {
-    List<DrawData> drawHistory = _viewModel.getHistoryForLayer(_viewModel.activeLayerId);
-    (_currentTool as HistoryConsumer).setHistorySnapshot(drawHistory);
-  }
+//   if (_currentTool is HistoryConsumer && !_panToolOverrideActive) {
+//     List<DrawData> drawHistory = _viewModel.getHistoryForLayer(_viewModel.activeLayerId);
+//     (_currentTool as HistoryConsumer).setHistorySnapshot(drawHistory);
+//   }
 
-  // 3. ONLY route start frames to PanTool matrix layers here
-  if (_panToolOverrideActive) {
-    final ToolStartFrame frame = ToolStartFrame.compute(
-      deviceKind: device,
-      rawScreenPoint: details.localFocalPoint,
-      layerId: _viewModel.activeLayerId,
-      strokeIndex: _viewModel.drawHistory.length,
-      screenToWorldConverter: (screenPoint) => screenToWorld(screenPoint),
-    );
-    tools[PanTool]!.onToolStart(frame);
-    notifyListeners();
-  }
-}
+//   // 3. ONLY route start frames to PanTool matrix layers here
+//   if (_panToolOverrideActive) {
+//     final ToolStartFrame frame = ToolStartFrame.compute(
+//       deviceKind: device,
+//       rawScreenPoint: details.localFocalPoint,
+//       layerId: _viewModel.activeLayerId,
+//       strokeIndex: _viewModel.drawHistory.length,
+//       screenToWorldConverter: (screenPoint) => screenToWorld(screenPoint),
+//     );
+//     tools[PanTool]!.onToolStart(frame);
+//     notifyListeners();
+//   }
+// }
 
-void handleScaleEnd() {
-  if (!drawEnabled) return;
-  if (_lastDeviceKind == PointerDeviceKind.trackpad) return;
+// void handleScaleEnd() {
+//   if (!drawEnabled) return;
+//   if (_lastDeviceKind == PointerDeviceKind.trackpad) return;
 
-  if (_panToolOverrideActive) {
-    if (_activePointerIds.isNotEmpty) {
-      notifyListeners();
-      return;
-    }
+//   if (_panToolOverrideActive) {
+//     if (_activePointerIds.isNotEmpty) {
+//       notifyListeners();
+//       return;
+//     }
     
-    final panTool = tools[PanTool]!;
-    if (panTool.isActive) {
-      final command = panTool.onToolEnd();
-      if (command != null) _viewModel.executeCommand(command);
-    }
+//     final panTool = tools[PanTool]!;
+//     if (panTool.isActive) {
+//       final command = panTool.onToolEnd();
+//       if (command != null) _viewModel.executeCommand(command);
+//     }
     
-    _panToolOverrideActive = false;
-    _currentTool.onPanOverrideEnd();
-    notifyListeners();
-  }
-}
+//     _panToolOverrideActive = false;
+//     _currentTool.onPanOverrideEnd();
+//     notifyListeners();
+//   }
+// }
 
 
 
   void disableDrawing() {
     // If a simple gesture tool is actively drawing, commit its current stroke safely
+    inputHandlers[lastDeviceKind]?.disableInput();
     if (_currentTool.isActive) {
       final command = _currentTool.onToolEnd();
       if (command != null) _viewModel.executeCommand(command);
@@ -445,16 +585,12 @@ void handleScaleEnd() {
     _currentTool.cancel();
 
     // Cleanly tear down any active temporal viewport pan matrix loops
-    final panTool = tools[PanTool]!;
-    if (panTool.isActive) {
-      final command = panTool.onToolEnd();
-      if (command != null) _viewModel.executeCommand(command);
+    if (_panTool.isActive) {
+      _panTool.onToolEnd();
     }
 
     // Force reset all environmental gesture variables
-    _panToolOverrideActive = false;
     drawEnabled = false;
-    _activePointerIds.clear();
     
     // Clear out stored gesture history objects to prevent stale tracking updates
     updateDetails = null;
@@ -464,17 +600,11 @@ void handleScaleEnd() {
   }
 
   void enableDrawing(PointerEnterEvent event) {
-    // Force clear tracking arrays to prevent stale pointer data from corrupting inputs
-    _activePointerIds.clear();
-    _panToolOverrideActive = false;
     
     // Clear input gesture details cache completely
     startDetails = null;
     updateDetails = null;
 
-    if(event.kind == PointerDeviceKind.touch){
-      _activePointerIds.add(event.pointer);
-    }
 
     // Open the drawing state gates safely
     drawEnabled = true;
@@ -483,21 +613,4 @@ void handleScaleEnd() {
   }
 
 
-  Offset screenToWorld(Offset screenPoint) {
-    final Matrix4 transformMatrix = _viewModel.camera.transform;
-
-    // Invert the camera transformation matrix to reverse the painter's shift
-    final Matrix4 inverted = Matrix4.copy(transformMatrix)..invert();
-
-    // Cast the 2D offset into a 4D vector space calculation block
-    final vm.Vector4 screenVector = vm.Vector4(
-      screenPoint.dx,
-      screenPoint.dy,
-      0.0,
-      1.0,
-    );
-    final vm.Vector4 worldVector = inverted.transform(screenVector);
-
-    return Offset(worldVector.x, worldVector.y);
-  }
 }

@@ -1,4 +1,6 @@
+import 'package:drawing_app/domain/models/tool_input_data/tool_input_data.dart';
 import 'package:drawing_app/ui/core/commands/canvas_command.dart';
+import 'package:drawing_app/ui/core/tool_input_handler/tool_input_handler.dart';
 import 'package:flutter/material.dart';
 
 import 'dart:ui';
@@ -94,8 +96,8 @@ abstract class CanvasTool {
 
     CanvasTool({required this.toolName, required this.toolIcon});
 
-    void onToolStart(ToolStartFrame toolFrame);
-    void onToolUpdate(ToolUpdateFrame toolFrame);
+    void onToolStart(ToolStartInput toolStartInput, String layerId, int strokeIndex);
+    void onToolUpdate(ToolUpdateInput toolUpdateInput, String layerId);
     CanvasCommand? onToolEnd();
 
     void onPanOverrideStart(){}

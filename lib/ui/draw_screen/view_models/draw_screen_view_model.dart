@@ -234,7 +234,7 @@ class DrawScreenViewModel extends ChangeNotifier {
   void resizeCanvas(double newWidth, double newHeight) async {
 
     // Potect against zero or negative dimensions
-    if (newWidth <= 0 || newHeight <= 0 || _currentCanvas == null) return; //TODO: current canvas should never be null after moving canvas creation to seperate model
+    if (newWidth <= 0 || newHeight <= 0 || _currentCanvas == null) return;
 
     CanvasDataCreated prevData = _currentCanvas!.copyWith(canvasSize: Size(newWidth, newHeight));
 
@@ -521,7 +521,7 @@ class DrawScreenViewModel extends ChangeNotifier {
     return Result.ok(null);
   }
 
-  // // TODO: This should live inside a project creation screen. That way the router only needs to send the new id
+  // LEAVING HERE IN THE EVENT OF NEEDING TO CREATE NEW PROJECTS FROM WITHIN THE PROJECT SCREEN
   // Future<Result<void>> _initializeNewProject(Size canvasSize) async {
 
   //   final String initialCanvasId = uuid.v4();

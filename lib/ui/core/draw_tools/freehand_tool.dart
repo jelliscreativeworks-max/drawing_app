@@ -1,8 +1,8 @@
 import 'dart:ui';
+import 'package:drawing_app/domain/models/tool_input_data/tool_input_data.dart';
 import 'package:drawing_app/ui/core/commands/canvas_command.dart';
 import 'package:drawing_app/domain/models/draw_data/draw_data.dart';
 import 'package:drawing_app/ui/core/commands/draw_command.dart';
-import 'package:drawing_app/ui/core/draw_tools/canvas_tool.dart';
 import 'package:drawing_app/ui/core/draw_tools/draw_tool.dart';
 
 class FreehandTool extends DrawTool implements StrokeToolType {
@@ -36,23 +36,23 @@ class FreehandTool extends DrawTool implements StrokeToolType {
   void toggleRenderStroke(bool enabled) => _renderStroke = enabled;
 
   @override
-  void onToolStart(ToolStartFrame toolFrame) {
+  void onToolStart(ToolStartInput toolStartInput, String layerId, int strokeIndex) {
     _isDrawing = true;
     _activeStroke = FreehandData(
-      layerId: toolFrame.activeLayerId,
+      layerId: layerId,
       strokePaint: _strokePaint,
       id: uuid.v4(),
-      index: toolFrame.nextStrokeIndex,
-      points: [toolFrame.worldPoint],
+      index: strokeIndex,
+      points: [toolStartInput.worldPoint],
       renderStroke: _renderStroke,
     );
   }
 
   @override
-  void onToolUpdate(ToolUpdateFrame toolFrame) {
+  void onToolUpdate(ToolUpdateInput toolUpdateInput, String layerId) {
     if (!_isDrawing) return;
     final updatedPoints = List<Offset>.from(_activeStroke!.points)
-      ..add(toolFrame.worldPoint);
+      ..add(toolUpdateInput.worldPoint);
     _activeStroke = _activeStroke!.copyWith(points: updatedPoints);
   }
 

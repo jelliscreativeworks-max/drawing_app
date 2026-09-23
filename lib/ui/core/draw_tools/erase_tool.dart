@@ -1,8 +1,8 @@
 import 'dart:ui';
 
+import 'package:drawing_app/domain/models/tool_input_data/tool_input_data.dart';
 import 'package:drawing_app/ui/core/commands/canvas_command.dart';
 import 'package:drawing_app/domain/models/draw_data/draw_data.dart';
-import 'package:drawing_app/ui/core/draw_tools/canvas_tool.dart';
 import 'package:drawing_app/ui/core/draw_tools/draw_tool.dart';
 import 'package:drawing_app/ui/core/commands/erase_draw_command.dart';
 import 'package:drawing_app/utils/history_consumer.dart';
@@ -40,20 +40,20 @@ class EraseTool extends DrawTool implements HistoryConsumer, StrokeToolType {
   void setHistorySnapshot(List<DrawData> drawHistory) => _drawHistory = drawHistory;
 
   @override
-  void onToolStart(ToolStartFrame toolFrame) {
+  void onToolStart(ToolStartInput toolStartInput, String layerId, int strokeIndex) {
     _isErasing = true;
-    _currentLayerId = toolFrame.activeLayerId;
-    _lastActivePoint = toolFrame.worldPoint;
+    _currentLayerId = layerId;
+    _lastActivePoint = toolStartInput.worldPoint;
     _erasedDrawData.clear();
 
-    _checkCollisions(toolFrame.worldPoint, toolFrame.worldPoint);
+    _checkCollisions(toolStartInput.worldPoint, toolStartInput.worldPoint);
   }
 
   @override
-  void onToolUpdate(ToolUpdateFrame toolFrame) {
+  void onToolUpdate(ToolUpdateInput toolUpdateInput, String layerId) {
     if (!_isErasing || _lastActivePoint == null) return;
-    _checkCollisions(_lastActivePoint!, toolFrame.worldPoint);
-    _lastActivePoint = toolFrame.worldPoint;
+    _checkCollisions(_lastActivePoint!, toolUpdateInput.worldPoint);
+    _lastActivePoint = toolUpdateInput.worldPoint;
   }
 
   @override

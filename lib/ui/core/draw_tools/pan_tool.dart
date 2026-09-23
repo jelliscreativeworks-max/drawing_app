@@ -1,5 +1,5 @@
-import 'dart:ui';
 import 'package:drawing_app/domain/models/canvas_camera.dart';
+import 'package:drawing_app/domain/models/tool_input_data/tool_input_data.dart';
 import 'package:drawing_app/ui/core/commands/canvas_command.dart';
 import 'package:drawing_app/ui/core/draw_tools/canvas_tool.dart';
 import 'package:flutter/material.dart';
@@ -20,8 +20,6 @@ class PanTool extends CanvasTool {
 
   /// Translates the camera matrix based on the calculated frame-to-frame delta vector.
   void _pan(Offset screenDelta) {
-    if (screenDelta == Offset.zero) return;
-
     _camera.transform = _camera.transform.clone()
       ..translateByVector3(
         vm.Vector3(
@@ -34,6 +32,7 @@ class PanTool extends CanvasTool {
 
   /// Scales the camera viewport matrix around the continuous focal coordinate.
   void _zoom(double scale) {
+
     final double baselineScale = _camera.currentScale;
     final double proposedScale = _camera.scaleStart * scale;
     final double clampedScale = proposedScale.clamp(0.2, 5.0);
@@ -68,36 +67,48 @@ class PanTool extends CanvasTool {
   }
 
   @override
-  void onToolStart(ToolStartFrame toolFrame) {
+  void onToolStart(ToolStartInput toolStartInput, String layerId, int strokeIndex) {
     _isPanning = true;
   }
-     @override
-  void onToolUpdate(ToolUpdateFrame toolFrame) {
-    if (!_isPanning) return;
-    
-    if (toolFrame.pointerDeviceKind == PointerDeviceKind.trackpad) {
-      final bool isZooming = (toolFrame.rawScale - 1.0).abs() > 0.001;
 
-      if (isZooming) {
-        _zoom(toolFrame.rawScale);
-      } else if (toolFrame.screenPoint != Offset.zero) {
-        _camera.transform = _camera.transform.clone()
-          ..translateByVector3(
-            vm.Vector3(
-              toolFrame.screenPoint.dx / _camera.currentScale,
-              toolFrame.screenPoint.dy / _camera.currentScale,
-              0.0,
-            ),
-          );
-      }
-    } else {
-      // Standard mouse, stylus, and touch gestures remain untouched
-      _pan(toolFrame.delta);
-      if (toolFrame.pointerDeviceKind == PointerDeviceKind.touch) {
-        _zoom(toolFrame.rawScale);
-      }
-    }
+  @override
+  void onToolUpdate(ToolUpdateInput toolUpdateInput, String layerId) {
+    if(!_isPanning) return;
+
+      if (toolUpdateInput.rawScale != 1.0) {
+    _zoom(toolUpdateInput.rawScale);
+  }  if (toolUpdateInput.delta != Offset.zero) {
+    _pan(toolUpdateInput.delta);
   }
+  }
+
+    //  @override
+  // void onToolUpdate(ToolUpdateInput toolUpdateInput, String layerId) {
+  //   if (!_isPanning) return;
+    
+  //   if (toolFrame.pointerDeviceKind == PointerDeviceKind.trackpad) {
+  //     final bool isZooming = (toolFrame.rawScale - 1.0).abs() > 0.001;
+
+  //     if (isZooming) {
+  //       _zoom(toolFrame.rawScale);
+  //     } else if (toolFrame.screenPoint != Offset.zero) {
+  //       _camera.transform = _camera.transform.clone()
+  //         ..translateByVector3(
+  //           vm.Vector3(
+  //             toolFrame.screenPoint.dx / _camera.currentScale,
+  //             toolFrame.screenPoint.dy / _camera.currentScale,
+  //             0.0,
+  //           ),
+  //         );
+  //     }
+  //   } else {
+  //     // Standard mouse, stylus, and touch gestures remain untouched
+  //     _pan(toolFrame.delta);
+  //     if (toolFrame.pointerDeviceKind == PointerDeviceKind.touch) {
+  //       _zoom(toolFrame.rawScale);
+  //     }
+  //   }
+  // }
 
 
 

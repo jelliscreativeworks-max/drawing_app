@@ -1,9 +1,9 @@
 import 'dart:ui';
 
 import 'package:drawing_app/domain/models/draw_data/draw_data.dart';
+import 'package:drawing_app/domain/models/tool_input_data/tool_input_data.dart';
 import 'package:drawing_app/ui/core/commands/canvas_command.dart';
 import 'package:drawing_app/ui/core/commands/draw_command.dart';
-import 'package:drawing_app/ui/core/draw_tools/canvas_tool.dart';
 import 'package:drawing_app/ui/core/draw_tools/draw_tool.dart';
 
 
@@ -42,15 +42,15 @@ class RectangleTool extends DrawTool implements StrokeToolType, FillToolType {
   void updateStrokePaint(Paint updatedStrokePaint) => _strokePaint = strokePaint;
 
   @override
-  void onToolStart(ToolStartFrame toolFrame) {
+  void onToolStart(ToolStartInput toolStartInput, String layerId, int strokeIndex) {
     _isDrawing = true;
-    _activeRect = RectData(layerId: toolFrame.activeLayerId, index: toolFrame.nextStrokeIndex, fillPaint: fillPaint, strokePaint: strokePaint, id: uuid.v4(), topLeft: toolFrame.worldPoint, botRight: toolFrame.worldPoint, renderFill: _renderFill, renderStroke: _renderStroke);
+    _activeRect = RectData(layerId: layerId, index: strokeIndex, fillPaint: fillPaint, strokePaint: strokePaint, id: uuid.v4(), topLeft: toolStartInput.worldPoint, botRight: toolStartInput.worldPoint, renderFill: _renderFill, renderStroke: _renderStroke);
   }
 
   @override
-  void onToolUpdate(ToolUpdateFrame toolFrame) {
+  void onToolUpdate(ToolUpdateInput toolUpdateInput, String layerId) {
     if(!_isDrawing) return;
-    _activeRect = _activeRect!.copyWith(botRight: toolFrame.worldPoint);
+    _activeRect = _activeRect!.copyWith(botRight: toolUpdateInput.worldPoint);
   }
 
   @override

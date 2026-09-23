@@ -1,10 +1,11 @@
 import 'dart:ui';
-
 import 'package:drawing_app/domain/models/draw_data/draw_data.dart';
+import 'package:drawing_app/domain/models/tool_input_data/tool_input_data.dart';
 import 'package:drawing_app/ui/core/commands/canvas_command.dart';
 import 'package:drawing_app/ui/core/commands/draw_command.dart';
 import 'package:drawing_app/ui/core/draw_tools/canvas_tool.dart';
 import 'package:drawing_app/ui/core/draw_tools/draw_tool.dart';
+import 'package:drawing_app/ui/core/tool_input_handler/tool_input_handler.dart';
 
 class CircleTool extends DrawTool implements StrokeToolType, FillToolType {
   bool _isDrawing = false;
@@ -52,15 +53,15 @@ class CircleTool extends DrawTool implements StrokeToolType, FillToolType {
       _strokePaint = updatedStrokePaint;
 
   @override
-  void onToolStart(ToolStartFrame toolFrame) {
+  void onToolStart(ToolStartInput toolStartInput, String layerId, int strokeIndex) {
     _isDrawing = true;
     _circlePreview = CircleData(
-      layerId: toolFrame.activeLayerId,
+      layerId: layerId,
       fillPaint: fillPaint,
       strokePaint: _strokePaint,
-      index: toolFrame.nextStrokeIndex,
+      index: strokeIndex,
       id: uuid.v4(),
-      center: toolFrame.worldPoint,
+      center: toolStartInput.worldPoint,
       radius: double.minPositive,
       renderFill: _renderFill,
       renderStroke: _renderFill,
@@ -68,10 +69,10 @@ class CircleTool extends DrawTool implements StrokeToolType, FillToolType {
   }
 
   @override
-  void onToolUpdate(ToolUpdateFrame toolFrame) {
+  void onToolUpdate(ToolUpdateInput toolUpdateInput, String layerId) {
     if (!_isDrawing) return;
     final double radius =
-        (toolFrame.points.world - _circlePreview!.center).distance;
+        (toolUpdateInput.points.world - _circlePreview!.center).distance;
     _circlePreview = _circlePreview!.copyWith(radius: radius);
   }
 

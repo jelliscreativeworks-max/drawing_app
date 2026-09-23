@@ -1,5 +1,5 @@
 import 'dart:ui';
-import 'package:drawing_app/ui/core/draw_tools/canvas_tool.dart';
+import 'package:drawing_app/domain/models/tool_input_data/tool_input_data.dart';
 import 'package:flutter/material.dart';
 import 'package:drawing_app/domain/models/draw_data/draw_data.dart';
 import 'package:drawing_app/ui/core/commands/canvas_command.dart';
@@ -73,34 +73,34 @@ class PathTool extends DrawTool implements StrokeToolType, FillToolType {
   @override void cancel() => _resetDrawingState();
 
   @override
-  void onToolStart(ToolStartFrame toolFrame) {
+  void onToolStart(ToolStartInput toolInputStart, String layerId, int strokeIndex) {
     if (_isPausedForPan) return;
 
     if (_isDrawing && _activePath != null) {
       _activePath = _activePath!.copyWith(
-        points: [..._activePath!.points, toolFrame.worldPoint],
+        points: [..._activePath!.points, toolInputStart.worldPoint],
       );
     } else {
       // First click down: Initialize a fresh new path model sequence
       _isDrawing = true;
       _activePath = PathData(
-        layerId: toolFrame.activeLayerId,
-        index: toolFrame.nextStrokeIndex,
+        layerId: layerId,
+        index: strokeIndex,
         id: uuid.v4(),
         strokePaint: strokePaint,
         fillPaint: fillPaint,
         renderFill: _renderFill,
         renderStroke: _renderStroke,
-        points: [toolFrame.worldPoint],
+        points: [toolInputStart.worldPoint],
       );
     }
     _pointCount++; // Advance your stable anchor window boundary forward 1 notch
   }
 
   @override
-  void onToolUpdate(ToolUpdateFrame toolFrame) {
+  void onToolUpdate(ToolUpdateInput toolUpdateInput, String layerId) {
     if (!_isDrawing || _activePath == null || _isPausedForPan) return;
-    final points = [..._activePath!.points.take(_pointCount), toolFrame.worldPoint];
+    final points = [..._activePath!.points.take(_pointCount), toolUpdateInput.worldPoint];
     _activePath = _activePath!.copyWith(points: points);
   }
 
