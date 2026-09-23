@@ -9,6 +9,11 @@ import 'package:drawing_app/utils/history_consumer.dart';
 
 class EraseTool extends DrawTool implements HistoryConsumer, StrokeToolType {
   final List<CanvasHistoryEntry> _erasedDrawData = [];
+
+  Set<String> get targetedForDeletion => _erasedDrawData
+      .map((entry) => entry.drawData.id)
+      .toSet();
+
   List<DrawData> _drawHistory = const [];
   String _currentLayerId = '';
   Paint _strokePaint;
@@ -26,7 +31,7 @@ class EraseTool extends DrawTool implements HistoryConsumer, StrokeToolType {
   @override
   bool get isActive => _isErasing;
   @override 
-  DrawData? get activePreview => null; // TODO: implement activePreview
+  DrawData? get activePreview => null;
   @override
   bool get renderStroke => false;
   @override
@@ -84,6 +89,7 @@ class EraseTool extends DrawTool implements HistoryConsumer, StrokeToolType {
     _erasedDrawData.clear();
     return eraseCommand;
   }
+
 
 
 

@@ -37,7 +37,33 @@ class ToolController extends ChangeNotifier {
   late PanTool _panTool;
 
 
-  // Offset _lastTrackedScreenPoint = Offset.zero;
+  /// 🟢 CONFORMS TO MVVM: Normalizes what needs to be painted on the 
+  /// real-time preview overlay track layer, freeing the view from collection filtering math.
+  List<DrawData> get overlayHistory {
+    // 1. If a standard tool (like Freehand/Rectangle) has an active preview, paint it
+    if (activePreview != null) {
+      return [activePreview!];
+    }
+
+    // 2. If the eraser is sweeping across the canvas, grab ONLY the targets
+    if (_currentTool is EraseTool && activeDeletionTargets.isNotEmpty) {
+      return _viewModel.drawHistory
+          .where((shape) => activeDeletionTargets.contains(shape.id))
+          .toList();
+    }
+
+    // 3. Otherwise, paint an empty list
+    return const [];
+  }
+
+
+  Set<String> get activeDeletionTargets {
+    if (_currentTool is EraseTool) {
+      return (_currentTool as EraseTool).targetedForDeletion;
+    }
+    return const {};
+  }
+
 
 
   late final Map<Type, CanvasTool> tools;

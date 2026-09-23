@@ -138,6 +138,7 @@ class _DrawScreenState extends State<DrawScreen> {
                                           '${layer.id}_${filteredLayerHistory.length}_${widget.viewModel.transformRevision}',
                                         ),
                                         painter: MyPainter(
+                                          deletionTargets: const {},
                                           deviceKind: widget
                                               .toolController
                                               .lastDeviceKind,
@@ -153,64 +154,31 @@ class _DrawScreenState extends State<DrawScreen> {
                                     ),
                                   );
                                 }),
-                                // C. Real-Time Active Pointer Stroke Sketch Preview Overlay Channel
-                                // Sits right on top of historical layer lines so in-progress shapes trace accurately!
                                 ListenableBuilder(
-                                  listenable: widget.toolController,
-                                  builder: (context, child) {
-                                    final DrawData? preview =
-                                        widget.toolController.activePreview;
+  listenable: widget.toolController,
+  builder: (context, child) {
+    final List<DrawData> overlayData = widget.toolController.overlayHistory;
 
-                                    if (preview == null &&
-                                        !widget
-                                            .toolController
-                                            .currentTool
-                                            .isActive) {
-                                      return const SizedBox.shrink();
-                                    }
+    // If there is nothing to preview and the tool is at rest, draw nothing
+    if (overlayData.isEmpty && !widget.toolController.currentTool.isActive) {
+      return const SizedBox.shrink();
+    }
 
-                                    return Positioned.fill(
-                                      child: CustomPaint(
-                                        painter: MyPainter(
-                                          deviceKind: widget
-                                              .toolController
-                                              .lastDeviceKind,
-                                          canvasHeight:
-                                              widget.viewModel.currentCanvas.currentHeight,
-                                          canvasWidth:
-                                              widget.viewModel.currentCanvas.currentWidth,
-                                          drawHistory: preview != null
-                                              ? [preview]
-                                              : const [],
-                                          transform:
-                                              widget.viewModel.camera.transform,
-                                          activeTool:
-                                              widget.toolController.currentTool,
-                                        ),
-                                      ),
-                                    );
-                                  },
-                                ),
-
-                                // Consumer<ToolController>(
-                                //   builder: (context, toolController, child) {
-                                //     return Positioned.fill(
-                                //       child: CustomPaint(
-                                //         painter: DebugPainter(
-                                //           drawScreenViewModel: widget.viewModel,
-                                //           toolController: toolController,
-                                //           transform:
-                                //               widget.viewModel.camera.transform,
-                                //           canvasHeight:
-                                //               widget.viewModel.currentCanvas.currentHeight,
-                                //           canvasWidth:
-                                //               widget.viewModel.currentCanvas.currentWidth,
-                                //           device: toolController.lastDeviceKind,
-                                //         ),
-                                //       ),
-                                //     );
-                                //   },
-                                // ),
+    return Positioned.fill(
+      child: CustomPaint(
+        painter: MyPainter(
+          deletionTargets: widget.toolController.activeDeletionTargets,
+          deviceKind: widget.toolController.lastDeviceKind,
+          canvasHeight: widget.viewModel.currentCanvas.currentHeight,
+          canvasWidth: widget.viewModel.currentCanvas.currentWidth,
+          drawHistory: overlayData, // 🟢 Clean MVVM pass-through list
+          transform: widget.viewModel.camera.transform,
+          activeTool: widget.toolController.currentTool,
+        ),
+      ),
+    );
+  },
+),
 
                                 // D. Persistent Document Guideline Grids Overlay
                                 Positioned.fill(

@@ -9,7 +9,7 @@ class MyPainter extends CustomPainter {
   final double canvasWidth;
   final double canvasHeight;
   final PointerDeviceKind deviceKind;
-  
+  final Set<String> deletionTargets; 
 
   final CanvasTool? activeTool;
 
@@ -19,7 +19,8 @@ class MyPainter extends CustomPainter {
     required this.transform,
     required this.canvasWidth,
     required this.canvasHeight,
-    this.activeTool, // Optional parameter maintains perfect backward compatibility
+    required this.deletionTargets,
+    this.activeTool,
   });
 
   @override
@@ -29,13 +30,36 @@ class MyPainter extends CustomPainter {
 
     final Rect artboardRect = Rect.fromLTWH(0, 0, canvasWidth, canvasHeight);
     canvas.clipRect(artboardRect, doAntiAlias: true);
-
-    // Render whatever drawing sequence data stream is passed into the list loop
     if (drawHistory.isNotEmpty) {
       for (final DrawData data in drawHistory) {
-        data.draw(canvas);
+        if (deletionTargets.contains(data.id)) {
+          // 1. 🟢 CREATE THE COMPOSITE STENCIL PAINT
+          final Paint layerPaint = Paint()
+            ..colorFilter = const ColorFilter.mode(
+              Color(0xFFD3D3D3), // Solid Light Grey
+              BlendMode.srcIn,
+            );
+
+          // 2. 🟢 PASS THE PAINT DIRECTLY INTO SAVELAYER
+          // By passing layerPaint here, Flutter captures everything drawn between 
+          // saveLayer and restore, forces it to merge as a single flat stencil, 
+          // and overrides all internal stroke/fill colors with your target color filter!
+          canvas.saveLayer(artboardRect, layerPaint);
+          
+          data.draw(canvas); 
+          
+          canvas.restore(); 
+        } else {
+          data.draw(canvas);
+        }
       }
     }
+
+
+
+
+
+
 
     // Allow tools to draw non-data UI decorators (like path node rings) over the lines
     // Pass the current matrix scale factor so sizes stay completely uniform when zooming
@@ -53,6 +77,7 @@ class MyPainter extends CustomPainter {
            oldDelegate.transform != transform ||
            oldDelegate.canvasWidth != canvasWidth ||
            oldDelegate.canvasHeight != canvasHeight ||
-           oldDelegate.activeTool != activeTool;
+           oldDelegate.activeTool != activeTool ||
+           oldDelegate.deletionTargets != deletionTargets;
   }
 }
