@@ -5,7 +5,7 @@ import 'package:flutter/gestures.dart';
 class MouseInputHandler extends ToolInputHandler {
 
 
-  MouseInputHandler({required super.onToolPress, required super.onToolUpdate, required super.onToolRelease, required super.onPanStart, required super.onPanUpdate, required super.onPanEnd});
+  MouseInputHandler({required super.onToolPress, required super.onToolUpdate, required super.onToolRelease, required super.onPanStart, required super.onPanUpdate, required super.onPanEnd, required super.screenPointConverter});
 
   /// All scale event functions are meant to be primary mouse button only. The pointerdown is still used but only to set the pointer device last kind and button int
   @override
@@ -16,7 +16,7 @@ class MouseInputHandler extends ToolInputHandler {
         ToolStartInput startInput = ToolStartInput.compute(
       kind: details.kind ?? lastDeviceKind, 
       rawScreenPoint: details.localFocalPoint, 
-      screenToWorldConverter: (screenPoint) => screenToWorld(screenPoint)
+      screenToWorldConverter: (screenPoint) => screenPointConverter(screenPoint)
       );
       onToolPress(startInput);
 
@@ -30,7 +30,7 @@ class MouseInputHandler extends ToolInputHandler {
     }
 
     activePointerCount = details.pointerCount;
-    ToolUpdateInput updateInput = ToolUpdateInput.compute(kind: lastDeviceKind,currentScreenPoint: details.localFocalPoint, currentScale: 1.0,   screenToWorldConverter: (screenPoint) => screenToWorld(screenPoint), lastScreenPoint: lastScreenPoint);
+    ToolUpdateInput updateInput = ToolUpdateInput.compute(kind: lastDeviceKind,currentScreenPoint: details.localFocalPoint, currentScale: 1.0,         screenToWorldConverter: (screenPoint) => screenPointConverter(screenPoint), lastScreenPoint: lastScreenPoint);
     lastScreenPoint = details.localFocalPoint;
     onToolUpdate(updateInput);
     
@@ -59,7 +59,7 @@ class MouseInputHandler extends ToolInputHandler {
     ToolStartInput startInput = ToolStartInput.compute(
       kind: event.kind, 
       rawScreenPoint: event.localPosition, 
-      screenToWorldConverter: (screenPoint) => screenToWorld(screenPoint)
+            screenToWorldConverter: (screenPoint) => screenPointConverter(screenPoint)
       );
       onPanStart(startInput);
   }
@@ -67,7 +67,7 @@ class MouseInputHandler extends ToolInputHandler {
   void onPointerMove(PointerMoveEvent event) {
     if(lastButtonsPressed != kMiddleMouseButton) return;
     activePointerCount = 1;
-    ToolUpdateInput updateInput = ToolUpdateInput.compute(kind: event.kind, currentScreenPoint: event.localPosition, currentScale: 1.0,   screenToWorldConverter: (screenPoint) => screenToWorld(screenPoint),lastScreenPoint: lastScreenPoint);
+    ToolUpdateInput updateInput = ToolUpdateInput.compute(kind: event.kind, currentScreenPoint: event.localPosition, currentScale: 1.0,         screenToWorldConverter: (screenPoint) => screenPointConverter(screenPoint),lastScreenPoint: lastScreenPoint);
     lastScreenPoint = event.localPosition;
     onPanUpdate(updateInput);
   }
@@ -96,12 +96,12 @@ class MouseInputHandler extends ToolInputHandler {
          ToolStartInput startInput = ToolStartInput.compute(
       kind: event.kind, 
       rawScreenPoint: event.localPosition, 
-      screenToWorldConverter: (screenPoint) => screenToWorld(screenPoint)
+      screenToWorldConverter: (screenPoint) => screenPointConverter(screenPoint)
       );
 
           
       onPanStart(startInput);
-      ToolUpdateInput updateInput = ToolUpdateInput.compute(kind: lastDeviceKind,currentScreenPoint: event.localPosition, currentScale: 1 - event.scrollDelta.dy.sign * 0.25,   screenToWorldConverter: (screenPoint) => screenToWorld(screenPoint), lastScreenPoint: lastScreenPoint, customDelta: Offset.zero);
+      ToolUpdateInput updateInput = ToolUpdateInput.compute(kind: lastDeviceKind,currentScreenPoint: event.localPosition, currentScale: 1 - event.scrollDelta.dy.sign * 0.25,         screenToWorldConverter: (screenPoint) => screenPointConverter(screenPoint), lastScreenPoint: lastScreenPoint, customDelta: Offset.zero);
       onPanUpdate(updateInput);
 
 

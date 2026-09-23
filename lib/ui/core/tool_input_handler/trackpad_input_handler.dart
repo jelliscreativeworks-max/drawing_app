@@ -10,6 +10,7 @@ class TrackpadInputHandler extends ToolInputHandler {
     required super.onPanStart,
     required super.onPanUpdate,
     required super.onPanEnd,
+    required super.screenPointConverter
   });
 
   @override
@@ -17,7 +18,7 @@ class TrackpadInputHandler extends ToolInputHandler {
     final ToolStartInput input = ToolStartInput.compute(
       kind: PointerDeviceKind.trackpad,
       rawScreenPoint: event.localPosition, // Mapped to true hover coordinate
-      screenToWorldConverter: (screenPoint) => screenToWorld(screenPoint),
+      screenToWorldConverter: (screenPoint) => screenPointConverter(screenPoint)
     );
 
     onPanStart(input);
@@ -33,7 +34,7 @@ class TrackpadInputHandler extends ToolInputHandler {
       kind: PointerDeviceKind.trackpad,
       points: (
         screen: event.localPosition,
-        world: screenToWorld(event.localPosition),
+        world: screenPointConverter(event.localPosition),
       ),
       rawScale: event.scale,
 

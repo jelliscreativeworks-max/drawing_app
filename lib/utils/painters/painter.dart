@@ -33,17 +33,13 @@ class MyPainter extends CustomPainter {
     if (drawHistory.isNotEmpty) {
       for (final DrawData data in drawHistory) {
         if (deletionTargets.contains(data.id)) {
-          // 1. 🟢 CREATE THE COMPOSITE STENCIL PAINT
           final Paint layerPaint = Paint()
             ..colorFilter = const ColorFilter.mode(
               Color(0xFFD3D3D3), // Solid Light Grey
               BlendMode.srcIn,
             );
 
-          // 2. 🟢 PASS THE PAINT DIRECTLY INTO SAVELAYER
-          // By passing layerPaint here, Flutter captures everything drawn between 
-          // saveLayer and restore, forces it to merge as a single flat stencil, 
-          // and overrides all internal stroke/fill colors with your target color filter!
+
           canvas.saveLayer(artboardRect, layerPaint);
           
           data.draw(canvas); 

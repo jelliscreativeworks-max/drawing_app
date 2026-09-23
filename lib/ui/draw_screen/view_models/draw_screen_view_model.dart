@@ -12,6 +12,7 @@ import 'package:drawing_app/domain/models/layer_data/layer_data.dart';
 import 'package:drawing_app/ui/core/commands/delete_layer_command.dart';
 import 'package:drawing_app/ui/core/commands/reorder_layer_command.dart';
 import 'package:drawing_app/utils/command.dart';
+import 'package:drawing_app/utils/extensions.dart';
 import 'package:drawing_app/utils/image_conversion.dart';
 import 'package:drawing_app/utils/result.dart';
 import 'package:flutter/material.dart';
@@ -35,10 +36,6 @@ class DrawScreenViewModel extends ChangeNotifier {
   }
 
   static const canvasBackgroundColor = Colors.white;
-
-  // Canvas Dimensions Fields
-  // double _canvasWidth = 2000.0;
-  // double _canvasHeight = 2000.0;
 
   // Logger 
   Logger log = Logger();
@@ -74,6 +71,10 @@ class DrawScreenViewModel extends ChangeNotifier {
   CanvasDataCreated? _currentCanvas;
   List<LayerData> _layers = [];
 
+  double _gridCellSize = 35;
+  bool _gridEnabled = true;
+  bool _gridSnapEnabled = true;
+
   CanvasData get currentCanvas => _currentCanvas ?? CanvasData.placeholder();
   List<LayerData> get layers => _layers;
   Map<String, Uint8List> get layerSnapshots => _layerSnapshots;
@@ -81,6 +82,10 @@ class DrawScreenViewModel extends ChangeNotifier {
   List<CanvasCommand> get redoHistory => _redoHistory;
   bool get canUndo => _undoHistory.isNotEmpty;
   bool get canRedo => _redoHistory.isNotEmpty;
+  
+  double get gridCellSize => _gridCellSize;
+  bool get gridEnabled => _gridEnabled;
+  bool get gridSnapEnabled => _gridSnapEnabled;
 
   int _activeLayerIndex = 0;
 
@@ -97,6 +102,67 @@ class DrawScreenViewModel extends ChangeNotifier {
 
   final ToolMatrixPayload camera = ToolMatrixPayload();
 
+  Offset? _lastSnappedWorldPoint;
+
+  void clearSnappingSession() {
+    _lastSnappedWorldPoint = null;
+  }
+
+  Offset getSnappedWorldPoint(Offset rawScreenPoint) {
+    final Offset worldPoint = rawScreenPoint.screenToWorld(camera.transform);
+
+    if (!gridSnapEnabled) {
+      return worldPoint;
+    }
+
+    // 2. Initialize the very first coordinate anchor when the user lands their finger
+    if (_lastSnappedWorldPoint == null) {
+      final double initialX = (worldPoint.dx / gridCellSize).round() * gridCellSize;
+      final double initialY = (worldPoint.dy / gridCellSize).round() * gridCellSize;
+      _lastSnappedWorldPoint = Offset(initialX, initialY);
+      return _lastSnappedWorldPoint!;
+    }
+
+    // 3. 🟢 COMPUTE LOCAL DELTAS FROM THE LAST STEP NODE:
+    // This evaluates your movement intent step-by-step, removing the rubber-band bug!
+    final Offset stepVector = worldPoint - _lastSnappedWorldPoint!;
+    final double absX = stepVector.dx.abs();
+    final double absY = stepVector.dy.abs();
+
+    // Dead-zone safety gate: If the pointer hasn't moved at least halfway 
+    // to a new grid cell threshold step, keep it locked on the active node.
+    if (absX < gridCellSize * 0.5 && absY < gridCellSize * 0.5) {
+      return _lastSnappedWorldPoint!;
+    }
+
+    double snappedX = _lastSnappedWorldPoint!.dx;
+    double snappedY = _lastSnappedWorldPoint!.dy;
+
+    // 4. 🟢 THE LOCALIZED DIRECTION DETECTOR
+    // Check the aspect ratio of the short step to lock clean 45 or straight paths
+    if (absX > 0.0 && absY / absX > 0.6 && absY / absX < 1.4) {
+      // Intentional Diagonal: Advance BOTH axes symmetrically by exactly 1 grid cell step!
+      snappedX += stepVector.dx.sign * gridCellSize;
+      snappedY += stepVector.dy.sign * gridCellSize;
+    } 
+    // Cardinal locks: advance only the primary movement axis
+    else if (absX > absY) {
+      // Primary Horizontal: Step only along the X axis, keeping Y locked flat
+      snappedX += stepVector.dx.sign * gridCellSize;
+    } else {
+      // Primary Vertical: Step only along the Y axis, keeping X locked flat
+      snappedY += stepVector.dy.sign * gridCellSize;
+    }
+
+    final Offset newSnap = Offset(snappedX, snappedY);
+    
+    // 5. Update our step anchor baseline tracking context for the next frame
+    _lastSnappedWorldPoint = newSnap;
+    return newSnap;
+  }
+
+
+
   String get activeLayerId {
     if (_layers.isEmpty) return '';
     return _layers[_activeLayerIndex].id;
@@ -104,6 +170,7 @@ class DrawScreenViewModel extends ChangeNotifier {
 
   List<DrawData> getHistoryForLayer(String layerId) =>
       _cachedLayerHistories[layerId] ?? const [];
+
   void executeCommand(CanvasCommand command) {
     final context = CanvasStateContext(
       layerData: _layers, 
@@ -139,7 +206,6 @@ class DrawScreenViewModel extends ChangeNotifier {
       saveDirtyProgress.execute();
     }
   }
-
 
   void undo() {
     if (_undoHistory.isEmpty) return;
@@ -228,8 +294,6 @@ class DrawScreenViewModel extends ChangeNotifier {
       saveDirtyProgress.execute();
     }
   }
-
-
 
   void resizeCanvas(double newWidth, double newHeight) async {
 
@@ -364,7 +428,8 @@ class DrawScreenViewModel extends ChangeNotifier {
 
     executeCommand(reorderCommand);
   }
-   Future<Result<void>> _saveDirtyProgress() async {
+   
+  Future<Result<void>> _saveDirtyProgress() async {
     if (_currentCanvas == null) {
       return Result.error(
         Exception("Canvas must not be null before saving workspace records"),
@@ -448,9 +513,6 @@ class DrawScreenViewModel extends ChangeNotifier {
     }
   }
 
-
-
-
   Future<Result<void>> _deleteLayer(String layerId) async {
     if (_currentCanvas == null) {
       return Result.error(Exception("Canvas must not be null before deleting layers"));
@@ -483,7 +545,6 @@ class DrawScreenViewModel extends ChangeNotifier {
     notifyListeners();
     return Result.ok(null);
   }
-
 
   /// Creates a new, empty layer directly above the current active layer
   Future<Result<void>> _createAndAddLayer() async {
@@ -521,7 +582,7 @@ class DrawScreenViewModel extends ChangeNotifier {
     return Result.ok(null);
   }
 
-  // LEAVING HERE IN THE EVENT OF NEEDING TO CREATE NEW PROJECTS FROM WITHIN THE PROJECT SCREEN
+  /*LEAVING HERE IN THE EVENT OF NEEDING TO CREATE NEW PROJECTS FROM WITHIN THE PROJECT SCREEN
   // Future<Result<void>> _initializeNewProject(Size canvasSize) async {
 
   //   final String initialCanvasId = uuid.v4();
@@ -583,6 +644,7 @@ class DrawScreenViewModel extends ChangeNotifier {
   //       return Result.error(result.error);
   //   }
   // }
+  */
 
 
   void _rebuildCacheForLayer(String layerId) {
@@ -614,8 +676,6 @@ class DrawScreenViewModel extends ChangeNotifier {
       log.w('Failed to synchronize project canvas structure metadata maps.');
     }
   }
-
-
 
   Future<Result> _getLayerSnapshot(
     String layerId) async {

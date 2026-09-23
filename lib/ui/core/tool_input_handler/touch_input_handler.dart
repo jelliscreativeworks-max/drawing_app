@@ -11,6 +11,7 @@ class TouchInputHandler extends ToolInputHandler {
     required super.onPanStart,
     required super.onPanUpdate,
     required super.onPanEnd,
+    required super.screenPointConverter
   });
 
   final Set<int> _activePointers = {};
@@ -33,7 +34,7 @@ class TouchInputHandler extends ToolInputHandler {
     final ToolStartInput startInput = ToolStartInput.compute(
       kind: details.kind ?? lastDeviceKind, 
       rawScreenPoint: details.localFocalPoint, 
-      screenToWorldConverter: (screenPoint) => screenToWorld(screenPoint),
+      screenToWorldConverter: (screenPoint) => screenPointConverter(screenPoint)
     );
 
     if (details.pointerCount > 1 || _shouldPan) {
@@ -68,7 +69,7 @@ class TouchInputHandler extends ToolInputHandler {
       kind: lastDeviceKind, 
       currentScreenPoint: details.localFocalPoint, 
       currentScale: details.scale,   
-      screenToWorldConverter: (screenPoint) => screenToWorld(screenPoint), 
+      screenToWorldConverter: (screenPoint) => screenPointConverter(screenPoint),
       lastScreenPoint: lastScreenPoint,
     );
     lastScreenPoint = details.localFocalPoint;
@@ -90,7 +91,7 @@ class TouchInputHandler extends ToolInputHandler {
       onPanStart(ToolStartInput.compute(
         kind: lastDeviceKind, 
         rawScreenPoint: focalPoint,  
-        screenToWorldConverter: (screenPoint) => screenToWorld(screenPoint),
+      screenToWorldConverter: (screenPoint) => screenPointConverter(screenPoint)
       ));
       return true;
     }

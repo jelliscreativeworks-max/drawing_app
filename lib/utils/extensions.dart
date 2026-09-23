@@ -1,5 +1,6 @@
 import 'dart:math';
 import 'package:flutter/material.dart';
+import 'package:vector_math/vector_math_64.dart' as vm;
 
 
 extension ListExtensions<T> on List<T>{
@@ -11,7 +12,26 @@ extension ListExtensions<T> on List<T>{
   }
 }
 
+extension OffsetConversion on Offset{
 
+  Offset screenToWorld(Matrix4 worldTransform) {
+    final Matrix4 transformMatrix = worldTransform;
+
+    // Invert the camera transformation matrix to reverse the painter's shift
+    final Matrix4 inverted = Matrix4.copy(transformMatrix)..invert();
+
+    // Cast the 2D offset into a 4D vector space calculation block
+    final vm.Vector4 screenVector = vm.Vector4(
+      dx,
+      dy,
+      0.0,
+      1.0,
+    );
+    final vm.Vector4 worldVector = inverted.transform(screenVector);
+
+    return Offset(worldVector.x, worldVector.y);
+  }
+}
 
 
 extension OffsetPointDetection on List<Offset>{

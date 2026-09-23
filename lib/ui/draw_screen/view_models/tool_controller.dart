@@ -83,6 +83,7 @@ class ToolController extends ChangeNotifier {
         onPanStart: (toolInput) => handlePanStart(toolInput),
         onPanUpdate: (toolInput) => handlePanUpdate(toolInput),
         onPanEnd: (toolInput) => handlePanEnd(toolInput),
+        screenPointConverter: (screenPoint) => _viewModel.getSnappedWorldPoint(screenPoint),
       ),
       PointerDeviceKind.touch : TouchInputHandler(
         onToolPress: (p0) => handleToolPressed(p0), 
@@ -91,6 +92,7 @@ class ToolController extends ChangeNotifier {
         onPanStart: (toolInput) => handlePanStart(toolInput),
         onPanUpdate: (toolInput) => handlePanUpdate(toolInput),
         onPanEnd: (toolInput) => handlePanEnd(toolInput),
+        screenPointConverter: (screenPoint) => _viewModel.getSnappedWorldPoint(screenPoint),
       ),
       PointerDeviceKind.trackpad: TrackpadInputHandler(
         onToolPress: (_){},
@@ -99,6 +101,7 @@ class ToolController extends ChangeNotifier {
         onPanStart:(toolInput) => handlePanStart(toolInput),
         onPanUpdate: (toolInput) => handlePanUpdate(toolInput),
         onPanEnd: (toolInput) => handlePanEnd(toolInput),
+        screenPointConverter: (screenPoint) => _viewModel.getSnappedWorldPoint(screenPoint),
       ),
     };
   }
@@ -121,6 +124,7 @@ class ToolController extends ChangeNotifier {
 
   void handleToolPressed(ToolStartInput input){
     if(!drawEnabled || _panTool.isActive) return;  
+    _viewModel.clearSnappingSession();
 
     if(_currentTool is PanTool){
       handlePanStart(input);
@@ -159,6 +163,7 @@ class ToolController extends ChangeNotifier {
 
   void handleToolReleased(ToolReleasedInput input){
     if(!drawEnabled) return;
+    _viewModel.clearSnappingSession();
     _endActiveTool();
     
   }

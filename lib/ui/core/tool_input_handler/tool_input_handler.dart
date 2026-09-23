@@ -15,6 +15,8 @@ abstract class ToolInputHandler {
   Function(ToolUpdateInput toolInput) onPanUpdate;
   Function(ToolReleasedInput toolInput) onPanEnd;
 
+  Offset Function(Offset screenPoint) screenPointConverter;
+
   late Matrix4 worldTransform;
 
 
@@ -26,7 +28,7 @@ abstract class ToolInputHandler {
   
 
 
-  ToolInputHandler({required this.onToolPress, required this.onToolUpdate, required this.onToolRelease, required this.onPanStart, required this.onPanUpdate, required this.onPanEnd});
+  ToolInputHandler({required this.onToolPress, required this.onToolUpdate, required this.onToolRelease, required this.onPanStart, required this.onPanUpdate, required this.onPanEnd, required this.screenPointConverter});
 
   void handleEvent<T>(T event, Matrix4 payload){
     worldTransform = payload;

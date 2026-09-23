@@ -192,7 +192,7 @@ class _DrawScreenState extends State<DrawScreen> {
                                       canvasWidth: widget.viewModel.currentCanvas.currentWidth,
                                       canvasHeight:
                                           widget.viewModel.currentCanvas.currentHeight,
-                                      cellSize: 35.0,
+                                      cellSize: widget.viewModel.gridCellSize,
                                       lineThickness: 1.2,
                                     ),
                                   ),
