@@ -124,12 +124,18 @@ class ToolController extends ChangeNotifier {
 
   void handleToolPressed(ToolStartInput input){
     if(!drawEnabled || _panTool.isActive) return;  
-    _viewModel.clearSnappingSession();
 
     if(_currentTool is PanTool){
       handlePanStart(input);
       return;
+    } else if(input.worldPoint.dx < 0 || input.worldPoint.dx > _viewModel.currentCanvas.currentWidth || input.worldPoint.dy < 0 || input.worldPoint.dy > _viewModel.currentCanvas.currentHeight){
+      _viewModel.clearSnappingSession();
+      return;
+    } else if(!_currentTool.isActive){
+          _viewModel.clearSnappingSession();
     }
+
+    
 
     if(_currentTool is HistoryConsumer){
       (_currentTool as HistoryConsumer).setHistorySnapshot(_viewModel.drawHistory);
@@ -151,6 +157,8 @@ class ToolController extends ChangeNotifier {
     if(_currentTool is PanTool){
       handlePanUpdate(input);
       return;
+    } else if(!_currentTool.isActive){
+      return;
     }
 
     _lastDeviceKind = input.kind;
@@ -162,7 +170,7 @@ class ToolController extends ChangeNotifier {
   
 
   void handleToolReleased(ToolReleasedInput input){
-    if(!drawEnabled) return;
+    if(!drawEnabled || !_currentTool.isActive) return;
     _viewModel.clearSnappingSession();
     _endActiveTool();
     
@@ -184,6 +192,8 @@ class ToolController extends ChangeNotifier {
 
       // If we are about to override the currently selected tool end it
     if(_currentTool is !PanTool){_endActiveTool();}
+
+
 
       _viewModel.camera.focalPointAtStart = input.screenPoint;
   _viewModel.camera.scaleStart = _viewModel.camera.currentScale;
