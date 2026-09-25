@@ -19,6 +19,46 @@ part of 'draw_data.dart';
       rectangle: (data) => Rect.fromPoints(data.topLeft, data.botRight));
   }
 
+  List<int> getAnchorPointForSelectedNode(int nodeIndex){
+    return map(
+      circle: (data) => [_getOppositeNodeInRect(nodeIndex)],
+    
+      freehand: (data) => [_getOppositeNodeInRect(nodeIndex)], 
+      line: (data) => nodeIndex == 1 || nodeIndex == 0 ? [nodeIndex] : [],
+      path: (data){
+        if(nodeIndex < data.points.length && nodeIndex >= 0){
+          if(nodeIndex == 0){
+            return [1];
+          } else if(nodeIndex == data.points.length - 1){
+              return [data.points.length - 2];
+          } else{
+             return [nodeIndex - 1, nodeIndex + 1];
+          }
+        } else {
+          return [];
+        }
+      },
+      rectangle: (data) => [_getOppositeNodeInRect(nodeIndex)]);
+  }
+
+    int _getOppositeNodeInRect(int referencePointIndex){
+    int refClamped = referencePointIndex.clamp(0, 7);
+
+    int index = switch(refClamped){
+      0 => 4,
+      1 => 5,
+      2 => 6,
+      3 => 7,
+      4 => 0,
+      5 => 1,
+      6 => 2,
+      7 => 3,
+      int() => throw UnimplementedError(),
+    };
+
+    return index;
+  }
+ 
   Rect getGroupBoundingBox(){
     return map(
       circle: (data) => Rect.fromCircle(center: data.center, radius: data.radius).inflate(10), 
@@ -66,14 +106,13 @@ part of 'draw_data.dart';
         double size = max(baseSize / scale, data.strokePaint.strokeWidth);
         double dist = data.points.findSmallestDistance(minThreshold);
 
-        print(data.points);
 
         if(dist - size > 0){
           return size;
         }
         return dist;
       }, 
-      rectangle: (data) => 0);
+      rectangle: (data) => data.getGroupBoundingBox().controlPointScale(scale, data.strokePaint.strokeWidth, baseSize, minThreshold));
   }
 
   

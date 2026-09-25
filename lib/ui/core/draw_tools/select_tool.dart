@@ -30,6 +30,9 @@ class SelectTool extends DrawTool implements HistoryConsumer{
   Rect? dragPreview;
   Rect groupPreview = Rect.zero;
 
+  double _currentScale = 1.0;
+
+
   @override
   // TODO: implement activePreview
   DrawData? get activePreview => null;
@@ -43,6 +46,7 @@ class SelectTool extends DrawTool implements HistoryConsumer{
     _currentLayerId = layerId;
     _startPoint = toolStartInput.worldPoint;
 
+    // TODO: This should be changed to check if the point is inside the area of the multi select not each individual element
     // STEP 1: Priority check. Did the click land inside the ALREADY active group selection?
     bool hitExistingMultiSelect = false;
     for (var data in _multiSelectData) {
@@ -59,15 +63,19 @@ class SelectTool extends DrawTool implements HistoryConsumer{
       return;
     }
 
-    // STEP 2: Did the click land inside the ALREADY active single selection?
-    if (_singleSelectData != null && 
-        _singleSelectData!.checkPointCollision(toolStartInput.worldPoint, toolStartInput.worldPoint, _singleClickRadius)) {
-      // Dragging the currently single-selected shape. Preserve it.
-      _didHitShapeOnDown = true;
-      transformShape();
-      return;
-    }
-
+    if(_singleSelectData != null){
+      // Check for node collision first
+      int? hitNode = checkNodeCollision(toolStartInput.worldPoint, _singleSelectData!.getControlPoints(), _singleSelectData!.getControlPointScale(15, _currentScale, 2));
+      if(hitNode != null){
+        // TODO: Scale using nodes
+        return;
+      }
+      // If we hit inside the shape we should move it
+      else if(_singleSelectData!.checkPointCollision(toolStartInput.worldPoint, toolStartInput.worldPoint, _singleClickRadius)){
+        _didHitShapeOnDown = true;
+        return;
+      }
+  
     // STEP 3: If we missed the active group and active single shape, this is a FRESH selection intent.
     // Cleanly flush all previous selection tracking arrays right here!
     _multiSelectData.clear();
@@ -85,7 +93,7 @@ class SelectTool extends DrawTool implements HistoryConsumer{
       // Struck completely empty space. Prepare to open a marquee selection box.
       _didHitShapeOnDown = false; 
     }
-  }
+    }}
 
   @override
   void onToolUpdate(ToolUpdateInput toolUpdateInput, String layerId) {
@@ -94,9 +102,14 @@ class SelectTool extends DrawTool implements HistoryConsumer{
     if (_didHitShapeOnDown) {
       // 1. Dragging an active shape or active group
       _transformActiveSelection(toolUpdateInput);
-    } else {
+    } 
+
+    // TODO: else if dragging node move the node around
+    
+    else {
       // 2. Dragging a marquee box over empty space
-      _checkWithinRectCollision(_startPoint, toolUpdateInput.worldPoint);
+      dragPreview = Rect.fromPoints(_startPoint, toolUpdateInput.worldPoint);
+      groupPreview = _getGroupBoundingBox(_startPoint, toolUpdateInput.worldPoint);
     }
   }
 
@@ -112,14 +125,13 @@ class SelectTool extends DrawTool implements HistoryConsumer{
         cancel();
       }
     } else {
-      print('Return Trany COmmand');
-      // 🟢 IMMUTABLE HANDOFF: The user let go of a drag transformation.
-      // This is exactly where we will return your concrete TransformCommand!
+      // if we actually manipulated something create a Transform Command and return it here to save the transformation else return null
     }
     
     dragPreview = null;
     return null;
   }
+
 
   @override
   void cancel() {
@@ -144,9 +156,24 @@ class SelectTool extends DrawTool implements HistoryConsumer{
     return null;
   }
 
-  void _checkWithinRectCollision(Offset fromPoint, Offset toPoint) {
+  /// Returns index of collided node or null if none was hit
+  int? checkNodeCollision(Offset point, List<Offset> nodePoints, double nodeScale){
+    Rect nodeRect;
+    for(int i = 0; i < nodePoints.length; i++){
+      nodeRect = Rect.fromCenter(center: nodePoints[i], width: nodeScale, height: nodeScale);
+      if(nodeRect.contains(point)){
+        return i;
+      }
+    }
+
+    return null;
+  }
+
+
+  /// Returns the smallest bounding box as a [Rect] around all elements within the checkbounds
+  Rect _getGroupBoundingBox(Offset fromPoint, Offset toPoint) {
     Rect checkBounds = Rect.fromPoints(fromPoint, toPoint);
-    dragPreview = checkBounds;
+    Rect groupedBounds = checkBounds;
     for (int i = 0; i < _drawHistory.length; i++) {
       final data = _drawHistory[i];
       if (data.layerId != _currentLayerId) continue;
@@ -162,19 +189,24 @@ class SelectTool extends DrawTool implements HistoryConsumer{
       }
     }
 
+
     if(_multiSelectData.length >= 2){
-      groupPreview = _multiSelectData.first.getGroupBoundingBox();
+      groupedBounds = _multiSelectData.first.getGroupBoundingBox();
       final list = _multiSelectData.toList();
       for(int i = 1; i < list.length; i++){
-        groupPreview = groupPreview.expandToInclude(list[i].getGroupBoundingBox());
+        groupedBounds = groupedBounds.expandToInclude(list[i].getGroupBoundingBox());
       }
-    }
+    } else{ return Rect.zero;}
+
+    return groupedBounds;
   }
+
+  
 
 // TODO: might want to pass min threshold as a number based on the screen size
   @override
   void drawToolOverlay(Canvas canvas, PointerDeviceKind device, double scale) {
-
+    _currentScale = scale;
   
     if (_singleSelectData != null) {
       Rect? box = _singleSelectData!.getIndividualBoundingBox();
@@ -189,7 +221,7 @@ class SelectTool extends DrawTool implements HistoryConsumer{
 
       canvas.drawPoints(PointMode.points, _singleSelectData!.getControlPoints(), nodePaintOutline);
       canvas.drawPoints(PointMode.points, _singleSelectData!.getControlPoints(), nodePaintFill);
-      
+
     }
     
     for (DrawData data in _multiSelectData) {
@@ -207,7 +239,10 @@ class SelectTool extends DrawTool implements HistoryConsumer{
       canvas.drawRect(groupPreview, groupSelectionPaint);
       canvas.drawPoints(PointMode.points, groupPreview.pointsToList(), nodePaintOutline);
       canvas.drawPoints(PointMode.points, groupPreview.pointsToList(), nodePaintFill);
+    
     }
+
+
   
       
     

@@ -25,8 +25,33 @@ extension RectExtensions on Rect{
       return minThreshold;
     }
   }
+
+
+  bool isPointInsideRect(Offset otherPosition) {
+  // Unpack the four corners instantly without list iterations
+
+  final edges = [topLeft, topRight, bottomRight, bottomLeft]; 
+  
+  int intersectCount = 0;
+  for (int i = 0; i < 4; i++) {
+    final Offset curr = edges[i];
+    final Offset next = edges[(i + 1) % 4];
+
+    if (((curr.dy > otherPosition.dy) != (next.dy > otherPosition.dy)) &&
+        (otherPosition.dx <
+            (next.dx - curr.dx) *
+                    (otherPosition.dy - curr.dy) /
+                    (next.dy - curr.dy) +
+                curr.dx)) {
+      intersectCount++;
+    }
+  }
+  return intersectCount % 2 != 0;
 }
 
+
+  
+}
 
 extension OffsetConversion on Offset{
 
