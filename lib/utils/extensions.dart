@@ -12,6 +12,22 @@ extension ListExtensions<T> on List<T>{
   }
 }
 
+extension RectExtensions on Rect{
+  List<Offset> pointsToList(){
+    return <Offset>[topLeft,topCenter,topRight,centerRight,bottomRight,bottomCenter,bottomLeft,centerLeft];
+  }
+
+  double controlPointScale(double scale, double borderBoxStrokeWidth, double baseSize, double minThreshold){
+    double size = min(max(baseSize/scale, borderBoxStrokeWidth), shortestSide / 2);
+    if(size > minThreshold){
+      return size;
+    } else{
+      return minThreshold;
+    }
+  }
+}
+
+
 extension OffsetConversion on Offset{
 
   Offset screenToWorld(Matrix4 worldTransform) {
@@ -40,6 +56,32 @@ extension OffsetPointDetection on List<Offset>{
 
     return (point - this[index]).distance;
   }
+
+
+
+
+double findSmallestDistance(double minThreshold) {
+  if (length < 2) {
+    throw ArgumentError("You need at least 2 points to find a distance.");
+  }
+
+  double minDistanceSq = double.infinity;
+
+  for (int i = 0; i < length; i++) {
+    for (int j = i + 1; j < length; j++) {
+      // Calculate squared distance (fast, no square root calculation yet)
+      double currentDistanceSq = (this[i] - this[j]).distanceSquared;
+
+      if (currentDistanceSq < minDistanceSq && currentDistanceSq >= minThreshold) {
+        minDistanceSq = currentDistanceSq;
+      }
+    }
+  }
+
+  // Take the square root once at the end to get the actual distance
+  return sqrt(minDistanceSq);
+}
+
 
 
 

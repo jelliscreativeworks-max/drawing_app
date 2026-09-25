@@ -53,8 +53,8 @@ class MouseInputHandler extends ToolInputHandler {
   void onPointerDown(PointerDownEvent event) {
     lastButtonsPressed = event.buttons;
     lastDeviceKind = event.kind;
-    if(event.buttons != kMiddleMouseButton) return;
     lastScreenPoint = event.localPosition;
+    if(event.buttons != kMiddleMouseButton) return;
     activePointerCount = 1;
     ToolStartInput startInput = ToolStartInput.compute(
       kind: event.kind, 
@@ -74,6 +74,8 @@ class MouseInputHandler extends ToolInputHandler {
 
   @override
   void onPointerUp(PointerUpEvent event) {
+        lastScreenPoint = event.localPosition;
+
     if(lastButtonsPressed != kMiddleMouseButton) return;
     activePointerCount = 0;
     final releasedInput = ToolReleasedInput(lastUsedDevice: event.kind);

@@ -71,9 +71,10 @@ class ToolUpdateInput {
 
 class ToolReleasedInput{
   final PointerDeviceKind lastUsedDevice;
+  
 
 
-  ToolReleasedInput({required this.lastUsedDevice});
+  ToolReleasedInput({required this.lastUsedDevice,});
 
   @override
   String toString() {

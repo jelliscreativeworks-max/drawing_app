@@ -10,6 +10,85 @@ part of 'draw_data.dart';
       rectangle: (data) => _drawRectangle(canvas, data));
   }
 
+  Rect getBounds(){
+    return map(
+      circle: (data) => Rect.fromCircle(center: data.center, radius: data.radius), 
+      freehand: (data) => (Path()..addPolygon(data.points, false)).getBounds(),
+      line: (data) => Rect.fromPoints(data.startPoint, data.endPoint), 
+      path: (data) => (Path()..addPolygon(data.points, data.closed)).getBounds(), 
+      rectangle: (data) => Rect.fromPoints(data.topLeft, data.botRight));
+  }
+
+  Rect getGroupBoundingBox(){
+    return map(
+      circle: (data) => Rect.fromCircle(center: data.center, radius: data.radius).inflate(10), 
+      freehand: (data) => (Path()..addPolygon(data.points, false)).getBounds().inflate(10),
+      line: (data) => Rect.fromPoints(data.startPoint, data.endPoint).inflate(10), 
+      path: (data) => (Path()..addPolygon(data.points, data.closed)).getBounds().inflate(10), 
+      rectangle: (data) => Rect.fromPoints(data.topLeft, data.botRight)).inflate(10);
+  }
+
+   Rect? getIndividualBoundingBox(){
+    return map(
+      circle: (data) => data.getGroupBoundingBox(),
+      freehand: (data) => data.getGroupBoundingBox(),
+      line: (data) => null,
+      path: (data) => null,
+      rectangle: (data) => data.getGroupBoundingBox()
+      );
+  }
+
+  double getControlPointScale(double baseSize, double scale, double minThreshold){
+    return map(
+      circle: (data) {
+        double size = (max(baseSize / scale,data.strokePaint.strokeWidth));
+        if(data.radius - size > 0){
+          return size;
+        } else if(data.radius > minThreshold){
+          return data.radius;
+        } else{
+          return minThreshold;
+        }
+      }, 
+      freehand: (data) => data.getGroupBoundingBox().controlPointScale(scale, data.strokePaint.strokeWidth, baseSize, minThreshold), 
+      line: (data) {
+        double size = max(baseSize / scale, data.strokePaint.strokeWidth);
+        double dist = (data.startPoint - data.endPoint).distance;
+        if(dist - size > 0){
+
+          return size;
+        } else{
+
+          return dist;
+        }
+        },
+      path: (data){
+        double size = max(baseSize / scale, data.strokePaint.strokeWidth);
+        double dist = data.points.findSmallestDistance(minThreshold);
+
+        print(data.points);
+
+        if(dist - size > 0){
+          return size;
+        }
+        return dist;
+      }, 
+      rectangle: (data) => 0);
+  }
+
+  
+
+  
+
+  List<Offset> getControlPoints(){
+    return map(
+      circle: (data) => data.getGroupBoundingBox().pointsToList(), 
+      freehand: (data) => data.getGroupBoundingBox().pointsToList(), 
+      line: (data) => [data.startPoint, data.endPoint], 
+      path: (data) => data.points, 
+      rectangle: (data) => data.getGroupBoundingBox().pointsToList());
+  }
+
   bool checkPointCollision(Offset fromPoint, Offset toPoint, double otherRadius){
 
     

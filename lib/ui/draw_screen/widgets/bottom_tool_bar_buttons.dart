@@ -3,6 +3,7 @@ import 'package:drawing_app/ui/core/draw_tools/erase_tool.dart';
 import 'package:drawing_app/ui/core/draw_tools/line_tool.dart';
 import 'package:drawing_app/ui/core/draw_tools/path_tool.dart';
 import 'package:drawing_app/ui/core/draw_tools/rectangle_tool.dart';
+import 'package:drawing_app/ui/core/draw_tools/select_tool.dart';
 import 'package:flutter/material.dart';
 import 'package:drawing_app/ui/draw_screen/view_models/tool_controller.dart';
 import 'package:drawing_app/ui/core/draw_tools/freehand_tool.dart'; // Assumed concrete file paths
@@ -33,6 +34,7 @@ class BottomToolBarButtons extends StatelessWidget {
         final lineToolInstance = toolController.tools[LineTool];
         final circleToolInstance = toolController.tools[CircleTool];
         final pathToolInstance = toolController.tools[PathTool];
+        final selectToolInstance = toolController.tools[SelectTool];
 
         return Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -98,6 +100,15 @@ class BottomToolBarButtons extends StatelessWidget {
                 tooltip: lineToolInstance.toolName,
                 onPressed: () => toolController.selectTool<LineTool>(),
                 color: toolController.currentTool is LineTool ? Colors.blueAccent : Colors.black87,
+              ),
+
+              if(selectToolInstance != null)
+              IconButton(
+                splashRadius: 24,
+                icon: selectToolInstance.toolIcon,
+                tooltip: selectToolInstance.toolName,
+                onPressed: () => toolController.selectTool<SelectTool>(),
+                color: toolController.currentTool is SelectTool ? Colors.blueAccent : Colors.black87,
               ),
           ],
         );

@@ -147,8 +147,8 @@ class _DrawScreenState extends State<DrawScreen> {
                                           canvasWidth:
                                               widget.viewModel.currentCanvas.currentWidth,
                                           drawHistory: filteredLayerHistory,
-                                          transform:
-                                              widget.viewModel.camera.transform,
+                                          camera:
+                                              widget.viewModel.camera,
                                         ),
                                       ),
                                     ),
@@ -172,7 +172,7 @@ class _DrawScreenState extends State<DrawScreen> {
           canvasHeight: widget.viewModel.currentCanvas.currentHeight,
           canvasWidth: widget.viewModel.currentCanvas.currentWidth,
           drawHistory: overlayData, // 🟢 Clean MVVM pass-through list
-          transform: widget.viewModel.camera.transform,
+          camera: widget.viewModel.camera,
           activeTool: widget.toolController.currentTool,
         ),
       ),
