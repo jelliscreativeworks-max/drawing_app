@@ -23,7 +23,7 @@ class FreehandTool extends DrawTool implements StrokeToolType {
   @override
   bool get isActive => _isDrawing;
   @override
-  DrawData? get activePreview => _activeStroke;
+  List<DrawData> get activePreview => _activeStroke != null ? [_activeStroke!] : const [];
   @override
   bool get renderStroke => _renderStroke;
   @override
@@ -43,7 +43,7 @@ class FreehandTool extends DrawTool implements StrokeToolType {
       strokePaint: _strokePaint,
       id: uuid.v4(),
       index: strokeIndex,
-      points: [toolStartInput.worldPoint],
+      points: [toolStartInput.snappedWorldPoint],
       renderStroke: _renderStroke,
     );
   }
@@ -52,7 +52,7 @@ class FreehandTool extends DrawTool implements StrokeToolType {
   void onToolUpdate(ToolUpdateInput toolUpdateInput, String layerId) {
     if (!_isDrawing) return;
     final updatedPoints = List<Offset>.from(_activeStroke!.points)
-      ..add(toolUpdateInput.worldPoint);
+      ..add(toolUpdateInput.snappedWorldPoint);
     _activeStroke = _activeStroke!.copyWith(points: updatedPoints);
   }
 

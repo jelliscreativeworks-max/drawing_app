@@ -44,7 +44,7 @@ class PathTool extends DrawTool implements StrokeToolType, FillToolType {
   @override void updateStrokePaint(Paint updatedStrokePaint) => _strokePaint = updatedStrokePaint;
 
   @override
-  DrawData? get activePreview => _activePath;
+  List<DrawData> get activePreview => _activePath != null ? [_activePath!] : const [];
 
   @override bool get isActive => _isDrawing;
 
@@ -68,7 +68,10 @@ class PathTool extends DrawTool implements StrokeToolType, FillToolType {
     _isPausedForPan = false;
   }
 
-  @override void onPanOverrideStart() => _isPausedForPan = true;
+  @override CanvasCommand? onPanOverrideStart() {
+    _isPausedForPan = true;
+    return null;
+  }
   @override void onPanOverrideEnd() => _isPausedForPan = false;
   @override void cancel() => _resetDrawingState();
 
@@ -78,7 +81,7 @@ class PathTool extends DrawTool implements StrokeToolType, FillToolType {
 
     if (_isDrawing && _activePath != null) {
       _activePath = _activePath!.copyWith(
-        points: [..._activePath!.points, toolInputStart.worldPoint],
+        points: [..._activePath!.points, toolInputStart.snappedWorldPoint],
       );
     } else {
       // First click down: Initialize a fresh new path model sequence
@@ -91,7 +94,7 @@ class PathTool extends DrawTool implements StrokeToolType, FillToolType {
         fillPaint: fillPaint,
         renderFill: _renderFill,
         renderStroke: _renderStroke,
-        points: [toolInputStart.worldPoint],
+        points: [toolInputStart.snappedWorldPoint],
       );
     }
     _pointCount++; // Advance your stable anchor window boundary forward 1 notch
@@ -100,7 +103,7 @@ class PathTool extends DrawTool implements StrokeToolType, FillToolType {
   @override
   void onToolUpdate(ToolUpdateInput toolUpdateInput, String layerId) {
     if (!_isDrawing || _activePath == null || _isPausedForPan) return;
-    final points = [..._activePath!.points.take(_pointCount), toolUpdateInput.worldPoint];
+    final points = [..._activePath!.points.take(_pointCount), toolUpdateInput.snappedWorldPoint];
     _activePath = _activePath!.copyWith(points: points);
   }
 

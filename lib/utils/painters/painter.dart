@@ -11,6 +11,7 @@ class MyPainter extends CustomPainter {
   final double canvasHeight;
   final PointerDeviceKind deviceKind;
   final Set<String> deletionTargets; 
+  final Set<String> hiddenData;
 
   final CanvasTool? activeTool;
 
@@ -21,6 +22,7 @@ class MyPainter extends CustomPainter {
     required this.canvasWidth,
     required this.canvasHeight,
     required this.deletionTargets,
+    required this.hiddenData,
     this.activeTool,
   });
 
@@ -33,7 +35,10 @@ class MyPainter extends CustomPainter {
     canvas.clipRect(artboardRect, doAntiAlias: true);
     if (drawHistory.isNotEmpty) {
       for (final DrawData data in drawHistory) {
-        if (deletionTargets.contains(data.id)) {
+        if(hiddenData.contains(data.id)){
+          continue;
+        }
+        else if (deletionTargets.contains(data.id)) {
           final Paint layerPaint = Paint()
             ..colorFilter = const ColorFilter.mode(
               Color(0xFFD3D3D3), // Solid Light Grey
@@ -46,7 +51,7 @@ class MyPainter extends CustomPainter {
           data.draw(canvas); 
           
           canvas.restore(); 
-        } else {
+        } else{
           data.draw(canvas);
         }
       }
@@ -75,7 +80,8 @@ class MyPainter extends CustomPainter {
            oldDelegate.canvasWidth != canvasWidth ||
            oldDelegate.canvasHeight != canvasHeight ||
            oldDelegate.activeTool != activeTool ||
-           oldDelegate.deletionTargets != deletionTargets;
+           oldDelegate.deletionTargets != deletionTargets ||
+           oldDelegate.hiddenData != hiddenData ||
            oldDelegate.camera.currentScale != camera.currentScale;
 
     return should;

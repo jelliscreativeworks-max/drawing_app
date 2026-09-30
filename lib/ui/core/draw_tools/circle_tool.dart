@@ -28,7 +28,7 @@ class CircleTool extends DrawTool implements StrokeToolType, FillToolType {
        _renderStroke = renderStroke;
 
   @override
-  DrawData? get activePreview => _circlePreview;
+  List<DrawData> get activePreview => _circlePreview != null ? [_circlePreview!] : const [];
   @override
   bool get isActive => _isDrawing;
   @override
@@ -59,7 +59,7 @@ class CircleTool extends DrawTool implements StrokeToolType, FillToolType {
       strokePaint: _strokePaint,
       index: strokeIndex,
       id: uuid.v4(),
-      center: toolStartInput.worldPoint,
+      center: toolStartInput.snappedWorldPoint,
       radius: double.minPositive,
       renderFill: _renderFill,
       renderStroke: _renderFill,
@@ -70,7 +70,7 @@ class CircleTool extends DrawTool implements StrokeToolType, FillToolType {
   void onToolUpdate(ToolUpdateInput toolUpdateInput, String layerId) {
     if (!_isDrawing) return;
     final double radius =
-        (toolUpdateInput.points.world - _circlePreview!.center).distance;
+        (toolUpdateInput.snappedPoints.world - _circlePreview!.center).distance;
     _circlePreview = _circlePreview!.copyWith(radius: radius);
   }
 

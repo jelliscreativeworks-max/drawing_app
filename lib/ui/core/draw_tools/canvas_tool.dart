@@ -99,8 +99,7 @@ abstract class CanvasTool {
     void onToolUpdate(ToolUpdateInput toolUpdateInput, String layerId);
     CanvasCommand? onToolEnd();
 
-    void onPanOverrideStart(){}
-    void onPanOverrideEnd(){}
+
 
     void drawToolOverlay(Canvas canvas, PointerDeviceKind device, double scale){}
 

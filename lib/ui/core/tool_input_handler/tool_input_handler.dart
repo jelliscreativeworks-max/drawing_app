@@ -1,6 +1,5 @@
 import 'package:drawing_app/domain/models/tool_input_data/tool_input_data.dart';
 import 'package:flutter/gestures.dart';
-import 'package:vector_math/vector_math_64.dart' as vm;
 
 
 
@@ -15,7 +14,8 @@ abstract class ToolInputHandler {
   Function(ToolUpdateInput toolInput) onPanUpdate;
   Function(ToolReleasedInput toolInput) onPanEnd;
 
-  Offset Function(Offset screenPoint) screenPointConverter;
+  Offset Function(Offset screenPoint) snappedScreenPointConverter;
+  Offset Function(Offset screenPoint) unsnappedScreenPointConverter;
 
   late Matrix4 worldTransform;
 
@@ -28,7 +28,7 @@ abstract class ToolInputHandler {
   
 
 
-  ToolInputHandler({required this.onToolPress, required this.onToolUpdate, required this.onToolRelease, required this.onPanStart, required this.onPanUpdate, required this.onPanEnd, required this.screenPointConverter});
+  ToolInputHandler({required this.onToolPress, required this.onToolUpdate, required this.onToolRelease, required this.onPanStart, required this.onPanUpdate, required this.onPanEnd, required this.snappedScreenPointConverter, required this.unsnappedScreenPointConverter});
 
   void handleEvent<T>(T event, Matrix4 payload){
     worldTransform = payload;
@@ -76,24 +76,6 @@ abstract class ToolInputHandler {
 
   void disableInput();
 
-  
-  Offset screenToWorld(Offset screenPoint) {
-    final Matrix4 transformMatrix = worldTransform;
-
-    // Invert the camera transformation matrix to reverse the painter's shift
-    final Matrix4 inverted = Matrix4.copy(transformMatrix)..invert();
-
-    // Cast the 2D offset into a 4D vector space calculation block
-    final vm.Vector4 screenVector = vm.Vector4(
-      screenPoint.dx,
-      screenPoint.dy,
-      0.0,
-      1.0,
-    );
-    final vm.Vector4 worldVector = inverted.transform(screenVector);
-
-    return Offset(worldVector.x, worldVector.y);
-  }
 }
 
 

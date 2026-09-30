@@ -10,6 +10,49 @@ part of 'draw_data.dart';
       rectangle: (data) => _drawRectangle(canvas, data));
   }
 
+  bool hasSamePropertiesAsOther(DrawData other){
+    if(runtimeType != other.runtimeType) return false;
+
+   return map(
+      circle: (current) {
+        final otherCircle = other as CircleData;
+        return current.center == otherCircle.center &&
+               current.radius == otherCircle.radius;
+      },
+      freehand: (current) {
+        final otherFreehand = other as FreehandData;
+        // Pointer check first for performance, then check individual points
+        if (identical(current.points, otherFreehand.points)) return true;
+        if (current.points.length != otherFreehand.points.length) return false;
+        
+        for (int i = 0; i < current.points.length; i++) {
+          if (current.points[i] != otherFreehand.points[i]) return false;
+        }
+        return true;
+      },
+      line: (current) {
+        final otherLine = other as LineData;
+        return current.startPoint == otherLine.startPoint &&
+               current.endPoint == otherLine.endPoint;
+      },
+      path: (current) {
+        final otherPath = other as PathData;
+        if (identical(current.points, otherPath.points)) return true;
+        if (current.points.length != otherPath.points.length) return false;
+        
+        for (int i = 0; i < current.points.length; i++) {
+          if (current.points[i] != otherPath.points[i]) return false;
+        }
+        return current.closed == otherPath.closed;
+      },
+      rectangle: (current) {
+        final otherRect = other as RectData;
+        return current.topLeft == otherRect.topLeft &&
+               current.botRight == otherRect.botRight;
+      },
+    );
+  }
+
   Rect getBounds(){
     return map(
       circle: (data) => Rect.fromCircle(center: data.center, radius: data.radius), 
@@ -19,26 +62,249 @@ part of 'draw_data.dart';
       rectangle: (data) => Rect.fromPoints(data.topLeft, data.botRight));
   }
 
-  List<int> getAnchorPointForSelectedNode(int nodeIndex){
+  DrawData scaleRelativeToAnchor(double sx, double sy, Offset anchor) {
+    // Local helper to scale any individual point relative to the anchor
+    Offset scalePoint(Offset p) {
+      return Offset(
+        anchor.dx + (p.dx - anchor.dx) * sx,
+        anchor.dy + (p.dy - anchor.dy) * sy,
+      );
+    }
+
     return map(
-      circle: (data) => [_getOppositeNodeInRect(nodeIndex)],
+            circle: (current) {
+        final Offset newCenter = scalePoint(current.center);
+        
+        // 🌟 THE BOUNDARY FIX: Determine what kind of stretch is happening
+        double uniformScale = 1.0;
+        
+        if (sx == 1.0) {
+          // Pure Vertical Drag (Handles 1 & 5): Scale radius exclusively by sy
+          uniformScale = sy.abs();
+        } else if (sy == 1.0) {
+          // Pure Horizontal Drag (Handles 3 & 7): Scale radius exclusively by sx
+          uniformScale = sx.abs();
+        } else {
+          // Corner Diagonal Drag (Handles 0, 2, 4, 6): Use the proportional average 
+          uniformScale = (sx.abs() + sy.abs()) / 2.0;
+        }
+
+        return current.copyWith(
+          center: newCenter,
+          radius: current.radius * uniformScale,
+        );
+      },
+
+      freehand: (current) => current.copyWith(
+        points: current.points.map(scalePoint).toList(),
+      ),
+      line: (current) => current.copyWith(
+        startPoint: scalePoint(current.startPoint),
+        endPoint: scalePoint(current.endPoint),
+      ),
+      path: (current) => current.copyWith(
+        points: current.points.map(scalePoint).toList(),
+      ),
+      rectangle: (current) {
+        final Offset newTopLeft = scalePoint(current.topLeft);
+        final Offset newBotRight = scalePoint(current.botRight);
+        
+        // Ensure topLeft stays top-left and botRight stays bottom-right if scaled negatively
+        return current.copyWith(
+          topLeft: Offset(min(newTopLeft.dx, newBotRight.dx), min(newTopLeft.dy, newBotRight.dy)),
+          botRight: Offset(max(newTopLeft.dx, newBotRight.dx), max(newTopLeft.dy, newBotRight.dy)),
+        );
+      },
+    );
+  }
+
+DrawData translate(Offset delta) {
+    return map(
+      circle: (current) => current.copyWith(
+        center: current.center + delta,
+      ),
+      freehand: (current) => current.copyWith(
+        // Map over every individual raw point in the line sketch layout array
+        points: current.points.map((point) => point + delta).toList(),
+      ),
+      line: (current) => current.copyWith(
+        startPoint: current.startPoint + delta,
+        endPoint: current.endPoint + delta,
+      ),
+      path: (current) => current.copyWith(
+        points: current.points.map((point) => point + delta).toList(),
+      ),
+      rectangle: (current) => current.copyWith(
+        topLeft: current.topLeft + delta,
+        botRight: current.botRight + delta,
+      ),
+    );
+  }
+
+DrawData applyNodeTransformation((int index, Offset nodePosition) activeNode, Offset mousePosition, Offset anchorPointPosition){
+    return map(
+      circle: (data){
+        int nodeIndex = activeNode.$1;
+
+        bool isCorner = nodeIndex == 0 || nodeIndex == 2 || nodeIndex == 4 || nodeIndex == 6;
+
+        if (isCorner) {
+          // 1. Get the exact 45-degree angle line this corner handle travels on
+          Offset initialDiagonalVector = activeNode.$2 - anchorPointPosition;
+          if (initialDiagonalVector.distance == 0) return data;
+          Offset diagonalDirection = initialDiagonalVector / initialDiagonalVector.distance;
+
+          // 2. Project the mouse cursor directly onto that 45-degree line
+          Offset mouseFromAnchor = mousePosition - anchorPointPosition;
+          double projectedDistance = (mouseFromAnchor.dx * diagonalDirection.dx) + 
+                                     (mouseFromAnchor.dy * diagonalDirection.dy);
+
+          // 3. Determine if we are scaling positively or flipped negatively across the anchor
+          bool isNegativeScale = projectedDistance < 0;
+
+          // 4. Strip away the 20px padding correctly based on direction
+          double rawDiagonalLength;
+          if (!isNegativeScale) {
+            rawDiagonalLength = projectedDistance - 20.0;
+            if (rawDiagonalLength < 0) rawDiagonalLength = 0; // Prevent deadzone jitter
+          } else {
+            rawDiagonalLength = projectedDistance + 20.0;
+            if (rawDiagonalLength > 0) rawDiagonalLength = 0; 
+          }
+
+          // Convert to an absolute scale size for calculating dimensions
+          double absoluteRawDiagonal = rawDiagonalLength.abs();
+
+          // 5. Calculate the dynamic operational direction (flips if negative)
+          Offset currentDirection = isNegativeScale ? -diagonalDirection : diagonalDirection;
+
+          // 6. Derive true geometric edges from the stationary anchor point position
+          Offset rawAnchorPoint = anchorPointPosition + (currentDirection * 10.0);
+          Offset center = rawAnchorPoint + (currentDirection * (absoluteRawDiagonal * 0.5));
+
+          // 7. Calculate true radius from the side length
+          double boxSideLength = absoluteRawDiagonal / 1.41421356;
+          double radius = boxSideLength * 0.5;
+
+          return data.copyWith(center: center, radius: radius);
+        } else {
+          // Side Dragging (Stays centered and locked)
+          double targetRadiusWithPadding = (data.center - mousePosition).distance;
+          double radius = targetRadiusWithPadding - 10.0;
+          if (radius < 0) radius = 0;
+
+          return data.copyWith(center: data.center, radius: radius);
+        }
+      }, 
+      
+      // 🌟 RECTANGLE IMPLEMENTATION
+      // Matches the bounding box style using the stationary anchor point position
+            rectangle: (data) {
+        int nodeIndex = activeNode.$1;
+        
+        // Custom 8-node bounding layout assumption:
+        // 0: TopLeft, 1: TopCenter, 2: TopRight, 3: RightCenter, 
+        // 4: BottomRight, 5: BottomCenter, 6: BottomLeft, 7: LeftCenter
+        
+        // Extract the anchor coordinates (the opposite static boundary corner/edge)
+        double staticX = anchorPointPosition.dx;
+        double staticY = anchorPointPosition.dy;
+        
+        // Track the newly modified coordinates initialized to the current mouse state
+        double targetX = mousePosition.dx;
+        double targetY = mousePosition.dy;
+
+        // 🌟 THE PATCH: Anchor to existing properties for side-handles to prevent collapsing
+        switch (nodeIndex) {
+          case 1: // TopCenter (Modifying Top Edge only)
+          case 5: // BottomCenter (Modifying Bottom Edge only)
+            // Lock X-axis variations to match the existing shape's absolute current width
+            staticX = data.topLeft.dx;
+            targetX = data.botRight.dx;
+            break;
+            
+          case 3: // RightCenter (Modifying Right Edge only)
+          case 7: // LeftCenter (Modifying Left Edge only)
+            // Lock Y-axis variations to match the existing shape's absolute current height
+            staticY = data.topLeft.dy;
+            targetY = data.botRight.dy;
+            break;
+            
+          default:
+            // Corners (0, 2, 4, 6) use the generic opposite structural point mapping
+            break;
+        }
+
+        // Re-compile bounding box corners dynamically based on spatial quadrants 
+        Offset topLeft = Offset(min(staticX, targetX), min(staticY, targetY));
+        Offset botRight = Offset(max(staticX, targetX), max(staticY, targetY));
+
+        return data.copyWith(topLeft: topLeft, botRight: botRight);
+      },
+
+      
+      // 🌟 LINE IMPLEMENTATION
+      // A line has exactly 2 node points (0: StartPoint, 1: EndPoint). 
+      // Whichever node isn't selected automatically acts as the stationary anchor.
+      line: (data) {
+        int nodeIndex = activeNode.$1;
+        
+        if (nodeIndex == 0) {
+          // Dragging the line origin point, while the end point remains stationary
+          return data.copyWith(startPoint: mousePosition);
+        } else {
+          // Dragging the line endpoint, while the origin remains stationary
+          return data.copyWith(endPoint: mousePosition);
+        }
+      },
+
+      freehand: (data) => data, // Complex paths use scale factor matrices instead of corner nodes
+      path: (data) => data
+    );
+}
+
+
+
+
+
+
+
+
+
+
+  Offset getAnchorForSelectedNode(int nodeIndex){
+    return map(
+      circle: (data) => data.getRawControlPoints()[_getOppositeNodeInRect(nodeIndex)]!,
     
-      freehand: (data) => [_getOppositeNodeInRect(nodeIndex)], 
-      line: (data) => nodeIndex == 1 || nodeIndex == 0 ? [nodeIndex] : [],
+      freehand: (data) => data.getRawControlPoints()[_getOppositeNodeInRect(nodeIndex)]!, 
+      line: (data){
+        if(nodeIndex == 1){
+          return data.startPoint;
+        } else if(nodeIndex == 0){
+          return data.endPoint;
+        } else{
+          return Offset.zero;
+        }
+       
+      },
       path: (data){
         if(nodeIndex < data.points.length && nodeIndex >= 0){
           if(nodeIndex == 0){
-            return [1];
+            return data.points[1];
           } else if(nodeIndex == data.points.length - 1){
-              return [data.points.length - 2];
+              return data.points[data.points.length - 2];
           } else{
-             return [nodeIndex - 1, nodeIndex + 1];
+              final p1 = data.points[nodeIndex - 1];
+              final p2 = data.points[nodeIndex + 1];
+
+              
+             return p1 - p2;
           }
         } else {
-          return [];
+          return Offset.zero;
         }
       },
-      rectangle: (data) => [_getOppositeNodeInRect(nodeIndex)]);
+      rectangle: (data) => data.getRawControlPoints()[_getOppositeNodeInRect(nodeIndex)]!);
   }
 
     int _getOppositeNodeInRect(int referencePointIndex){
@@ -117,15 +383,23 @@ part of 'draw_data.dart';
 
   
 
-  
+  Map<int, Offset> getRawControlPoints() {
+  return map(
+    circle: (data) => data.getBounds().pointsToList().asMap(), 
+    freehand: (data) => data.getBounds().pointsToList().asMap(), 
+    line: (data) => [data.startPoint, data.endPoint].asMap(), 
+    path: (data) => data.points.asMap(), 
+    rectangle: (data) => data.getBounds().pointsToList().asMap(),
+  );
+}
 
-  List<Offset> getControlPoints(){
+  Map<int, Offset> getControlPoints(){
     return map(
-      circle: (data) => data.getGroupBoundingBox().pointsToList(), 
-      freehand: (data) => data.getGroupBoundingBox().pointsToList(), 
-      line: (data) => [data.startPoint, data.endPoint], 
-      path: (data) => data.points, 
-      rectangle: (data) => data.getGroupBoundingBox().pointsToList());
+      circle: (data) =>  data.getGroupBoundingBox().pointsToList().asMap(), 
+      freehand: (data) => data.getGroupBoundingBox().pointsToList().asMap(), 
+      line: (data) => [data.startPoint, data.endPoint].asMap(), 
+      path: (data) => data.points.asMap(), 
+      rectangle: (data) => data.getGroupBoundingBox().pointsToList().asMap());
   }
 
   bool checkPointCollision(Offset fromPoint, Offset toPoint, double otherRadius){

@@ -20,7 +20,7 @@ class RectangleTool extends DrawTool implements StrokeToolType, FillToolType {
   RectangleTool({required super.toolName, required super.toolIcon, required Paint defaultStrokePaint, required Paint defaultFillPaint, required bool renderStroke, required bool renderFill}) : _renderFill = renderFill, _renderStroke = renderStroke, _fillPaint = defaultFillPaint, _strokePaint = defaultStrokePaint;
 
   @override
-  DrawData? get activePreview => _activeRect;
+  List<DrawData> get activePreview => _activeRect != null ? [_activeRect!] : const [];
   @override
   bool get isActive => _isDrawing;
   @override
@@ -44,13 +44,13 @@ class RectangleTool extends DrawTool implements StrokeToolType, FillToolType {
   @override
   void onToolStart(ToolStartInput toolStartInput, String layerId, int strokeIndex) {
     _isDrawing = true;
-    _activeRect = RectData(layerId: layerId, index: strokeIndex, fillPaint: fillPaint, strokePaint: strokePaint, id: uuid.v4(), topLeft: toolStartInput.worldPoint, botRight: toolStartInput.worldPoint, renderFill: _renderFill, renderStroke: _renderStroke);
+    _activeRect = RectData(layerId: layerId, index: strokeIndex, fillPaint: fillPaint, strokePaint: strokePaint, id: uuid.v4(), topLeft: toolStartInput.snappedWorldPoint, botRight: toolStartInput.snappedWorldPoint, renderFill: _renderFill, renderStroke: _renderStroke);
   }
 
   @override
   void onToolUpdate(ToolUpdateInput toolUpdateInput, String layerId) {
     if(!_isDrawing) return;
-    _activeRect = _activeRect!.copyWith(botRight: toolUpdateInput.worldPoint);
+    _activeRect = _activeRect!.copyWith(botRight: toolUpdateInput.snappedWorldPoint);
   }
 
   @override

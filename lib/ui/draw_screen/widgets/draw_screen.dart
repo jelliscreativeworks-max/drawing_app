@@ -11,6 +11,7 @@ import 'package:drawing_app/ui/draw_screen/widgets/layer_menu_anchor_view.dart';
 import 'package:drawing_app/ui/draw_screen/view_models/draw_screen_view_model.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:provider/provider.dart';
 
 class DrawScreen extends StatefulWidget {
   const DrawScreen({
@@ -38,55 +39,55 @@ class _DrawScreenState extends State<DrawScreen> {
         widget.viewModel.saveDirtyProgress,
       ]),
       builder: (context, child) {
-        return Scaffold(
-          backgroundColor: Colors.grey.shade900,
-          appBar: AppBar(
-            backgroundColor: Colors.grey.shade50,
-            elevation: 0,
-            title: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                IconButton(
-                  onPressed: () => context.go(Routes.home),
-                  icon: const Icon(Icons.arrow_back_rounded),
-                ),
-                IconButton(
-                  onPressed: () => widget.viewModel.toggleLayerMenu(),
-                  icon: const Icon(Icons.layers),
-                ),
-                IconButton(
-                  onPressed: () {},
-                  icon: const Icon(Icons.add_photo_alternate_outlined),
-                ),
-                // Visual indicators can watch widget.viewModel.saveDirtyProgress.running here
-                IconButton(
-                  onPressed: () {},
-                  icon:  const Icon(Icons.more_vert),
-                ),
-              ],
-            ),
-          ),
-          body: LayoutBuilder(
-            builder: (context, constraints) {
-              final Size currentViewport = Size(
-                constraints.maxWidth,
-                constraints.maxHeight,
-              );
-
-              // Auto-center viewport workspace exactly once on screen boot parameters
-              if (!_hasCenteredOnStart) {
-                WidgetsBinding.instance.addPostFrameCallback((_) {
-                  widget.viewModel.resetView(currentViewport);
-                });
-                _hasCenteredOnStart = true;
-              }
-
-              return Stack(
+        return MouseRegion(
+                                  onEnter: (event) => widget.toolController.enableDrawing(event),
+                        onExit: (event) => widget.toolController.disableDrawing(),
+          child: Scaffold(
+            backgroundColor: Colors.grey.shade900,
+            appBar: AppBar(
+              backgroundColor: Colors.grey.shade50,
+              elevation: 0,
+              title: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Positioned.fill(
-                    child: MouseRegion(
-                      onEnter: (event) => widget.toolController.enableDrawing(event),
-                      onExit: (event) => widget.toolController.disableDrawing(),
+                  IconButton(
+                    onPressed: () => context.go(Routes.home),
+                    icon: const Icon(Icons.arrow_back_rounded),
+                  ),
+                  IconButton(
+                    onPressed: () => widget.viewModel.toggleLayerMenu(),
+                    icon: const Icon(Icons.layers),
+                  ),
+                  IconButton(
+                    onPressed: () {},
+                    icon: const Icon(Icons.add_photo_alternate_outlined),
+                  ),
+                  // Visual indicators can watch widget.viewModel.saveDirtyProgress.running here
+                  IconButton(
+                    onPressed: () {},
+                    icon:  const Icon(Icons.more_vert),
+                  ),
+                ],
+              ),
+            ),
+            body: LayoutBuilder(
+              builder: (context, constraints) {
+                final Size currentViewport = Size(
+                  constraints.maxWidth,
+                  constraints.maxHeight,
+                );
+          
+                // Auto-center viewport workspace exactly once on screen boot parameters
+                if (!_hasCenteredOnStart) {
+                  WidgetsBinding.instance.addPostFrameCallback((_) {
+                    widget.viewModel.resetView(currentViewport);
+                  });
+                  _hasCenteredOnStart = true;
+                }
+          
+                return Stack(
+                  children: [
+                    Positioned.fill(
                       child: Listener(
                         onPointerDown: (event) => widget.toolController.handleEvent(event, event.kind),
                         onPointerMove: (event) => widget.toolController.handleEvent(event, event.kind),
@@ -105,7 +106,7 @@ class _DrawScreenState extends State<DrawScreen> {
                           child: ClipRect(
                             child: Stack(
                               children: [
-             
+                                     
                                 Positioned.fill(
                                   child: CustomPaint(
                                     painter: BackgroundPainter(
@@ -119,67 +120,74 @@ class _DrawScreenState extends State<DrawScreen> {
                                     ),
                                   ),
                                 ),
-
+                                
                                 // B. Dynamic Persistent Stacking Vector Layer System
                                 ...widget.viewModel.layers.map((
                                   LayerData layer,
                                 ) {
                                   if (!layer.isVisible) return const SizedBox.shrink();
-
+                                
                                   final List<DrawData> filteredLayerHistory =
                                       widget.viewModel.getHistoryForLayer(
                                         layer.id,
                                       );
-
-                                  return widget.viewModel.loadProject.running ? SizedBox.shrink() : Positioned.fill(
-                                    child: RepaintBoundary(
-                                      child: CustomPaint(
-                                        key: ValueKey(
-                                          '${layer.id}_${filteredLayerHistory.length}_${widget.viewModel.transformRevision}',
-                                        ),
-                                        painter: MyPainter(
-                                          deletionTargets: const {},
-                                          deviceKind: widget
-                                              .toolController
-                                              .lastDeviceKind,
-                                          canvasHeight:
-                                              widget.viewModel.currentCanvas.currentHeight,
-                                          canvasWidth:
-                                              widget.viewModel.currentCanvas.currentWidth,
-                                          drawHistory: filteredLayerHistory,
-                                          camera:
-                                              widget.viewModel.camera,
+                                
+                                  return widget.viewModel.loadProject.running ? 
+                                  SizedBox.shrink() : 
+                                  Selector<ToolController, Set<String>>(
+                                    selector: (_, p1) => Set<String>.of(p1.hiddenData),
+                                    builder: (context,hiddenData, child) => Positioned.fill(
+                                      child: RepaintBoundary(
+                                        child: CustomPaint(
+                                          key: ValueKey(
+                                            '${layer.id}_${filteredLayerHistory.length}_${widget.viewModel.transformRevision}',
+                                          ),
+                                          painter: MyPainter(
+                                            hiddenData: hiddenData,
+                                            deletionTargets: const {},
+                                            deviceKind: widget
+                                                .toolController
+                                                .lastDeviceKind,
+                                            canvasHeight:
+                                                widget.viewModel.currentCanvas.currentHeight,
+                                            canvasWidth:
+                                                widget.viewModel.currentCanvas.currentWidth,
+                                            drawHistory: filteredLayerHistory,
+                                            camera:
+                                                widget.viewModel.camera,
+                                          ),
                                         ),
                                       ),
                                     ),
                                   );
                                 }),
                                 ListenableBuilder(
-  listenable: widget.toolController,
-  builder: (context, child) {
-    final List<DrawData> overlayData = widget.toolController.overlayHistory;
-
-    // If there is nothing to preview and the tool is at rest, draw nothing
-    if (overlayData.isEmpty && !widget.toolController.currentTool.isActive) {
-      return const SizedBox.shrink();
-    }
-
-    return Positioned.fill(
-      child: CustomPaint(
-        painter: MyPainter(
-          deletionTargets: widget.toolController.activeDeletionTargets,
-          deviceKind: widget.toolController.lastDeviceKind,
-          canvasHeight: widget.viewModel.currentCanvas.currentHeight,
-          canvasWidth: widget.viewModel.currentCanvas.currentWidth,
-          drawHistory: overlayData, // 🟢 Clean MVVM pass-through list
-          camera: widget.viewModel.camera,
-          activeTool: widget.toolController.currentTool,
-        ),
-      ),
-    );
-  },
-),
-
+                                  listenable: widget.toolController,
+                                  builder: (context, child) {
+                                    final List<DrawData> overlayData = widget.toolController.overlayHistory;
+                                
+                                    // If there is nothing to preview and the tool is at rest, draw nothing
+                                    if (overlayData.isEmpty && !widget.toolController.currentTool.isActive) {
+                                      return const SizedBox.shrink();
+                                    }
+                                
+                                    return Positioned.fill(
+                                      child: CustomPaint(
+                                painter: MyPainter(
+                                  deletionTargets: widget.toolController.activeDeletionTargets,
+                                  deviceKind: widget.toolController.lastDeviceKind,
+                                  canvasHeight: widget.viewModel.currentCanvas.currentHeight,
+                                  canvasWidth: widget.viewModel.currentCanvas.currentWidth,
+                                  drawHistory: overlayData, // 🟢 Clean MVVM pass-through list
+                                  camera: widget.viewModel.camera,
+                                  activeTool: widget.toolController.currentTool,
+                                  hiddenData: {}
+                                ),
+                                      ),
+                                    );
+                                  },
+                                ),
+                                
                                 // D. Persistent Document Guideline Grids Overlay
                                 Positioned.fill(
                                   child: CustomPaint(
@@ -203,73 +211,73 @@ class _DrawScreenState extends State<DrawScreen> {
                         ),
                       ),
                     ),
-                  ),
-
-                  Align(
-                    alignment: Alignment.bottomRight,
-                    child: SafeArea(
-                      child: Container(
-                        margin: const EdgeInsets.all(16),
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 8,
-                          vertical: 4,
-                        ),
-                        decoration: BoxDecoration(
-                          color: Colors.white.withValues(alpha: 0.9),
-                          borderRadius: BorderRadius.circular(20),
-                        ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            IconButton(
-                              onPressed: widget.viewModel.canUndo
-                                  ? widget.viewModel.undo
-                                  : null,
-                              icon: const Icon(Icons.undo),
-                              color: Colors.black87,
-                            ),
-                            const SizedBox(width: 8),
-                            IconButton(
-                              onPressed: widget.viewModel.canRedo
-                                  ? widget.viewModel.redo
-                                  : null,
-                              icon: const Icon(Icons.redo),
-                              color: Colors.black87,
-                            ),
-                          ],
+          
+                    Align(
+                      alignment: Alignment.bottomRight,
+                      child: SafeArea(
+                        child: Container(
+                          margin: const EdgeInsets.all(16),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 4,
+                          ),
+                          decoration: BoxDecoration(
+                            color: Colors.white.withValues(alpha: 0.9),
+                            borderRadius: BorderRadius.circular(20),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              IconButton(
+                                onPressed: widget.viewModel.canUndo
+                                    ? widget.viewModel.undo
+                                    : null,
+                                icon: const Icon(Icons.undo),
+                                color: Colors.black87,
+                              ),
+                              const SizedBox(width: 8),
+                              IconButton(
+                                onPressed: widget.viewModel.canRedo
+                                    ? widget.viewModel.redo
+                                    : null,
+                                icon: const Icon(Icons.redo),
+                                color: Colors.black87,
+                              ),
+                            ],
+                          ),
                         ),
                       ),
                     ),
-                  ),
-
-                  // // Fullscreen Initial Loading Blocker
-                  // if (widget.viewModel.loadProject.running)
-                  //   Positioned.fill(
-                  //     child: Container(
-                  //       color: Colors.transparent,
-                  //       child: const Center(
-                  //         child: CircularProgressIndicator(color: Colors.blue),
-                  //       ),
-                  //     ),
-                  //   ),
-
-                  // Sidebar Layers Panel overlay
-                  if (widget.viewModel.isLayerMenuOpen)
-                    Positioned(
-                      right: 16,
-                      top: 20,
-                      child: FloatingLayerPanel(
-                        viewModel: widget.viewModel,
-                        toolController: widget.toolController,
+          
+                    // // Fullscreen Initial Loading Blocker
+                    // if (widget.viewModel.loadProject.running)
+                    //   Positioned.fill(
+                    //     child: Container(
+                    //       color: Colors.transparent,
+                    //       child: const Center(
+                    //         child: CircularProgressIndicator(color: Colors.blue),
+                    //       ),
+                    //     ),
+                    //   ),
+          
+                    // Sidebar Layers Panel overlay
+                    if (widget.viewModel.isLayerMenuOpen)
+                      Positioned(
+                        right: 16,
+                        top: 20,
+                        child: FloatingLayerPanel(
+                          viewModel: widget.viewModel,
+                          toolController: widget.toolController,
+                        ),
                       ),
-                    ),
-                ],
-              );
-            },
-          ),
-          bottomNavigationBar: BottomAppBar(
-            height: 64.0,
-            child: BottomToolBarButtons(toolController: widget.toolController),
+                  ],
+                );
+              },
+            ),
+            bottomNavigationBar: BottomAppBar(
+              height: 64.0,
+              child: BottomToolBarButtons(toolController: widget.toolController),
+            ),
           ),
         );
       },

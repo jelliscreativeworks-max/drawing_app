@@ -10,7 +10,8 @@ class TrackpadInputHandler extends ToolInputHandler {
     required super.onPanStart,
     required super.onPanUpdate,
     required super.onPanEnd,
-    required super.screenPointConverter
+    required super.snappedScreenPointConverter,
+    required super.unsnappedScreenPointConverter
   });
 
   @override
@@ -18,7 +19,8 @@ class TrackpadInputHandler extends ToolInputHandler {
     final ToolStartInput input = ToolStartInput.compute(
       kind: PointerDeviceKind.trackpad,
       rawScreenPoint: event.localPosition, // Mapped to true hover coordinate
-      screenToWorldConverter: (screenPoint) => screenPointConverter(screenPoint)
+      snappedScreenToWorldConverter: (screenPoint) => snappedScreenPointConverter(screenPoint),
+      unsnappedScreenToWorldConverter: (screenPoint) => unsnappedScreenPointConverter(screenPoint),
     );
 
     onPanStart(input);
@@ -32,10 +34,12 @@ class TrackpadInputHandler extends ToolInputHandler {
 
     final ToolUpdateInput input = ToolUpdateInput(
       kind: PointerDeviceKind.trackpad,
-      points: (
+      snappedPoints: (
         screen: event.localPosition,
-        world: screenPointConverter(event.localPosition),
+        world: snappedScreenPointConverter(event.localPosition),
       ),
+
+      rawPoints: (screen: event.localPosition, world: unsnappedScreenPointConverter(event.localPosition)),
       rawScale: event.scale,
 
       // If zooming, drop the tracking delta entirely to stop the canvas from sliding away

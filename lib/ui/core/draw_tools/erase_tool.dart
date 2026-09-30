@@ -5,13 +5,13 @@ import 'package:drawing_app/ui/core/commands/canvas_command.dart';
 import 'package:drawing_app/domain/models/draw_data/draw_data.dart';
 import 'package:drawing_app/ui/core/draw_tools/draw_tool.dart';
 import 'package:drawing_app/ui/core/commands/erase_draw_command.dart';
-import 'package:drawing_app/utils/history_consumer.dart';
+import 'package:drawing_app/ui/core/draw_tools/history_consumer.dart';
 
 class EraseTool extends DrawTool implements HistoryConsumer, StrokeToolType {
   final List<CanvasHistoryEntry> _erasedDrawData = [];
 
   Set<String> get targetedForDeletion => _erasedDrawData
-      .map((entry) => entry.drawData.id)
+      .map((entry) => entry.originalData.id)
       .toSet();
 
   List<DrawData> _drawHistory = const [];
@@ -30,8 +30,6 @@ class EraseTool extends DrawTool implements HistoryConsumer, StrokeToolType {
 
   @override
   bool get isActive => _isErasing;
-  @override 
-  DrawData? get activePreview => null;
   @override
   bool get renderStroke => false;
   @override
@@ -48,17 +46,17 @@ class EraseTool extends DrawTool implements HistoryConsumer, StrokeToolType {
   void onToolStart(ToolStartInput toolStartInput, String layerId, int strokeIndex) {
     _isErasing = true;
     _currentLayerId = layerId;
-    _lastActivePoint = toolStartInput.worldPoint;
+    _lastActivePoint = toolStartInput.snappedWorldPoint;
     _erasedDrawData.clear();
 
-    _checkCollisions(toolStartInput.worldPoint, toolStartInput.worldPoint);
+    _checkCollisions(toolStartInput.snappedWorldPoint, toolStartInput.snappedWorldPoint);
   }
 
   @override
   void onToolUpdate(ToolUpdateInput toolUpdateInput, String layerId) {
     if (!_isErasing || _lastActivePoint == null) return;
-    _checkCollisions(_lastActivePoint!, toolUpdateInput.worldPoint);
-    _lastActivePoint = toolUpdateInput.worldPoint;
+    _checkCollisions(_lastActivePoint!, toolUpdateInput.snappedWorldPoint);
+    _lastActivePoint = toolUpdateInput.snappedWorldPoint;
   }
 
   @override
@@ -103,7 +101,7 @@ class EraseTool extends DrawTool implements HistoryConsumer, StrokeToolType {
 
       // Prevent duplicate logging during the active gesture session
       final bool alreadyCached = _erasedDrawData.any(
-        (entry) => entry.drawData == data,
+        (entry) => entry.originalData == data,
       );
       if (alreadyCached) continue;
       bool hitDetected = data.checkPointCollision(p1, p2, eraserRadius);
@@ -117,10 +115,12 @@ class EraseTool extends DrawTool implements HistoryConsumer, StrokeToolType {
 
         if (liveCurrentIndex != -1) {
           _erasedDrawData.add(
-            CanvasHistoryEntry(originalIndex: liveCurrentIndex, drawData: data),
+            CanvasHistoryEntry(originalIndex: liveCurrentIndex, originalData: data),
           );
         }
       }
     }
   }
+
+
 }

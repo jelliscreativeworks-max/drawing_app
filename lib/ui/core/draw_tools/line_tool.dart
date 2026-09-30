@@ -19,7 +19,7 @@ class LineTool extends DrawTool implements StrokeToolType{
   LineTool({required super.toolName, required super.toolIcon, required Paint defaultStrokePaint, required bool renderStroke}) : _strokePaint = defaultStrokePaint, _renderStroke = renderStroke;
 
   @override
-  DrawData? get activePreview => _activeLine;
+  List<DrawData> get activePreview => _activeLine != null ? [_activeLine!] : const [];
 
   @override
   bool get isActive => _isDrawing;
@@ -42,14 +42,14 @@ class LineTool extends DrawTool implements StrokeToolType{
   @override
   void onToolStart(ToolStartInput toolStartInput, String layerId, int strokeIndex) {
     _isDrawing = true;
-    _activeLine = LineData(layerId: layerId, index: strokeIndex, strokePaint: _strokePaint, id: uuid.v4(), startPoint: toolStartInput.worldPoint, endPoint: toolStartInput.worldPoint, renderStroke: _renderStroke);
+    _activeLine = LineData(layerId: layerId, index: strokeIndex, strokePaint: _strokePaint, id: uuid.v4(), startPoint: toolStartInput.snappedWorldPoint, endPoint: toolStartInput.snappedWorldPoint, renderStroke: _renderStroke);
   }
 
   @override
   void onToolUpdate(ToolUpdateInput toolUpdateInput, String layerId) {
     if(!_isDrawing) return;
 
-    _activeLine = _activeLine!.copyWith(endPoint: toolUpdateInput.worldPoint);
+    _activeLine = _activeLine!.copyWith(endPoint: toolUpdateInput.snappedWorldPoint);
   }
 
   @override

@@ -1,11 +1,13 @@
 import 'package:drawing_app/domain/models/draw_data/draw_data.dart';
 import 'package:drawing_app/domain/models/tool_input_data/tool_input_data.dart';
+import 'package:drawing_app/ui/core/commands/canvas_command.dart';
 import 'package:drawing_app/ui/core/draw_tools/canvas_tool.dart';
 import 'package:drawing_app/ui/core/draw_tools/circle_tool.dart';
 import 'package:drawing_app/ui/core/draw_tools/draw_tool.dart';
 import 'package:drawing_app/ui/core/draw_tools/erase_tool.dart';
 import 'package:drawing_app/ui/core/draw_tools/freehand_tool.dart';
 import 'package:drawing_app/ui/core/draw_tools/line_tool.dart';
+import 'package:drawing_app/ui/core/draw_tools/override_drawn.dart';
 import 'package:drawing_app/ui/core/draw_tools/pan_tool.dart';
 import 'package:drawing_app/ui/core/draw_tools/path_tool.dart';
 import 'package:drawing_app/ui/core/draw_tools/rectangle_tool.dart';
@@ -16,7 +18,7 @@ import 'package:drawing_app/ui/core/tool_input_handler/touch_input_handler.dart'
 import 'package:drawing_app/ui/core/tool_input_handler/trackpad_input_handler.dart';
 import 'package:drawing_app/ui/draw_screen/view_models/draw_screen_view_model.dart';
 import 'package:drawing_app/utils/extensions.dart';
-import 'package:drawing_app/utils/history_consumer.dart';
+import 'package:drawing_app/ui/core/draw_tools/history_consumer.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:material_symbols_icons/symbols.dart';
@@ -40,8 +42,8 @@ class ToolController extends ChangeNotifier {
   /// real-time preview overlay track layer, freeing the view from collection filtering math.
   List<DrawData> get overlayHistory {
     // 1. If a standard tool (like Freehand/Rectangle) has an active preview, paint it
-    if (activePreview != null) {
-      return [activePreview!];
+    if (activePreview.isNotEmpty) {
+      return activePreview;
     }
 
     // 2. If the eraser is sweeping across the canvas, grab ONLY the targets
@@ -62,12 +64,20 @@ class ToolController extends ChangeNotifier {
     return const {};
   }
 
+  Set<String> get hiddenData{
+    if(_currentTool is OverrideDrawn){
+      return(_currentTool as OverrideDrawn).hiddenDrawDataIds;
+    } else{
+      return const {};
+    }
+  }
+
   late final Map<Type, CanvasTool> tools;
   late CanvasTool _currentTool;
 
-  DrawData? get activePreview => _currentTool is DrawTool
+  List<DrawData> get activePreview => _currentTool is DrawTool
       ? (_currentTool as DrawTool).activePreview
-      : null;
+      : const [];
 
   ToolController({required DrawScreenViewModel viewModel})
     : _viewModel = viewModel {
@@ -81,8 +91,9 @@ class ToolController extends ChangeNotifier {
         onPanStart: (toolInput) => handlePanStart(toolInput),
         onPanUpdate: (toolInput) => handlePanUpdate(toolInput),
         onPanEnd: (toolInput) => handlePanEnd(toolInput),
-        screenPointConverter: (screenPoint) =>
+        snappedScreenPointConverter: (screenPoint) =>
             _viewModel.getSnappedWorldPoint(screenPoint),
+        unsnappedScreenPointConverter: (screenPoint) => screenPoint.screenToWorld(_viewModel.camera.transform),
       ),
       PointerDeviceKind.touch: TouchInputHandler(
         onToolPress: (p0) => handleToolPressed(p0),
@@ -91,8 +102,9 @@ class ToolController extends ChangeNotifier {
         onPanStart: (toolInput) => handlePanStart(toolInput),
         onPanUpdate: (toolInput) => handlePanUpdate(toolInput),
         onPanEnd: (toolInput) => handlePanEnd(toolInput),
-        screenPointConverter: (screenPoint) =>
+        snappedScreenPointConverter: (screenPoint) =>
             _viewModel.getSnappedWorldPoint(screenPoint),
+        unsnappedScreenPointConverter: (screenPoint) => screenPoint.screenToWorld(_viewModel.camera.transform),
       ),
       PointerDeviceKind.trackpad: TrackpadInputHandler(
         onToolPress: (_) {},
@@ -101,8 +113,9 @@ class ToolController extends ChangeNotifier {
         onPanStart: (toolInput) => handlePanStart(toolInput),
         onPanUpdate: (toolInput) => handlePanUpdate(toolInput),
         onPanEnd: (toolInput) => handlePanEnd(toolInput),
-        screenPointConverter: (screenPoint) =>
+        snappedScreenPointConverter: (screenPoint) =>
             _viewModel.getSnappedWorldPoint(screenPoint),
+        unsnappedScreenPointConverter: (screenPoint) => screenPoint.screenToWorld(_viewModel.camera.transform),
       ),
     };
   }
@@ -129,10 +142,10 @@ class ToolController extends ChangeNotifier {
     if (_currentTool is PanTool) {
       handlePanStart(input);
       return;
-    } else if (input.worldPoint.dx < 0 ||
-        input.worldPoint.dx > _viewModel.currentCanvas.currentWidth ||
-        input.worldPoint.dy < 0 ||
-        input.worldPoint.dy > _viewModel.currentCanvas.currentHeight) {
+    } else if (input.snappedWorldPoint.dx < 0 ||
+        input.snappedWorldPoint.dx > _viewModel.currentCanvas.currentWidth ||
+        input.snappedWorldPoint.dy < 0 ||
+        input.snappedWorldPoint.dy > _viewModel.currentCanvas.currentHeight) {
       _viewModel.clearSnappingSession();
       return;
     } else if (!_currentTool.isActive) {
@@ -189,15 +202,21 @@ class ToolController extends ChangeNotifier {
 
 
   void handlePanStart(ToolStartInput input) {
-    if (_currentTool is! PanTool) {
-      _endActiveTool();
+    if (_currentTool is DrawTool) {
+      // _endActiveTool();
+      CanvasCommand? command = (_currentTool as DrawTool).onPanOverrideStart();
+
+      if(command != null){
+        _viewModel.executeCommand(command);
+        notifyListeners();
+      }
     }
 
 
-    _viewModel.camera.focalPointAtStart = input.screenPoint;
+    _viewModel.camera.focalPointAtStart = input.snappedScreenPoint;
     _viewModel.camera.scaleStart = _viewModel.camera.currentScale;
     _viewModel.camera.previousGestureScale = 1.0;
-    _viewModel.camera.worldPivotAtStart = input.worldPoint;
+    _viewModel.camera.worldPivotAtStart = input.snappedWorldPoint;
 
     _lastDeviceKind = input.kind;
     _panTool.onToolStart(
@@ -222,10 +241,15 @@ void handlePanEnd(ToolReleasedInput input) {
   _lastDeviceKind = input.lastUsedDevice;
   _panTool.onToolEnd();
 
+
   // FIX: Force the snapping tracking variables to wipe clean!
   // This resets '_lastSnappedWorldPoint = null' in your View Model,
   // so the very next mouse movement initializes an accurate base anchor.
   _viewModel.clearSnappingSession(); 
+  
+  if(_currentTool is DrawTool){
+   (_currentTool as DrawTool).onPanOverrideEnd();
+  }
 
   notifyListeners();
 }

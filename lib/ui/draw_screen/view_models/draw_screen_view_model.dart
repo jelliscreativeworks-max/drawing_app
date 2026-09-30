@@ -178,7 +178,6 @@ class DrawScreenViewModel extends ChangeNotifier {
     );
     
     final String activeIdBeforeExecution = activeLayerId;
-
     command.execute(context);
 
     _undoHistory.add(command);

@@ -11,7 +11,8 @@ class TouchInputHandler extends ToolInputHandler {
     required super.onPanStart,
     required super.onPanUpdate,
     required super.onPanEnd,
-    required super.screenPointConverter
+    required super.snappedScreenPointConverter,
+    required super.unsnappedScreenPointConverter
   });
 
   final Set<int> _activePointers = {};
@@ -34,7 +35,8 @@ class TouchInputHandler extends ToolInputHandler {
     final ToolStartInput startInput = ToolStartInput.compute(
       kind: details.kind ?? lastDeviceKind, 
       rawScreenPoint: details.localFocalPoint, 
-      screenToWorldConverter: (screenPoint) => screenPointConverter(screenPoint)
+      snappedScreenToWorldConverter: (screenPoint) => snappedScreenPointConverter(screenPoint),
+      unsnappedScreenToWorldConverter: (screenPoint) => unsnappedScreenPointConverter(screenPoint),
     );
 
     if (details.pointerCount > 1 || _shouldPan) {
@@ -67,9 +69,10 @@ class TouchInputHandler extends ToolInputHandler {
 
     final ToolUpdateInput updateInput = ToolUpdateInput.compute(
       kind: lastDeviceKind, 
-      currentScreenPoint: details.localFocalPoint, 
+      rawScreenPoint: details.localFocalPoint, 
       currentScale: details.scale,   
-      screenToWorldConverter: (screenPoint) => screenPointConverter(screenPoint),
+      snappedScreenToWorldConverter: (screenPoint) => snappedScreenPointConverter(screenPoint),
+      unsnappedScreenToWorldConverter: (screenPoint) => unsnappedScreenPointConverter(screenPoint),
       lastScreenPoint: lastScreenPoint,
     );
     lastScreenPoint = details.localFocalPoint;
@@ -91,7 +94,8 @@ class TouchInputHandler extends ToolInputHandler {
       onPanStart(ToolStartInput.compute(
         kind: lastDeviceKind, 
         rawScreenPoint: focalPoint,  
-      screenToWorldConverter: (screenPoint) => screenPointConverter(screenPoint)
+      snappedScreenToWorldConverter: (screenPoint) => snappedScreenPointConverter(screenPoint),
+      unsnappedScreenToWorldConverter: (screenPoint) => unsnappedScreenPointConverter(screenPoint),
       ));
       return true;
     }
