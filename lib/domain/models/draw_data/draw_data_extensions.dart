@@ -197,7 +197,7 @@ DrawData applyNodeTransformation((int index, Offset nodePosition) activeNode, Of
         }
       }, 
       
-      // 🌟 RECTANGLE IMPLEMENTATION
+
       // Matches the bounding box style using the stationary anchor point position
             rectangle: (data) {
         int nodeIndex = activeNode.$1;
@@ -214,7 +214,7 @@ DrawData applyNodeTransformation((int index, Offset nodePosition) activeNode, Of
         double targetX = mousePosition.dx;
         double targetY = mousePosition.dy;
 
-        // 🌟 THE PATCH: Anchor to existing properties for side-handles to prevent collapsing
+        //Anchor to existing properties for side-handles to prevent collapsing
         switch (nodeIndex) {
           case 1: // TopCenter (Modifying Top Edge only)
           case 5: // BottomCenter (Modifying Bottom Edge only)
@@ -258,8 +258,64 @@ DrawData applyNodeTransformation((int index, Offset nodePosition) activeNode, Of
         }
       },
 
-      freehand: (data) => data, // Complex paths use scale factor matrices instead of corner nodes
-      path: (data) => data
+            // 🌟 STABILIZED ABSOLUTE FREEHAND SCALING & QUADRANT FLIPPING
+      freehand: (data) {
+        int nodeIndex = activeNode.$1;
+
+        // 1. Calculate the initial static width and height spans at click-time relative to the anchor position
+        double originalWidth = (activeNode.$2.dx - anchorPointPosition.dx).abs();
+        double originalHeight = (activeNode.$2.dy - anchorPointPosition.dy).abs();
+        final double safeOriginalWidth = originalWidth == 0 ? 1.0 : originalWidth;
+        final double safeOriginalHeight = originalHeight == 0 ? 1.0 : originalHeight;
+
+        // 2. Compute your live absolute target dimensions relative to the stationary pivot anchor
+        double targetWidth = (mousePosition.dx - anchorPointPosition.dx).abs();
+        double targetHeight = (mousePosition.dy - anchorPointPosition.dy).abs();
+
+        // 3. Compute absolute scale factors relative to the starting gesture dimensions
+        double sx = targetWidth / safeOriginalWidth;
+        double sy = targetHeight / safeOriginalHeight;
+
+        // 4. Directional Quadrant Checks: Determine target flipping state purely from mouse position
+        final bool isXFlipped = (mousePosition.dx < anchorPointPosition.dx) != (activeNode.$2.dx < anchorPointPosition.dx);
+        final bool isYFlipped = (mousePosition.dy < anchorPointPosition.dy) != (activeNode.$2.dy < anchorPointPosition.dy);
+        
+        if (isXFlipped) sx = -sx;
+        if (isYFlipped) sy = -sy;
+
+        // 5. SIDE HANDLE LOCK: Protect the non-active axis explicitly from side-drags
+        // 0: TL, 1: TC, 2: TR, 3: RC, 4: BR, 5: BC, 6: BL, 7: LC
+        if (nodeIndex == 1 || nodeIndex == 5) sx = 1.0;
+        if (nodeIndex == 3 || nodeIndex == 7) sy = 1.0;
+
+        // 6. Map over the raw points list natively relative to the stationary anchor point position
+        final List<Offset> transformedPoints = data.points.map((p) {
+          return Offset(
+            anchorPointPosition.dx + (p.dx - anchorPointPosition.dx) * sx,
+            anchorPointPosition.dy + (p.dy - anchorPointPosition.dy) * sy,
+          );
+        }).toList();
+
+        return data.copyWith(points: transformedPoints);
+      },
+
+
+
+
+
+
+      // 🌟 PATH: Pure vertex substitution mapping
+      path: (data) {
+        int nodeIndex = activeNode.$1;
+        
+        if (nodeIndex >= 0 && nodeIndex < data.points.length) {
+          final List<Offset> updatedPoints = List<Offset>.from(data.points);
+          updatedPoints[nodeIndex] = mousePosition;
+          
+          return data.copyWith(points: updatedPoints);
+        }
+        return data;
+      }
     );
 }
 
@@ -287,23 +343,13 @@ DrawData applyNodeTransformation((int index, Offset nodePosition) activeNode, Of
         }
        
       },
-      path: (data){
-        if(nodeIndex < data.points.length && nodeIndex >= 0){
-          if(nodeIndex == 0){
-            return data.points[1];
-          } else if(nodeIndex == data.points.length - 1){
-              return data.points[data.points.length - 2];
-          } else{
-              final p1 = data.points[nodeIndex - 1];
-              final p2 = data.points[nodeIndex + 1];
-
-              
-             return p1 - p2;
-          }
-        } else {
-          return Offset.zero;
+          path: (data) {
+        if (nodeIndex >= 0 && nodeIndex < data.points.length) {
+          return data.points[nodeIndex];
         }
+        return Offset.zero;
       },
+
       rectangle: (data) => data.getRawControlPoints()[_getOppositeNodeInRect(nodeIndex)]!);
   }
 

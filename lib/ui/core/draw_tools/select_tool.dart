@@ -161,37 +161,24 @@ class SelectTool extends DrawTool implements HistoryConsumer, OverrideDrawn {
     // STEP 1: Handle Multi-Selection Interactions (Group Drag or Handle Resize)
     // =========================================================================
     if (_multiSelectShapeIds.isNotEmpty) {
-      final activeMultiShapes = _drawHistory
-          .where((s) => _multiSelectShapeIds.contains(s.id))
-          .toList();
-
-      // 1A. Check if click landed on an outer control handle node resize point of the group box
-      final groupRect = groupPreview;
+      final activeMultiShapes = _drawHistory.where((s) => _multiSelectShapeIds.contains(s.id)).toList();
+      
+      final groupRect = groupPreview; 
       if (groupRect != Rect.zero) {
+        // 1A. Check if click landed on an outer control handle node resize point of the group box
         final List<Offset> groupControlPoints = groupRect.pointsToList();
-        final double nodeScale = 15 / _currentScale;
+        final double nodeScale = 15 / _currentScale; 
 
         int? hitGroupNode = checkNodeCollision(
-          toolStartInput.unSnappedWorlPoint,
-          groupControlPoints,
+          toolStartInput.unSnappedWorlPoint, 
+          groupControlPoints, 
           nodeScale,
         );
 
         if (hitGroupNode != null) {
           _activeNode = (hitGroupNode, groupControlPoints[hitGroupNode]);
-          _transformAnchorPosition = _getGroupAnchorForNode(
-            hitGroupNode,
-            groupRect,
-          );
+          _transformAnchorPosition = _getGroupAnchorForNode(hitGroupNode, groupRect);
           _didHitShapeOnDown = true;
-
-          // // Measure original width/height relative to the INITIAL CLICKED MOUSE POSITION,
-          // // not the raw geometric bounding rect corners. This guarantees a starting scale factor of exactly 1.0!
-          // final double computedWidth = (toolStartInput.unSnappedWorlPoint.dx - _transformAnchorPosition.dx).abs();
-          // final double computedHeight = (toolStartInput.unSnappedWorlPoint.dy - _transformAnchorPosition.dy).abs();
-
-          // _originalGroupWidth = computedWidth == 0 ? 1.0 : computedWidth;
-          // _originalGroupHeight = computedHeight == 0 ? 1.0 : computedHeight;
 
           _liveGroupScaleBox = groupRect;
 
@@ -199,26 +186,20 @@ class SelectTool extends DrawTool implements HistoryConsumer, OverrideDrawn {
           _baselineGroupSnapshots.addAll(activeMultiShapes);
           return;
         }
-      }
 
-      // 1B. Check if click hit inside the body area of any shape already inside the group box
-      bool hitExistingMultiSelect = activeMultiShapes.any(
-        (data) => data.checkPointCollision(
-          toolStartInput.unSnappedWorlPoint,
-          toolStartInput.unSnappedWorlPoint,
-          _singleClickRadius,
-        ),
-      );
+        // 🌟 1B. NEW: Check if click landed ANYWHERE within the outer group bounding box bounds
+        // This removes the restriction of needing to target a specific shape line/fill.
+        if (groupRect.contains(toolStartInput.unSnappedWorlPoint)) {
+          _didHitShapeOnDown = true;
 
-      if (hitExistingMultiSelect) {
-        _didHitShapeOnDown = true;
-
-        //Secure every element baseline for a body drag translation
-        _baselineGroupSnapshots.clear();
-        _baselineGroupSnapshots.addAll(activeMultiShapes);
-        return;
+          // Cache element baselines once for smooth group translation math
+          _baselineGroupSnapshots.clear();
+          _baselineGroupSnapshots.addAll(activeMultiShapes);
+          return;
+        }
       }
     }
+
 
     // =========================================================================
     // STEP 2: Handle Single Selection Interactions (Body Drag or Handle Resize)
@@ -301,12 +282,20 @@ class SelectTool extends DrawTool implements HistoryConsumer, OverrideDrawn {
     switch (nodeIndex) {
       case 0:
         return rect.bottomRight; // Grabbing TL -> Anchor is BR
+      case 1:
+        return rect.bottomCenter;
       case 2:
         return rect.bottomLeft; // Grabbing TR -> Anchor is BL
+      case 3:
+        return rect.centerLeft;
       case 4:
         return rect.topLeft; // Grabbing BR -> Anchor is TL
+      case 5: 
+      return rect.topCenter;
       case 6:
         return rect.topRight; // Grabbing BL -> Anchor is TR
+      case 7:
+        return rect.centerRight;
       default:
         return rect.center;
     }
@@ -321,8 +310,8 @@ class SelectTool extends DrawTool implements HistoryConsumer, OverrideDrawn {
     // =========================================================================
     if (_activeNode != null) {
       // A1. Resizing a SINGLE shape handle
-      if (_selectedShapeId != null && _dragPreview != null) {
-        _dragPreview = _dragPreview!.applyNodeTransformation(
+      if (_selectedShapeId != null && _dragPreview != null && _baselineShapeSnapshot != null) {
+        _dragPreview = _baselineShapeSnapshot!.applyNodeTransformation(
           _activeNode!,
           toolUpdateInput.snappedWorldPoint,
           _transformAnchorPosition,

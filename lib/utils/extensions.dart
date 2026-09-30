@@ -17,6 +17,10 @@ extension RectExtensions on Rect{
     return <Offset>[topLeft,topCenter,topRight,centerRight,bottomRight,bottomCenter,bottomLeft,centerLeft];
   }
 
+
+
+  
+
   double controlPointScale(double scale, double borderBoxStrokeWidth, double baseSize, double minThreshold){
     double size = min(max(baseSize/scale, borderBoxStrokeWidth), shortestSide / 2);
     if(size > minThreshold){
@@ -82,6 +86,17 @@ extension OffsetPointDetection on List<Offset>{
     return (point - this[index]).distance;
   }
 
+  Rect toRect(){
+    int modulo = length % 4;
+    if(modulo != 0 && length != 2 || isEmpty){
+      return Rect.zero;
+    } else{
+
+        int botRightIndex = 2* (length ~/ 4);
+      return Rect.fromPoints(this[0], this[botRightIndex]);
+      
+    }
+  }
 
 
 
