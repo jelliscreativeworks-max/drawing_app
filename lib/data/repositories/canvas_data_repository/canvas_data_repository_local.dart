@@ -2,13 +2,15 @@ import 'package:drawing_app/data/repositories/canvas_data_repository/canvas_data
 import 'package:drawing_app/data/services/local_data_service.dart';
 import 'package:drawing_app/domain/models/canvas_data/canvas_data.dart';
 import 'package:drawing_app/utils/result.dart';
+import 'package:logger/logger.dart';
 import 'package:uuid/uuid.dart';
 
 const Uuid uuid = Uuid();
 
 class CanvasDataRepositoryLocal extends CanvasDataRepository{
-  CanvasDataRepositoryLocal({required LocalDataService localDataService}) : _localDataService = localDataService;
-
+  CanvasDataRepositoryLocal({required LocalDataService localDataService, required Logger logger}) : _localDataService = localDataService, _logger = logger;
+  
+  final Logger _logger;
   final LocalDataService _localDataService;
   final _canvasDataList = List<CanvasDataCreated>.empty(growable: true);
   bool _loaded = false;

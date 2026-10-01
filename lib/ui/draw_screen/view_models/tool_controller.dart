@@ -21,6 +21,7 @@ import 'package:drawing_app/utils/extensions.dart';
 import 'package:drawing_app/ui/core/draw_tools/history_consumer.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
+import 'package:logger/logger.dart';
 import 'package:material_symbols_icons/symbols.dart';
 
 class ToolController extends ChangeNotifier {
@@ -75,12 +76,14 @@ class ToolController extends ChangeNotifier {
   late final Map<Type, CanvasTool> tools;
   late CanvasTool _currentTool;
 
+  final Logger _logger;
+
   List<DrawData> get activePreview => _currentTool is DrawTool
       ? (_currentTool as DrawTool).activePreview
       : const [];
 
-  ToolController({required DrawScreenViewModel viewModel})
-    : _viewModel = viewModel {
+  ToolController({required DrawScreenViewModel viewModel, required Logger logger})
+    : _viewModel = viewModel, _logger = logger{
     initializeTools();
 
     _inputHandlers = {

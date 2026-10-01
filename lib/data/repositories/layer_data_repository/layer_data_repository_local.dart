@@ -6,8 +6,8 @@ import 'package:logger/logger.dart';
 
 
 class LayerDataRepositoryLocal implements LayerDataRepository {
-  LayerDataRepositoryLocal({required LocalDataService localDataService}) 
-      : _localDataService = localDataService;
+  LayerDataRepositoryLocal({required LocalDataService localDataService, required Logger logger}) 
+      : _localDataService = localDataService, _logger = logger;
 
   final LocalDataService _localDataService;
 
@@ -15,7 +15,7 @@ class LayerDataRepositoryLocal implements LayerDataRepository {
   // In-memory layer cache scoped to the currently active project
   final List<LayerData> _cachedLayers = List<LayerData>.empty(growable: true);
 
-  final Logger log = Logger();
+  final Logger _logger;
   String? _cachedProjectId;
 
   /// Private helper to ensure the correct project's layers are loaded into memory cache
@@ -126,14 +126,14 @@ Future<Result<void>> deleteLayer({
         layerDrawHistory: const [],
       );
 
-      log.i('Uncached deletion intercept running for layer $id inside project $canvasId.');
+      _logger.i('Uncached deletion intercept running for layer $id inside project $canvasId.');
       
       await _localDataService.deleteDrawLayer(mockLayerToken);
     }
     
     return Result.ok(null);
   } catch (e) {
-    log.e('Failed to execute hard disk file erasure for layer $id: $e');
+    _logger.e('Failed to execute hard disk file erasure for layer $id: $e');
     return Result.error(Exception('Failed to delete layer file $id: $e'));
   }
 }

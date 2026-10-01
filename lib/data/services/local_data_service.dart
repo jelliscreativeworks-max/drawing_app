@@ -10,7 +10,8 @@ const String materialFile = 'material_data.json';
 const String historicalFile = 'historical_data.json';
 
 class LocalDataService {
-  final Logger _log = Logger();
+  LocalDataService({required this.logger});
+  final Logger logger;
 
   Future<String> get _localPath async {
     final directory = await getApplicationDocumentsDirectory();
@@ -38,8 +39,11 @@ class LocalDataService {
   Future<List<CanvasDataCreated>> loadCanvasDataList() async {
     final List<CanvasDataCreated> loadedData = [];
     final dir = Directory('${await _localPath}/projects');
-
-    if (!await dir.exists()) return loadedData;
+    
+    if (!await dir.exists()) {
+      logger.d('No file exists to load data from at ${dir.path} \n Returned data: $loadedData');
+      return loadedData;
+    }
 
     await for (final FileSystemEntity projectDir in dir.list()) {
       if (projectDir is Directory) {
@@ -51,8 +55,10 @@ class LocalDataService {
             final json = jsonDecode(data) as Map<String, dynamic>;
             loadedData.add(CanvasDataCreated.fromJson(json));
           } catch (e) {
-            _log.e('Failed to parse metadata for ${projectDir.path}: $e');
+            logger.e('Failed to parse metadata for ${projectDir.path}: \n Exception: $e');
           }
+        } else{
+          logger.d('No project meta data found at ${projectDir.path} \n Returned data: $loadedData');
         }
       }
     }
@@ -67,18 +73,22 @@ class LocalDataService {
     );
 
     if (await file.exists()) {
+      logger.d('Canvas metadata file exists at ${file.path}, deleting now');
       await file.delete();
+    } else{
+      logger.d('Canvas metadata file does not exist at ${file.path}, nothing deleted');
     }
 
     final projectDir = Directory('${await _localPath}/projects/$canvasId');
     if (await projectDir.exists() && (await projectDir.list().isEmpty)) {
+      logger.d('Project folder found empty at ${projectDir.path}, deleting now');
       await projectDir.delete();
     }
   }
 
   Future<void> saveCanvasData(CanvasDataCreated data) async {
     final mappedData = data.toJson();
-
+    logger.d('Saving canvas metadeta to file \n json: $mappedData');
     await _writeJsonToFile(mappedData, 'projects/${data.id}/project_meta.json');
   }
 
@@ -89,7 +99,10 @@ class LocalDataService {
     );
 
     if (await layersDir.exists()) {
+      logger.d('Layer directory exists at ${layersDir.path}, deleting directory');
       await layersDir.delete(recursive: true);
+    } else{
+
     }
   }
 
@@ -100,12 +113,17 @@ class LocalDataService {
       '${await _localPath}/projects/$canvasId/layers',
     );
 
-    if (!await layersDir.exists()) return loadedLayers;
+    if (!await layersDir.exists()) {
+      logger.d('No layer directory found ${layersDir.path}, returning: $loadedLayers');
+      return loadedLayers;
+    } else{
+      logger.d('Layer directory found at ${layersDir.path}');
+    }
 
     final List<Future<LayerData?>> readTasks = [];
-
     await for (final FileSystemEntity entity in layersDir.list()) {
       if (entity is File && entity.path.endsWith('.json')) {
+        logger.d('Found layer file at ${entity.path}, adding to future list to be loaded together');
         final task = _readLayerFile(entity.path);
         readTasks.add(task);
       }
@@ -115,10 +133,14 @@ class LocalDataService {
     
     for (var layer in results) {
       if (layer != null) {
+        logger.d('Added layer with id of ${layer.id} to loaded layers list');
         loadedLayers.add(layer);
+      } else{
+        logger.d('Loaded layer file is equal to null, skipping: $layer');
       }
     }
 
+    logger.d('Returning loadedLayers list with length of: ${loadedLayers.length}');
     return loadedLayers;
   }
 
@@ -126,20 +148,22 @@ class LocalDataService {
     try {
       File file = File(absolutePath);
       if (!await file.exists()) {
+        logger.d('No layer data found at $absolutePath, returning null');
         return null;
       }
       final data = await file.readAsString();
       final json = jsonDecode(data) as Map<String, dynamic>;
+      logger.d('Loaded LayerData json from $absolutePath');
       return LayerData.fromJson(json).copyWith(isDirty: false);
     } catch (e) {
-      _log.e('Failed to parse layer file at $absolutePath: $e');
+      logger.e('Failed to parse layer file at $absolutePath: $e');
       return null;
     }
   }
 
   Future<void> saveDrawLayers(List<LayerData> data) async {
     List<Future<void>> futures = [];
-
+    
     for (int i = 0; i < data.length; i++) {
       final mappedData = data[i].toJson();
 
@@ -150,7 +174,10 @@ class LocalDataService {
       futures.add(future);
     }
 
+    logger.d('Added ${futures.length} json converted layer data/s to future list to be awaited in Future.wait');
+
     await Future.wait(futures);
+    logger.d('Finished saving layers to disk');
   }
 
   Future<void> deleteDrawLayer(LayerData layer) async {
@@ -159,9 +186,9 @@ class LocalDataService {
 
     if (await file.exists()) {
       await file.delete();
-      _log.i('Scrubbed layer file successfully from disk: $path');
+      logger.d('Deleted layer file successfully from disk at: $path');
     } else {
-      _log.w('Forced removal pass skipped: No file found matching coordinates: $path');
+      logger.w('Forced removal pass skipped: No file found matching coordinates: $path');
     }
   }
 }

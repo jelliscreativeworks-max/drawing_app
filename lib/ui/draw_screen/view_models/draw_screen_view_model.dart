@@ -25,8 +25,9 @@ class DrawScreenViewModel extends ChangeNotifier {
   DrawScreenViewModel({
     required LayerDataRepository layerDataRepository,
     required CanvasDataRepository canvasDataRepository,
+    required Logger logger
   }) : _layerDataRepository = layerDataRepository,
-       _canvasDataRepository = canvasDataRepository {
+       _canvasDataRepository = canvasDataRepository, _logger = logger {
 
     deleteLayer = Command1(_deleteLayer);
     loadProject = Command1(_loadProject);
@@ -38,7 +39,7 @@ class DrawScreenViewModel extends ChangeNotifier {
   static const canvasBackgroundColor = Colors.white;
 
   // Logger 
-  Logger log = Logger();
+  final Logger _logger;
 
   // Repository Fields 
   final LayerDataRepository _layerDataRepository;
@@ -172,6 +173,7 @@ class DrawScreenViewModel extends ChangeNotifier {
       _cachedLayerHistories[layerId] ?? const [];
 
   void executeCommand(CanvasCommand command) {
+    _logger.d('Executing Command');
     final context = CanvasStateContext(
       layerData: _layers, 
       globalDrawHistory: _drawHistory,
@@ -213,7 +215,7 @@ class DrawScreenViewModel extends ChangeNotifier {
     final bool layerExistsBeforeUndo = _layers.any((l) => l.id == command.layerId);
 
     if (!layerExistsBeforeUndo && command is! DeleteLayerCommand && command is! AddLayerCommand) {
-      log.w('Cannot undo commands on an untracked layer.');
+      _logger.w('Cannot undo commands on an untracked layer.');
       return;
     }
 
@@ -255,7 +257,7 @@ class DrawScreenViewModel extends ChangeNotifier {
     final bool layerExistsBeforeRedo = _layers.any((l) => l.id == command.layerId);
     
     if (!layerExistsBeforeRedo && command is! DeleteLayerCommand && command is! AddLayerCommand) {
-      log.w('Cannot redo operations on an untracked layer.');
+      _logger.w('Cannot redo operations on an untracked layer.');
       return;
     }
 
@@ -308,7 +310,7 @@ class DrawScreenViewModel extends ChangeNotifier {
       case Ok<CanvasDataCreated>():
         _currentCanvas = modResult.value;
       case Error():
-        log.e(modResult.error);
+        _logger.e(modResult.error);
         return;
     }
     _transformRevision++;
@@ -495,7 +497,7 @@ class DrawScreenViewModel extends ChangeNotifier {
             );
             
             if (deleteResult is Error) {
-              log.w('Failed to purge disk record file for deleted layer $layerIdToDelete: ${(deleteResult).error}');
+              _logger.w('Failed to purge disk record file for deleted layer $layerIdToDelete: ${(deleteResult).error}');
               _pendingLayerDeletionsLog.add(layerIdToDelete); 
             }
           }
@@ -507,7 +509,7 @@ class DrawScreenViewModel extends ChangeNotifier {
       return Result.ok(null);
 
     } catch (e) {
-      log.e('Critical breakdown encountered during automated workspace storage save task: $e');
+      _logger.e('Critical breakdown encountered during automated workspace storage save task: $e');
       return Result.error(e is Exception ? e : Exception(e.toString()));
     }
   }
@@ -672,7 +674,7 @@ class DrawScreenViewModel extends ChangeNotifier {
     if (canvasSaveResult is Ok<CanvasDataCreated>) {
       _currentCanvas = canvasSaveResult.value;
     } else {
-      log.w('Failed to synchronize project canvas structure metadata maps.');
+      _logger.w('Failed to synchronize project canvas structure metadata maps.');
     }
   }
 
@@ -696,7 +698,7 @@ class DrawScreenViewModel extends ChangeNotifier {
       }
       return Result.ok(null);
     } catch (e) {
-      log.e('Failed to author vector-to-image snapshot: $e');
+      _logger.e('Failed to author vector-to-image snapshot: $e');
       return Result.error(e is Exception ? e : Exception(e.toString()));
     }
   }

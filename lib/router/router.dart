@@ -6,6 +6,7 @@ import 'package:drawing_app/ui/canvases_screen/view_models/canvases_screen_view_
 import 'package:drawing_app/ui/canvases_screen/widgets/canvases_screen.dart';
 import 'package:drawing_app/ui/draw_screen/widgets/draw_screen.dart';
 import 'package:go_router/go_router.dart';
+import 'package:logger/logger.dart';
 import 'package:provider/provider.dart';
 GoRouter router() => GoRouter(
   initialLocation: Routes.home,
@@ -36,6 +37,7 @@ GoRouter router() => GoRouter(
             final vm = DrawScreenViewModel(
               layerDataRepository: context.read(), 
               canvasDataRepository: context.read(),
+              logger: context.read<Logger>()
             );
             
             vm.loadProject.execute(projectId);
@@ -47,6 +49,7 @@ GoRouter router() => GoRouter(
         ChangeNotifierProvider<ToolController>(
           create: (context) => ToolController(
             viewModel: context.read<DrawScreenViewModel>(),
+            logger: context.read<Logger>()
           ),
         ),
       ],
