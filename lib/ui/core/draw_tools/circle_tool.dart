@@ -1,5 +1,6 @@
 import 'dart:ui';
 import 'package:drawing_app/domain/models/draw_data/draw_data.dart';
+import 'package:drawing_app/domain/models/property_data/property_data.dart';
 import 'package:drawing_app/domain/models/tool_input_data/tool_input_data.dart';
 import 'package:drawing_app/ui/core/commands/canvas_command.dart';
 import 'package:drawing_app/ui/core/commands/draw_command.dart';
@@ -28,7 +29,8 @@ class CircleTool extends DrawTool implements StrokeToolType, FillToolType {
        _renderStroke = renderStroke;
 
   @override
-  List<DrawData> get activePreview => _circlePreview != null ? [_circlePreview!] : const [];
+  List<DrawData> get activePreview =>
+      _circlePreview != null ? [_circlePreview!] : const [];
   @override
   bool get isActive => _isDrawing;
   @override
@@ -51,7 +53,11 @@ class CircleTool extends DrawTool implements StrokeToolType, FillToolType {
       _strokePaint = updatedStrokePaint;
 
   @override
-  void onToolStart(ToolStartInput toolStartInput, String layerId, int strokeIndex) {
+  void onToolStart(
+    ToolStartInput toolStartInput,
+    String layerId,
+    int strokeIndex,
+  ) {
     _isDrawing = true;
     _circlePreview = CircleData(
       layerId: layerId,
@@ -85,4 +91,55 @@ class CircleTool extends DrawTool implements StrokeToolType, FillToolType {
 
     return DrawCommand(drawData: completedRect!);
   }
+
+  @override
+  List<PropertyData> getToolProperties() {
+    return [
+      // ----- Stroke Properties -----
+      PropertyData<Color>(
+        displayName: 'Stroke Color',
+        propertyValue: strokePaint.color,
+        onChanged: (strokeColor) {
+          _strokePaint = _strokePaint..color = strokeColor;
+        },
+      ),
+      PropertyData<double>(
+        displayName: 'Stroke Size',
+        propertyValue: _strokePaint.strokeWidth,
+        onChanged: (strokeWidth) {
+          _strokePaint = _strokePaint..strokeWidth = strokeWidth;
+        },
+      ),
+      PropertyData<bool>(
+        displayName: 'Stroke Enabled',
+        propertyValue: _renderStroke,
+        onChanged: (strokeEnabled) {
+          _renderStroke = strokeEnabled;
+        },
+      ),
+
+      // ----- Fill Properties -----
+      PropertyData<Color>(
+        displayName: 'Fill Color',
+        propertyValue: fillPaint.color,
+        onChanged: (fillColor) {
+          _fillPaint = _fillPaint..color = fillColor;
+        },
+      ),
+      PropertyData<bool>(
+        displayName: 'Fill Enabled',
+        propertyValue: _renderFill,
+        onChanged: (fillEnabled) {
+          _renderFill = fillEnabled;
+        },
+      ),
+    ];
+  }
 }
+
+/// Circle properties:
+/// Stroke color
+/// Stroke enabled
+/// Stroke width
+/// Fill color
+/// Fill enabled

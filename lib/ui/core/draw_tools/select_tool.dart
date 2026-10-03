@@ -1,6 +1,7 @@
 import 'dart:math';
 import 'dart:ui';
 import 'package:drawing_app/domain/models/draw_data/draw_data.dart';
+import 'package:drawing_app/domain/models/property_data/property_data.dart';
 import 'package:drawing_app/domain/models/tool_input_data/tool_input_data.dart';
 import 'package:drawing_app/ui/core/commands/canvas_command.dart';
 import 'package:drawing_app/ui/core/commands/erase_draw_command.dart';
@@ -691,5 +692,10 @@ class SelectTool extends DrawTool implements HistoryConsumer, OverrideDrawn {
     for (final snapshot in _baselineGroupSnapshots) {
       _groupDragPreviews.add(snapshot.translate(delta));
     }
+  }
+
+  @override
+  List<PropertyData<dynamic>> getToolProperties() {
+    return [];
   }
 }

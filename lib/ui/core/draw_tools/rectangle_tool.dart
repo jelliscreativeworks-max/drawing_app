@@ -1,6 +1,7 @@
 import 'dart:ui';
 
 import 'package:drawing_app/domain/models/draw_data/draw_data.dart';
+import 'package:drawing_app/domain/models/property_data/property_data.dart';
 import 'package:drawing_app/domain/models/tool_input_data/tool_input_data.dart';
 import 'package:drawing_app/ui/core/commands/canvas_command.dart';
 import 'package:drawing_app/ui/core/commands/draw_command.dart';
@@ -63,5 +64,41 @@ class RectangleTool extends DrawTool implements StrokeToolType, FillToolType {
     _activeRect = null;
 
     return DrawCommand(drawData: completedRect!);
+  }
+
+  
+    @override
+  List<PropertyData> getToolProperties() {
+    return [
+      PropertyData<double>(
+        displayName: 'Stroke Size',
+        propertyValue: _strokePaint.strokeWidth,
+        onChanged: (strokeWidth) {
+          _strokePaint = _strokePaint..strokeWidth = strokeWidth;
+        },
+      ),
+       PropertyData<Color>(
+        displayName: 'Stroke Color',
+        propertyValue: _strokePaint.color,
+        onChanged: (strokeColor) {
+          _strokePaint = _strokePaint..color = strokeColor;
+        },
+      ),
+
+            PropertyData<Color>(
+        displayName: 'Fill Color',
+        propertyValue: fillPaint.color,
+        onChanged: (fillColor) {
+          _fillPaint = _fillPaint..color = fillColor;
+        },
+      ),
+      PropertyData<bool>(
+        displayName: 'Fill Enabled',
+        propertyValue: _renderFill,
+        onChanged: (fillEnabled) {
+          _renderFill = fillEnabled;
+        },
+      ),
+    ];
   }
 }

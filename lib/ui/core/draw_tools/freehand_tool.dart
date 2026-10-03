@@ -1,4 +1,5 @@
 import 'dart:ui';
+import 'package:drawing_app/domain/models/property_data/property_data.dart';
 import 'package:drawing_app/domain/models/tool_input_data/tool_input_data.dart';
 import 'package:drawing_app/ui/core/commands/canvas_command.dart';
 import 'package:drawing_app/domain/models/draw_data/draw_data.dart';
@@ -23,7 +24,8 @@ class FreehandTool extends DrawTool implements StrokeToolType {
   @override
   bool get isActive => _isDrawing;
   @override
-  List<DrawData> get activePreview => _activeStroke != null ? [_activeStroke!] : const [];
+  List<DrawData> get activePreview =>
+      _activeStroke != null ? [_activeStroke!] : const [];
   @override
   bool get renderStroke => _renderStroke;
   @override
@@ -36,7 +38,11 @@ class FreehandTool extends DrawTool implements StrokeToolType {
   void toggleRenderStroke(bool enabled) => _renderStroke = enabled;
 
   @override
-  void onToolStart(ToolStartInput toolStartInput, String layerId, int strokeIndex) {
+  void onToolStart(
+    ToolStartInput toolStartInput,
+    String layerId,
+    int strokeIndex,
+  ) {
     _isDrawing = true;
     _activeStroke = FreehandData(
       layerId: layerId,
@@ -66,5 +72,25 @@ class FreehandTool extends DrawTool implements StrokeToolType {
     _activeStroke = null;
 
     return DrawCommand(drawData: completedStroke!);
+  }
+
+  @override
+  List<PropertyData> getToolProperties() {
+    return [
+      PropertyData<double>(
+        displayName: 'Stroke Size',
+        propertyValue: _strokePaint.strokeWidth,
+        onChanged: (strokeWidth) {
+          _strokePaint = _strokePaint..strokeWidth = strokeWidth;
+        },
+      ),
+       PropertyData<Color>(
+        displayName: 'Stroke Color',
+        propertyValue: _strokePaint.color,
+        onChanged: (strokeColor) {
+          _strokePaint = _strokePaint..color = strokeColor;
+        },
+      ),
+    ];
   }
 }

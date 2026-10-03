@@ -1,4 +1,5 @@
 import 'package:drawing_app/domain/models/draw_data/draw_data.dart';
+import 'package:drawing_app/domain/models/property_data/property_data.dart';
 import 'package:drawing_app/domain/models/tool_input_data/tool_input_data.dart';
 import 'package:drawing_app/ui/core/commands/canvas_command.dart';
 import 'package:drawing_app/ui/core/draw_tools/canvas_tool.dart';
@@ -336,6 +337,8 @@ void handlePanEnd(ToolReleasedInput input) {
 
     _panTool = tools[PanTool]! as PanTool;
   }
+
+
 
   void selectTool<T extends CanvasTool>() {
     final targetTool = tools[T];

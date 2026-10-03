@@ -1,6 +1,7 @@
 import 'dart:math';
 import 'dart:ui';
 
+import 'package:drawing_app/domain/models/property_data/property_data.dart';
 import 'package:drawing_app/utils/converters.dart';
 import 'package:drawing_app/utils/extensions.dart';
 import 'package:flutter/material.dart';
@@ -11,21 +12,11 @@ part 'draw_data.g.dart';
 part 'draw_data_rendering.dart';
 part 'draw_data_collisions.dart';
 part 'draw_data_extensions.dart';
+part 'draw_data_properties.dart';
 
 
 @freezed
 sealed class DrawData with _$DrawData{
-  // const DrawData._();
-  // const factory DrawData({
-  //    required String layerId,
-  //    required String toolName,
-  //    required int index,
-  //    required String id,
-  //    @PaintConverter() Paint? strokeSettings,
-  //    @PaintConverter() Paint? fillSettings,
-  //    @OffsetConverter() required List<Offset> points
-  // }) = _DrawData;
-
   const factory DrawData.circle({
     required String layerId,
     required int index,

@@ -1,5 +1,6 @@
 import 'dart:ui';
 
+import 'package:drawing_app/domain/models/property_data/property_data.dart';
 import 'package:drawing_app/domain/models/tool_input_data/tool_input_data.dart';
 import 'package:drawing_app/ui/core/commands/canvas_command.dart';
 import 'package:drawing_app/domain/models/draw_data/draw_data.dart';
@@ -10,9 +11,8 @@ import 'package:drawing_app/ui/core/draw_tools/history_consumer.dart';
 class EraseTool extends DrawTool implements HistoryConsumer, StrokeToolType {
   final List<CanvasHistoryEntry> _erasedDrawData = [];
 
-  Set<String> get targetedForDeletion => _erasedDrawData
-      .map((entry) => entry.originalData.id)
-      .toSet();
+  Set<String> get targetedForDeletion =>
+      _erasedDrawData.map((entry) => entry.originalData.id).toSet();
 
   List<DrawData> _drawHistory = const [];
   String _currentLayerId = '';
@@ -27,7 +27,6 @@ class EraseTool extends DrawTool implements HistoryConsumer, StrokeToolType {
     required Paint defaultStrokePaint,
   }) : _strokePaint = defaultStrokePaint;
 
-
   @override
   bool get isActive => _isErasing;
   @override
@@ -38,18 +37,27 @@ class EraseTool extends DrawTool implements HistoryConsumer, StrokeToolType {
   @override
   void toggleRenderStroke(_) {}
   @override
-  void updateStrokePaint(Paint updatedStrokePaint) => _strokePaint = updatedStrokePaint;
+  void updateStrokePaint(Paint updatedStrokePaint) =>
+      _strokePaint = updatedStrokePaint;
   @override
-  void setHistorySnapshot(List<DrawData> drawHistory) => _drawHistory = drawHistory;
+  void setHistorySnapshot(List<DrawData> drawHistory) =>
+      _drawHistory = drawHistory;
 
   @override
-  void onToolStart(ToolStartInput toolStartInput, String layerId, int strokeIndex) {
+  void onToolStart(
+    ToolStartInput toolStartInput,
+    String layerId,
+    int strokeIndex,
+  ) {
     _isErasing = true;
     _currentLayerId = layerId;
     _lastActivePoint = toolStartInput.snappedWorldPoint;
     _erasedDrawData.clear();
 
-    _checkCollisions(toolStartInput.snappedWorldPoint, toolStartInput.snappedWorldPoint);
+    _checkCollisions(
+      toolStartInput.snappedWorldPoint,
+      toolStartInput.snappedWorldPoint,
+    );
   }
 
   @override
@@ -71,7 +79,6 @@ class EraseTool extends DrawTool implements HistoryConsumer, StrokeToolType {
     _isErasing = false;
     _lastActivePoint = null;
 
-
     // By checking '_drawHistory.length' exactly when the finger lifts,
     // we capture the true chronological timeline placement of this transaction,
     // completely neutralizing any blank misses or layer swaps that came before it.
@@ -87,9 +94,6 @@ class EraseTool extends DrawTool implements HistoryConsumer, StrokeToolType {
     _erasedDrawData.clear();
     return eraseCommand;
   }
-
-
-
 
   void _checkCollisions(Offset p1, Offset p2) {
     final double eraserRadius = (strokePaint.strokeWidth) / 2.0;
@@ -115,12 +119,26 @@ class EraseTool extends DrawTool implements HistoryConsumer, StrokeToolType {
 
         if (liveCurrentIndex != -1) {
           _erasedDrawData.add(
-            CanvasHistoryEntry(originalIndex: liveCurrentIndex, originalData: data),
+            CanvasHistoryEntry(
+              originalIndex: liveCurrentIndex,
+              originalData: data,
+            ),
           );
         }
       }
     }
   }
 
-
+  @override
+  List<PropertyData> getToolProperties() {
+    return [
+      PropertyData(
+        displayName: 'Stroke Size',
+        propertyValue: _strokePaint.strokeWidth,
+        onChanged: (strokeWidth) {
+          _strokePaint = _strokePaint..strokeWidth = strokeWidth;
+        },
+      ),
+    ];
+  }
 }
