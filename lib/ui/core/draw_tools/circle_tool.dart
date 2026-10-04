@@ -5,6 +5,8 @@ import 'package:drawing_app/domain/models/tool_input_data/tool_input_data.dart';
 import 'package:drawing_app/ui/core/commands/canvas_command.dart';
 import 'package:drawing_app/ui/core/commands/draw_command.dart';
 import 'package:drawing_app/ui/core/draw_tools/draw_tool.dart';
+import 'package:drawing_app/utils/widgets/box_icon.dart';
+import 'package:flutter/material.dart';
 
 class CircleTool extends DrawTool implements StrokeToolType, FillToolType {
   bool _isDrawing = false;
@@ -93,49 +95,15 @@ class CircleTool extends DrawTool implements StrokeToolType, FillToolType {
   }
 
   @override
-  List<PropertyData> getToolProperties() {
+  List<PropertyData> getToolProperties(VoidCallback onPropertyChanged) {
     return [
-      // ----- Stroke Properties -----
-      PropertyData<Color>(
-        displayName: 'Stroke Color',
-        propertyValue: strokePaint.color,
-        onChanged: (strokeColor) {
-          _strokePaint = _strokePaint..color = strokeColor;
-        },
-      ),
-      PropertyData<double>(
-        displayName: 'Stroke Size',
-        propertyValue: _strokePaint.strokeWidth,
-        onChanged: (strokeWidth) {
-          _strokePaint = _strokePaint..strokeWidth = strokeWidth;
-        },
-      ),
-      PropertyData<bool>(
-        displayName: 'Stroke Enabled',
-        propertyValue: _renderStroke,
-        onChanged: (strokeEnabled) {
-          _renderStroke = strokeEnabled;
-        },
-      ),
-
-      // ----- Fill Properties -----
-      PropertyData<Color>(
-        displayName: 'Fill Color',
-        propertyValue: fillPaint.color,
-        onChanged: (fillColor) {
-          _fillPaint = _fillPaint..color = fillColor;
-        },
-      ),
-      PropertyData<bool>(
-        displayName: 'Fill Enabled',
-        propertyValue: _renderFill,
-        onChanged: (fillEnabled) {
-          _renderFill = fillEnabled;
-        },
-      ),
+      ...getFillProperties(onPropertyChanged),
+      ...getStrokeProperties(onPropertyChanged)
     ];
   }
 }
+
+
 
 /// Circle properties:
 /// Stroke color

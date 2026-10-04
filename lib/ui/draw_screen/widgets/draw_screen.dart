@@ -2,6 +2,8 @@ import 'package:drawing_app/domain/models/draw_data/draw_data.dart';
 import 'package:drawing_app/domain/models/layer_data/layer_data.dart';
 import 'package:drawing_app/router/routes.dart';
 import 'package:drawing_app/ui/draw_screen/view_models/tool_controller.dart';
+import 'package:drawing_app/ui/draw_screen/view_models/tool_properties_controller.dart';
+import 'package:drawing_app/ui/draw_screen/widgets/tool_properties/tool_properties_menu.dart';
 import 'package:drawing_app/utils/painters/background_painter.dart';
 // import 'package:drawing_app/utils/painters/debug_painter.dart';
 import 'package:drawing_app/utils/painters/gridline_painter.dart';
@@ -18,10 +20,12 @@ class DrawScreen extends StatefulWidget {
     super.key,
     required this.viewModel,
     required this.toolController,
+    required this.toolPropertiesController
   });
 
   final DrawScreenViewModel viewModel;
   final ToolController toolController;
+  final ToolPropertiesController toolPropertiesController;
 
   @override
   State<StatefulWidget> createState() => _DrawScreenState();
@@ -211,7 +215,13 @@ class _DrawScreenState extends State<DrawScreen> {
                         ),
                       ),
                     ),
-          
+                    Align(
+                      alignment: Alignment.bottomLeft,
+                      child: SafeArea(
+                        child: ToolPropertiesMenu(
+                          toolPropertiesController: widget.toolPropertiesController,
+                          )),
+                    ),
                     Align(
                       alignment: Alignment.bottomRight,
                       child: SafeArea(
@@ -259,6 +269,7 @@ class _DrawScreenState extends State<DrawScreen> {
                     //       ),
                     //     ),
                     //   ),
+                    
           
                     // Sidebar Layers Panel overlay
                     if (widget.viewModel.isLayerMenuOpen)

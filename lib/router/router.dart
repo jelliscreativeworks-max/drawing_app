@@ -4,6 +4,7 @@ import 'package:drawing_app/ui/draw_screen/view_models/draw_screen_view_model.da
 import 'package:drawing_app/ui/draw_screen/view_models/tool_controller.dart';
 import 'package:drawing_app/ui/canvases_screen/view_models/canvases_screen_view_model.dart';
 import 'package:drawing_app/ui/canvases_screen/widgets/canvases_screen.dart';
+import 'package:drawing_app/ui/draw_screen/view_models/tool_properties_controller.dart';
 import 'package:drawing_app/ui/draw_screen/widgets/draw_screen.dart';
 import 'package:go_router/go_router.dart';
 import 'package:logger/logger.dart';
@@ -58,11 +59,13 @@ GoRouter router() => GoRouter(
 
           // 3. Extract the initialized Tool Controller from the active provider block
           final toolController = context.read<ToolController>();
+          final toolPropertiesController = ToolPropertiesController(toolController: toolController);
 
           // 4. Safe Execution: DrawScreen is built ONLY when currentCanvas is 100% ready.
           return DrawScreen(
             viewModel: viewModel,
             toolController: toolController,
+            toolPropertiesController: toolPropertiesController,
           );
         },
       ),

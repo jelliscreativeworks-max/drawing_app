@@ -7,28 +7,31 @@ class ToolPropertiesController extends ChangeNotifier {
   ToolPropertiesController({required ToolController toolController}) 
       : _toolController = toolController {
     
-
     if (_toolController.currentTool case DrawTool initialDrawTool) {
       _currentTool = initialDrawTool;
-      _loadedProperties = initialDrawTool.getToolProperties();
     }
     
     _toolController.addListener(_onToolChanged);
   }
 
   DrawTool? _currentTool;
-  List<PropertyData> _loadedProperties = [];
   final ToolController _toolController;
 
-  List<PropertyData> get loadedProperties => _loadedProperties;
+  // 1. Generate the list dynamically on every read/notify step
+  List<PropertyData> get loadedProperties {
+    final tool = _currentTool;
+    if (tool == null) return [];
+    
+    // We pass our controller's notifyListeners directly down to the tool's factories
+    return tool.getToolProperties(notifyListeners);
+  }
 
   void _onToolChanged() {
     final nextTool = _toolController.currentTool;
 
     if (nextTool is DrawTool && nextTool.runtimeType != _currentTool?.runtimeType) {
       _currentTool = nextTool;
-      _loadedProperties = nextTool.getToolProperties();
-      notifyListeners(); // This fires *only* when switching tool types
+      notifyListeners(); // This forces the dynamic getter to rebuild with the new tool's properties
     }
   }
 
@@ -38,3 +41,4 @@ class ToolPropertiesController extends ChangeNotifier {
     super.dispose();
   }
 }
+

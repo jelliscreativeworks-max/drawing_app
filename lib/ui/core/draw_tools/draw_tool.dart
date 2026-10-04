@@ -2,6 +2,7 @@ import 'package:drawing_app/domain/models/draw_data/draw_data.dart';
 import 'package:drawing_app/domain/models/property_data/property_data.dart';
 import 'package:drawing_app/ui/core/commands/canvas_command.dart';
 import 'package:drawing_app/ui/core/draw_tools/canvas_tool.dart';
+import 'package:drawing_app/utils/widgets/box_icon.dart';
 import 'package:flutter/material.dart';
 
 import 'package:uuid/uuid.dart';
@@ -13,7 +14,7 @@ abstract class DrawTool extends CanvasTool{
 
   List<DrawData> get activePreview => const [];
 
-  List<PropertyData> getToolProperties();
+  List<PropertyData> getToolProperties(VoidCallback onPropertyChanged);
 
   CanvasCommand? onPanOverrideStart(){
     if(isActive){
@@ -40,8 +41,65 @@ abstract class StrokeToolType{
 abstract class FillToolType{
   Paint get fillPaint;
   bool get renderFill;
+  
 
   void updateFillPaint(Paint updatedFillPaint);
   void toggleRenderFill(bool enabled);
 }
 
+extension StrokeToolUiExtensions on StrokeToolType {
+  /// Generates the standard property control list for managing stroke options
+  List<PropertyData> getStrokeProperties(VoidCallback onPropertyChanged) {
+    return [
+      PropertyData.choice(
+        displayName: 'Render Stroke',
+        value: renderStroke,
+        options: {
+          BoxIcon(size: 18, color: Colors.transparent, border: Border.all(color: Colors.black, width: 2)): false,
+           BoxIcon(size: 18, color: Colors.black): true,
+        },
+        onChanged: (renderStroke) {
+          toggleRenderStroke(renderStroke);
+          onPropertyChanged();
+          },
+      ),
+      PropertyData.color(
+        displayName: 'Stroke Color',
+        value: strokePaint.color,
+        onChanged: (newColor) {
+                    final updatedPaint = Paint.from(strokePaint)..color = newColor;
+          updateStrokePaint(updatedPaint);
+        },
+      ),
+    ];
+  }
+}
+
+extension FillToolUiExtensions on FillToolType {
+  /// Generates the standard property control list for managing fill options
+  List<PropertyData> getFillProperties(VoidCallback onPropertyChanged) {
+    return [
+      PropertyData.choice(
+        displayName: 'Fill Type',
+        value: renderFill,
+        options: {
+          BoxIcon(size: 18,color: Colors.transparent, border: Border.all(color: Colors.black, width: 2)): false,
+           BoxIcon(size: 18,color: Colors.black): true,
+        },
+        onChanged: (renderFill) {
+          toggleRenderFill(renderFill);
+          onPropertyChanged();
+        },
+      ),
+      PropertyData.color(
+        displayName: 'Fill Color',
+        value: fillPaint.color,
+        onChanged: (newColor) {
+          final updatedPaint = Paint.from(fillPaint)..color = newColor;
+          updateFillPaint(updatedPaint);
+          onPropertyChanged();
+        },
+      ),
+    ];
+  }
+}

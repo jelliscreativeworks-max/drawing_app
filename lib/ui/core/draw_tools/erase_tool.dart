@@ -130,13 +130,14 @@ class EraseTool extends DrawTool implements HistoryConsumer, StrokeToolType {
   }
 
   @override
-  List<PropertyData> getToolProperties() {
+  List<PropertyData> getToolProperties(VoidCallback onPropertyChanged) {
     return [
-      PropertyData(
+      PropertyData.double(
         displayName: 'Stroke Size',
-        propertyValue: _strokePaint.strokeWidth,
+        value: _strokePaint.strokeWidth,
         onChanged: (strokeWidth) {
           _strokePaint = _strokePaint..strokeWidth = strokeWidth;
+          onPropertyChanged();
         },
       ),
     ];

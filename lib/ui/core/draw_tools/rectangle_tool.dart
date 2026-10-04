@@ -68,33 +68,33 @@ class RectangleTool extends DrawTool implements StrokeToolType, FillToolType {
 
   
     @override
-  List<PropertyData> getToolProperties() {
+  List<PropertyData> getToolProperties(VoidCallback onPropertyChanged) {
     return [
-      PropertyData<double>(
+      PropertyData.double(
         displayName: 'Stroke Size',
-        propertyValue: _strokePaint.strokeWidth,
+        value: _strokePaint.strokeWidth,
         onChanged: (strokeWidth) {
           _strokePaint = _strokePaint..strokeWidth = strokeWidth;
         },
       ),
-       PropertyData<Color>(
+       PropertyData.color(
         displayName: 'Stroke Color',
-        propertyValue: _strokePaint.color,
+        value: _strokePaint.color,
         onChanged: (strokeColor) {
           _strokePaint = _strokePaint..color = strokeColor;
         },
       ),
 
-            PropertyData<Color>(
+            PropertyData.color(
         displayName: 'Fill Color',
-        propertyValue: fillPaint.color,
+        value: fillPaint.color,
         onChanged: (fillColor) {
           _fillPaint = _fillPaint..color = fillColor;
         },
       ),
-      PropertyData<bool>(
+      PropertyData.toggle(
         displayName: 'Fill Enabled',
-        propertyValue: _renderFill,
+        value: _renderFill,
         onChanged: (fillEnabled) {
           _renderFill = fillEnabled;
         },

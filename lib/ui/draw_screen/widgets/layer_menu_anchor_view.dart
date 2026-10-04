@@ -51,8 +51,6 @@ class FloatingLayerPanel extends StatelessWidget {
 
                   return ReorderableListView(
                     physics: const ClampingScrollPhysics(),
-                    // 🟢 SET TO TRUE: Let Flutter natively append the drag handle 
-                    // gestures onto the rows to guarantee perfect alignment!
                     buildDefaultDragHandles: true,
                     shrinkWrap: true, 
                     onReorder: (oldIndex, newIndex) {
