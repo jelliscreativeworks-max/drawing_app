@@ -182,35 +182,8 @@ class PathTool extends DrawTool implements StrokeToolType, FillToolType {
     @override
   List<PropertyData> getToolProperties(VoidCallback onPropertyChanged) {
     return [
-      PropertyData.double(
-        displayName: 'Stroke Size',
-        value: _strokePaint.strokeWidth,
-        onChanged: (strokeWidth) {
-          _strokePaint = _strokePaint..strokeWidth = strokeWidth;
-        },
-      ),
-       PropertyData.color(
-        displayName: 'Stroke Color',
-        value: _strokePaint.color,
-        onChanged: (strokeColor) {
-          _strokePaint = _strokePaint..color = strokeColor;
-        },
-      ),
-
-            PropertyData.color(
-        displayName: 'Fill Color',
-        value: fillPaint.color,
-        onChanged: (fillColor) {
-          _fillPaint = _fillPaint..color = fillColor;
-        },
-      ),
-      PropertyData.toggle(
-        displayName: 'Fill Enabled',
-        value: _renderFill,
-        onChanged: (fillEnabled) {
-          _renderFill = fillEnabled;
-        },
-      ),
+      ...getStrokeProperties(onPropertyChanged),
+      ...getFillProperties(onPropertyChanged)
     ];
   }
 }

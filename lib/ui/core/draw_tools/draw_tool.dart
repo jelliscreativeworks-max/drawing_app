@@ -51,15 +51,14 @@ extension StrokeToolUiExtensions on StrokeToolType {
   /// Generates the standard property control list for managing stroke options
   List<PropertyData> getStrokeProperties(VoidCallback onPropertyChanged) {
     return [
-      PropertyData.choice(
-        displayName: 'Render Stroke',
-        value: renderStroke,
-        options: {
-          BoxIcon(size: 18, color: Colors.transparent, border: Border.all(color: Colors.black, width: 2)): false,
-           BoxIcon(size: 18, color: Colors.black): true,
-        },
-        onChanged: (renderStroke) {
-          toggleRenderStroke(renderStroke);
+      PropertyData.double(
+        displayName: 'Stroke Size',
+        value: strokePaint.strokeWidth,
+        minValue: 0,
+        maxValue: 20,
+        onChanged: (strokeWidth) {
+          final updatedPaint = Paint.from(strokePaint)..strokeWidth = strokeWidth;
+          updateStrokePaint(updatedPaint);
           onPropertyChanged();
           },
       ),
@@ -69,6 +68,7 @@ extension StrokeToolUiExtensions on StrokeToolType {
         onChanged: (newColor) {
                     final updatedPaint = Paint.from(strokePaint)..color = newColor;
           updateStrokePaint(updatedPaint);
+          onPropertyChanged();
         },
       ),
     ];

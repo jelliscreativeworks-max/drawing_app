@@ -77,21 +77,7 @@ class FreehandTool extends DrawTool implements StrokeToolType {
   @override
   List<PropertyData> getToolProperties(VoidCallback onPropertyChanged) {
     return [
-      PropertyData.double(
-        displayName: 'Stroke Size',
-        value: _strokePaint.strokeWidth,
-        onChanged: (strokeWidth) {
-          _strokePaint = _strokePaint..strokeWidth = strokeWidth;
-        },
-      ),
-       PropertyData.color(
-        displayName: 'Stroke Color',
-        value: _strokePaint.color,
-        onChanged: (strokeColor) {
-          _strokePaint = _strokePaint..color = strokeColor;
-          onPropertyChanged();
-        },
-      ),
+     ...getStrokeProperties(onPropertyChanged)
     ];
   }
 }

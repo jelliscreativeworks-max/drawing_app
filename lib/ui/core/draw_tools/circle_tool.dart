@@ -63,14 +63,14 @@ class CircleTool extends DrawTool implements StrokeToolType, FillToolType {
     _isDrawing = true;
     _circlePreview = CircleData(
       layerId: layerId,
-      fillPaint: fillPaint,
+      fillPaint: _fillPaint,
       strokePaint: _strokePaint,
       index: strokeIndex,
       id: uuid.v4(),
       center: toolStartInput.snappedWorldPoint,
       radius: double.minPositive,
       renderFill: _renderFill,
-      renderStroke: _renderFill,
+      renderStroke: _renderStroke,
     );
   }
 

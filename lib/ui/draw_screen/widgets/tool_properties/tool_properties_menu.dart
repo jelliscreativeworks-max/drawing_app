@@ -30,14 +30,14 @@ class _ToolPropertiesMenuState extends State<ToolPropertiesMenu> {
                 
             constraints: const BoxConstraints(
               minWidth: 120, 
-              maxWidth: 140,
+              maxWidth: 200,
               minHeight: 80, 
               maxHeight: 400, 
             ),
             child: ListView(
               shrinkWrap: true,
               children: [
-                ...widget._toolPropertiesController.loadedProperties.map((property) => property.toWidget())
+                ...widget._toolPropertiesController.loadedProperties.map((property) => property.toWidget(context))
               ]) 
             ) : SizedBox.shrink(),
             SizedBox(height: 5,),

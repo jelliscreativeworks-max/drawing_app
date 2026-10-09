@@ -156,13 +156,13 @@ return double(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>({TResult Function( String displayName,  Color value,  ValueChanged<Color> onChanged)?  color,TResult Function( String displayName,  bool value,  ValueChanged<bool> onChanged)?  toggle,TResult Function( String displayName,  T value,  Map<Widget, T> options,  ValueChanged<T> onChanged)?  choice,TResult Function( String displayName,  double value,  ValueChanged<double> onChanged)?  double,required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>({TResult Function( String displayName,  Color value,  ValueChanged<Color> onChanged)?  color,TResult Function( String displayName,  bool value,  ValueChanged<bool> onChanged)?  toggle,TResult Function( String displayName,  T value,  Map<Widget, T> options,  ValueChanged<T> onChanged)?  choice,TResult Function( String displayName,  double value,  double maxValue,  double minValue,  ValueChanged<double> onChanged)?  double,required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case ColorPropertyData() when color != null:
 return color(_that.displayName,_that.value,_that.onChanged);case TogglePropertyData() when toggle != null:
 return toggle(_that.displayName,_that.value,_that.onChanged);case ChoicePropertyData() when choice != null:
 return choice(_that.displayName,_that.value,_that.options,_that.onChanged);case DoublePropertyData() when double != null:
-return double(_that.displayName,_that.value,_that.onChanged);case _:
+return double(_that.displayName,_that.value,_that.maxValue,_that.minValue,_that.onChanged);case _:
   return orElse();
 
 }
@@ -180,13 +180,13 @@ return double(_that.displayName,_that.value,_that.onChanged);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>({required TResult Function( String displayName,  Color value,  ValueChanged<Color> onChanged)  color,required TResult Function( String displayName,  bool value,  ValueChanged<bool> onChanged)  toggle,required TResult Function( String displayName,  T value,  Map<Widget, T> options,  ValueChanged<T> onChanged)  choice,required TResult Function( String displayName,  double value,  ValueChanged<double> onChanged)  double,}) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>({required TResult Function( String displayName,  Color value,  ValueChanged<Color> onChanged)  color,required TResult Function( String displayName,  bool value,  ValueChanged<bool> onChanged)  toggle,required TResult Function( String displayName,  T value,  Map<Widget, T> options,  ValueChanged<T> onChanged)  choice,required TResult Function( String displayName,  double value,  double maxValue,  double minValue,  ValueChanged<double> onChanged)  double,}) {final _that = this;
 switch (_that) {
 case ColorPropertyData():
 return color(_that.displayName,_that.value,_that.onChanged);case TogglePropertyData():
 return toggle(_that.displayName,_that.value,_that.onChanged);case ChoicePropertyData():
 return choice(_that.displayName,_that.value,_that.options,_that.onChanged);case DoublePropertyData():
-return double(_that.displayName,_that.value,_that.onChanged);}
+return double(_that.displayName,_that.value,_that.maxValue,_that.minValue,_that.onChanged);}
 }
 /// A variant of `when` that fallback to returning `null`
 ///
@@ -200,13 +200,13 @@ return double(_that.displayName,_that.value,_that.onChanged);}
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>({TResult? Function( String displayName,  Color value,  ValueChanged<Color> onChanged)?  color,TResult? Function( String displayName,  bool value,  ValueChanged<bool> onChanged)?  toggle,TResult? Function( String displayName,  T value,  Map<Widget, T> options,  ValueChanged<T> onChanged)?  choice,TResult? Function( String displayName,  double value,  ValueChanged<double> onChanged)?  double,}) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>({TResult? Function( String displayName,  Color value,  ValueChanged<Color> onChanged)?  color,TResult? Function( String displayName,  bool value,  ValueChanged<bool> onChanged)?  toggle,TResult? Function( String displayName,  T value,  Map<Widget, T> options,  ValueChanged<T> onChanged)?  choice,TResult? Function( String displayName,  double value,  double maxValue,  double minValue,  ValueChanged<double> onChanged)?  double,}) {final _that = this;
 switch (_that) {
 case ColorPropertyData() when color != null:
 return color(_that.displayName,_that.value,_that.onChanged);case TogglePropertyData() when toggle != null:
 return toggle(_that.displayName,_that.value,_that.onChanged);case ChoicePropertyData() when choice != null:
 return choice(_that.displayName,_that.value,_that.options,_that.onChanged);case DoublePropertyData() when double != null:
-return double(_that.displayName,_that.value,_that.onChanged);case _:
+return double(_that.displayName,_that.value,_that.maxValue,_that.minValue,_that.onChanged);case _:
   return null;
 
 }
@@ -436,11 +436,13 @@ as ValueChanged<T>,
 
 
 class DoublePropertyData<T> implements PropertyData<T> {
-   DoublePropertyData({required this.displayName, required this.value, required this.onChanged});
+   DoublePropertyData({required this.displayName, required this.value, required this.maxValue, required this.minValue, required this.onChanged});
   
 
 @override final  String displayName;
 @override final  double value;
+ final  double maxValue;
+ final  double minValue;
 @override final  ValueChanged<double> onChanged;
 
 /// Create a copy of PropertyData
@@ -453,16 +455,16 @@ $DoublePropertyDataCopyWith<T, DoublePropertyData<T>> get copyWith => _$DoublePr
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is DoublePropertyData<T>&&(identical(other.displayName, displayName) || other.displayName == displayName)&&(identical(other.value, value) || other.value == value)&&(identical(other.onChanged, onChanged) || other.onChanged == onChanged));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is DoublePropertyData<T>&&(identical(other.displayName, displayName) || other.displayName == displayName)&&(identical(other.value, value) || other.value == value)&&(identical(other.maxValue, maxValue) || other.maxValue == maxValue)&&(identical(other.minValue, minValue) || other.minValue == minValue)&&(identical(other.onChanged, onChanged) || other.onChanged == onChanged));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,displayName,value,onChanged);
+int get hashCode => Object.hash(runtimeType,displayName,value,maxValue,minValue,onChanged);
 
 @override
 String toString() {
-  return 'PropertyData<$T>.double(displayName: $displayName, value: $value, onChanged: $onChanged)';
+  return 'PropertyData<$T>.double(displayName: $displayName, value: $value, maxValue: $maxValue, minValue: $minValue, onChanged: $onChanged)';
 }
 
 
@@ -473,7 +475,7 @@ abstract mixin class $DoublePropertyDataCopyWith<T,$Res> implements $PropertyDat
   factory $DoublePropertyDataCopyWith(DoublePropertyData<T> value, $Res Function(DoublePropertyData<T>) _then) = _$DoublePropertyDataCopyWithImpl;
 @override @useResult
 $Res call({
- String displayName, double value, ValueChanged<double> onChanged
+ String displayName, double value, double maxValue, double minValue, ValueChanged<double> onChanged
 });
 
 
@@ -490,10 +492,12 @@ class _$DoublePropertyDataCopyWithImpl<T,$Res>
 
 /// Create a copy of PropertyData
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? displayName = null,Object? value = null,Object? onChanged = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? displayName = null,Object? value = null,Object? maxValue = null,Object? minValue = null,Object? onChanged = null,}) {
   return _then(DoublePropertyData<T>(
 displayName: null == displayName ? _self.displayName : displayName // ignore: cast_nullable_to_non_nullable
 as String,value: null == value ? _self.value : value // ignore: cast_nullable_to_non_nullable
+as double,maxValue: null == maxValue ? _self.maxValue : maxValue // ignore: cast_nullable_to_non_nullable
+as double,minValue: null == minValue ? _self.minValue : minValue // ignore: cast_nullable_to_non_nullable
 as double,onChanged: null == onChanged ? _self.onChanged : onChanged // ignore: cast_nullable_to_non_nullable
 as ValueChanged<double>,
   ));

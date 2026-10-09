@@ -51,7 +51,7 @@
       }
 
       if(data.renderStroke){
-         canvas.drawCircle(data.center, data.radius, data.fillPaint);
+         canvas.drawCircle(data.center, data.radius, data.strokePaint);
       }
   }
 

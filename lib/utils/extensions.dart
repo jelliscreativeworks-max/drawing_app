@@ -12,6 +12,14 @@ extension ListExtensions<T> on List<T>{
   }
 }
 
+extension DoubleExtensions on double{
+  double normalize(double min, double max) {
+  if (min == max) return 0.0; // Prevent division by zero
+  return (this - min) / (max - min);
+}
+
+}
+
 extension RectExtensions on Rect{
   List<Offset> pointsToList(){
     return <Offset>[topLeft,topCenter,topRight,centerRight,bottomRight,bottomCenter,bottomLeft,centerLeft];
