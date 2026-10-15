@@ -20,7 +20,7 @@ class DrawScreen extends StatefulWidget {
     super.key,
     required this.viewModel,
     required this.toolController,
-    required this.toolPropertiesController
+    required this.toolPropertiesController,
   });
 
   final DrawScreenViewModel viewModel;
@@ -44,8 +44,8 @@ class _DrawScreenState extends State<DrawScreen> {
       ]),
       builder: (context, child) {
         return MouseRegion(
-                                  onEnter: (event) => widget.toolController.enableDrawing(event),
-                        onExit: (event) => widget.toolController.disableDrawing(),
+          onEnter: (event) => widget.toolController.enableDrawing(event),
+          onExit: (event) => widget.toolController.disableDrawing(),
           child: Scaffold(
             backgroundColor: Colors.grey.shade900,
             appBar: AppBar(
@@ -69,7 +69,7 @@ class _DrawScreenState extends State<DrawScreen> {
                   // Visual indicators can watch widget.viewModel.saveDirtyProgress.running here
                   IconButton(
                     onPressed: () {},
-                    icon:  const Icon(Icons.more_vert),
+                    icon: const Icon(Icons.more_vert),
                   ),
                 ],
               ),
@@ -80,7 +80,7 @@ class _DrawScreenState extends State<DrawScreen> {
                   constraints.maxWidth,
                   constraints.maxHeight,
                 );
-          
+
                 // Auto-center viewport workspace exactly once on screen boot parameters
                 if (!_hasCenteredOnStart) {
                   WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -88,110 +88,169 @@ class _DrawScreenState extends State<DrawScreen> {
                   });
                   _hasCenteredOnStart = true;
                 }
-          
+
                 return Stack(
                   children: [
                     Positioned.fill(
                       child: Listener(
-                        onPointerDown: (event) => widget.toolController.handleEvent(event, event.kind),
-                        onPointerMove: (event) => widget.toolController.handleEvent(event, event.kind),
-                        onPointerUp: (event) => widget.toolController.handleEvent(event, event.kind),
-                        onPointerCancel: (event) => widget.toolController.handleEvent(event, event.kind),
-                        onPointerPanZoomStart: (event) => widget.toolController.handleEvent(event, event.kind),
-                        onPointerPanZoomUpdate: (event) => widget.toolController.handleEvent(event, event.kind),
-                        onPointerPanZoomEnd: (event) => widget.toolController.handleEvent(event, event.kind),
-                        onPointerSignal: (event) => widget.toolController.handleEvent(event, event.kind),
+                        onPointerDown: (event) => widget.toolController
+                            .handleEvent(event, event.kind),
+                        onPointerMove: (event) => widget.toolController
+                            .handleEvent(event, event.kind),
+                        onPointerUp: (event) => widget.toolController
+                            .handleEvent(event, event.kind),
+                        onPointerCancel: (event) => widget.toolController
+                            .handleEvent(event, event.kind),
+                        onPointerPanZoomStart: (event) => widget.toolController
+                            .handleEvent(event, event.kind),
+                        onPointerPanZoomUpdate: (event) => widget.toolController
+                            .handleEvent(event, event.kind),
+                        onPointerPanZoomEnd: (event) => widget.toolController
+                            .handleEvent(event, event.kind),
+                        onPointerSignal: (event) => widget.toolController
+                            .handleEvent(event, event.kind),
                         child: GestureDetector(
-                          onScaleStart: (details) => widget.toolController.handleEvent(details, details.kind ?? widget.toolController.lastDeviceKind),
-                          onScaleUpdate: (details) => widget.toolController.handleEvent(details, widget.toolController.lastDeviceKind),
-                          onScaleEnd: (details) => widget.toolController.handleEvent(details, widget.toolController.lastDeviceKind),
-                         
-                          
+                          onScaleStart: (details) =>
+                              widget.toolController.handleEvent(
+                                details,
+                                details.kind ??
+                                    widget.toolController.lastDeviceKind,
+                              ),
+                          onScaleUpdate: (details) =>
+                              widget.toolController.handleEvent(
+                                details,
+                                widget.toolController.lastDeviceKind,
+                              ),
+                          onScaleEnd: (details) =>
+                              widget.toolController.handleEvent(
+                                details,
+                                widget.toolController.lastDeviceKind,
+                              ),
+
                           child: ClipRect(
                             child: Stack(
                               children: [
-                                     
                                 Positioned.fill(
                                   child: CustomPaint(
                                     painter: BackgroundPainter(
                                       transform:
                                           widget.viewModel.camera.transform,
-                                      canvasWidth: widget.viewModel.currentCanvas.currentWidth,
-                                      canvasHeight:
-                                          widget.viewModel.currentCanvas.currentHeight,
+                                      canvasWidth: widget
+                                          .viewModel
+                                          .currentCanvas
+                                          .currentWidth,
+                                      canvasHeight: widget
+                                          .viewModel
+                                          .currentCanvas
+                                          .currentHeight,
                                       cellSize: 35.0,
                                       lineThickness: 1.2,
                                     ),
                                   ),
                                 ),
-                                
+
                                 // B. Dynamic Persistent Stacking Vector Layer System
                                 ...widget.viewModel.layers.map((
                                   LayerData layer,
                                 ) {
                                   if (!layer.isVisible) return const SizedBox.shrink();
-                                
+
                                   final List<DrawData> filteredLayerHistory =
                                       widget.viewModel.getHistoryForLayer(
                                         layer.id,
                                       );
-                                
-                                  return widget.viewModel.loadProject.running ? 
-                                  SizedBox.shrink() : 
-                                  Selector<ToolController, Set<String>>(
-                                    selector: (_, p1) => Set<String>.of(p1.hiddenData),
-                                    builder: (context,hiddenData, child) => Positioned.fill(
-                                      child: RepaintBoundary(
-                                        child: CustomPaint(
-                                          key: ValueKey(
-                                            '${layer.id}_${filteredLayerHistory.length}_${widget.viewModel.transformRevision}',
+
+                                  return widget.viewModel.loadProject.running
+                                      ? SizedBox.shrink()
+                                      :
+                                        // 🌟 REFACTORED HIGH-PERFORMANCE LAYER RENDERER
+                                        Selector<
+                                          DrawScreenViewModel,
+                                          Set<String>
+                                        >(
+                                          // 1. Route the selector to drill down through the ViewModel to fetch hiddenData
+                                          selector: (_, vm) => Set<String>.of(
+                                            vm.toolController.hiddenData,
                                           ),
-                                          painter: MyPainter(
-                                            hiddenData: hiddenData,
-                                            deletionTargets: const {},
-                                            deviceKind: widget
-                                                .toolController
-                                                .lastDeviceKind,
-                                            canvasHeight:
-                                                widget.viewModel.currentCanvas.currentHeight,
-                                            canvasWidth:
-                                                widget.viewModel.currentCanvas.currentWidth,
-                                            drawHistory: filteredLayerHistory,
-                                            camera:
-                                                widget.viewModel.camera,
-                                          ),
-                                        ),
-                                      ),
-                                    ),
-                                  );
+
+                                          builder: (context, hiddenData, child) {
+                                            // Local alias cache keeps parameter access clean and fast inside the builder
+                                            final toolController =
+                                                widget.viewModel.toolController;
+                                            final activeCanvas =
+                                                widget.viewModel.currentCanvas;
+
+                                            return Positioned.fill(
+                                              child: RepaintBoundary(
+                                                child: CustomPaint(
+                                                  key: ValueKey(
+                                                    '${layer.id}_${filteredLayerHistory.length}_${widget.viewModel.transformRevision}',
+                                                  ),
+                                                  painter: MyPainter(
+                                                    hiddenData: hiddenData,
+                                                    deletionTargets: const {},
+                                                    // 2. Fetch tracking metrics straight from your nested domain manager nodes
+                                                    deviceKind: toolController
+                                                        .lastDeviceKind,
+                                                    canvasHeight: activeCanvas
+                                                        .currentHeight,
+                                                    canvasWidth: activeCanvas
+                                                        .currentWidth,
+                                                    drawHistory:
+                                                        filteredLayerHistory,
+                                                    camera:
+                                                        widget.viewModel.camera,
+                                                  ),
+                                                ),
+                                              ),
+                                            );
+                                          },
+                                        );
                                 }),
                                 ListenableBuilder(
                                   listenable: widget.toolController,
                                   builder: (context, child) {
-                                    final List<DrawData> overlayData = widget.toolController.overlayHistory;
-                                
+                                    final List<DrawData> overlayData =
+                                        widget.toolController.overlayHistory;
+
                                     // If there is nothing to preview and the tool is at rest, draw nothing
-                                    if (overlayData.isEmpty && !widget.toolController.currentTool.isActive) {
+                                    if (overlayData.isEmpty &&
+                                        !widget
+                                            .toolController
+                                            .currentTool
+                                            .isActive) {
                                       return const SizedBox.shrink();
                                     }
-                                
+
                                     return Positioned.fill(
                                       child: CustomPaint(
-                                painter: MyPainter(
-                                  deletionTargets: widget.toolController.activeDeletionTargets,
-                                  deviceKind: widget.toolController.lastDeviceKind,
-                                  canvasHeight: widget.viewModel.currentCanvas.currentHeight,
-                                  canvasWidth: widget.viewModel.currentCanvas.currentWidth,
-                                  drawHistory: overlayData, // 🟢 Clean MVVM pass-through list
-                                  camera: widget.viewModel.camera,
-                                  activeTool: widget.toolController.currentTool,
-                                  hiddenData: {}
-                                ),
+                                        painter: MyPainter(
+                                          deletionTargets: widget
+                                              .toolController
+                                              .activeDeletionTargets,
+                                          deviceKind: widget
+                                              .toolController
+                                              .lastDeviceKind,
+                                          canvasHeight: widget
+                                              .viewModel
+                                              .currentCanvas
+                                              .currentHeight,
+                                          canvasWidth: widget
+                                              .viewModel
+                                              .currentCanvas
+                                              .currentWidth,
+                                          drawHistory:
+                                              overlayData, // 🟢 Clean MVVM pass-through list
+                                          camera: widget.viewModel.camera,
+                                          activeTool:
+                                              widget.toolController.currentTool,
+                                          hiddenData: {},
+                                        ),
                                       ),
                                     );
                                   },
                                 ),
-                                
+
                                 // D. Persistent Document Guideline Grids Overlay
                                 Positioned.fill(
                                   child: CustomPaint(
@@ -201,9 +260,14 @@ class _DrawScreenState extends State<DrawScreen> {
                                     painter: GridlinePainter(
                                       transform:
                                           widget.viewModel.camera.transform,
-                                      canvasWidth: widget.viewModel.currentCanvas.currentWidth,
-                                      canvasHeight:
-                                          widget.viewModel.currentCanvas.currentHeight,
+                                      canvasWidth: widget
+                                          .viewModel
+                                          .currentCanvas
+                                          .currentWidth,
+                                      canvasHeight: widget
+                                          .viewModel
+                                          .currentCanvas
+                                          .currentHeight,
                                       cellSize: widget.viewModel.gridCellSize,
                                       lineThickness: 1.2,
                                     ),
@@ -219,8 +283,10 @@ class _DrawScreenState extends State<DrawScreen> {
                       alignment: Alignment.bottomLeft,
                       child: SafeArea(
                         child: ToolPropertiesMenu(
-                          toolPropertiesController: widget.toolPropertiesController,
-                          )),
+                          toolPropertiesController:
+                              widget.toolPropertiesController,
+                        ),
+                      ),
                     ),
                     Align(
                       alignment: Alignment.bottomRight,
@@ -258,7 +324,7 @@ class _DrawScreenState extends State<DrawScreen> {
                         ),
                       ),
                     ),
-          
+
                     // // Fullscreen Initial Loading Blocker
                     // if (widget.viewModel.loadProject.running)
                     //   Positioned.fill(
@@ -269,8 +335,7 @@ class _DrawScreenState extends State<DrawScreen> {
                     //       ),
                     //     ),
                     //   ),
-                    
-          
+
                     // Sidebar Layers Panel overlay
                     if (widget.viewModel.isLayerMenuOpen)
                       Positioned(
@@ -287,7 +352,9 @@ class _DrawScreenState extends State<DrawScreen> {
             ),
             bottomNavigationBar: BottomAppBar(
               height: 64.0,
-              child: BottomToolBarButtons(toolController: widget.toolController),
+              child: BottomToolBarButtons(
+                toolController: widget.toolController,
+              ),
             ),
           ),
         );

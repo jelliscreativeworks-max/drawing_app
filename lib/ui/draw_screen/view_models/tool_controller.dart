@@ -1,5 +1,5 @@
+import 'package:drawing_app/domain/models/canvas_camera.dart';
 import 'package:drawing_app/domain/models/draw_data/draw_data.dart';
-import 'package:drawing_app/domain/models/property_data/property_data.dart';
 import 'package:drawing_app/domain/models/tool_input_data/tool_input_data.dart';
 import 'package:drawing_app/ui/core/commands/canvas_command.dart';
 import 'package:drawing_app/ui/core/draw_tools/canvas_tool.dart';
@@ -17,7 +17,6 @@ import 'package:drawing_app/ui/core/tool_input_handler/mouse_input_handler.dart'
 import 'package:drawing_app/ui/core/tool_input_handler/tool_input_handler.dart';
 import 'package:drawing_app/ui/core/tool_input_handler/touch_input_handler.dart';
 import 'package:drawing_app/ui/core/tool_input_handler/trackpad_input_handler.dart';
-import 'package:drawing_app/ui/draw_screen/view_models/draw_screen_view_model.dart';
 import 'package:drawing_app/utils/extensions.dart';
 import 'package:drawing_app/ui/core/draw_tools/history_consumer.dart';
 import 'package:flutter/gestures.dart';
@@ -26,7 +25,18 @@ import 'package:logger/logger.dart';
 import 'package:material_symbols_icons/symbols.dart';
 
 class ToolController extends ChangeNotifier {
-  final DrawScreenViewModel _viewModel;
+  // final DrawScreenViewModel 
+
+  final VoidCallback onForceCanvasRefresh;
+  
+  final Function(CanvasCommand canvasCommand) onExecuteCommand;
+  final List<DrawData> Function() getGlobalHistory;
+  final Size Function() getCanvasDimensions;
+  final String Function() getActiveLayerId;
+  final Offset Function(Offset screenPoint) getSnappedWorldPoint;
+  final VoidCallback onClearSnapping;
+
+  final ToolMatrixPayload camera;
 
   // DEBUG
   ScaleStartDetails? startDetails;
@@ -50,7 +60,7 @@ class ToolController extends ChangeNotifier {
 
     // 2. If the eraser is sweeping across the canvas, grab ONLY the targets
     if (_currentTool is EraseTool && activeDeletionTargets.isNotEmpty) {
-      return _viewModel.drawHistory
+      return getGlobalHistory()
           .where((shape) => activeDeletionTargets.contains(shape.id))
           .toList();
     }
@@ -83,8 +93,8 @@ class ToolController extends ChangeNotifier {
       ? (_currentTool as DrawTool).activePreview
       : const [];
 
-  ToolController({required DrawScreenViewModel viewModel, required Logger logger})
-    : _viewModel = viewModel, _logger = logger{
+  ToolController({required Logger logger, required this.onForceCanvasRefresh, required this.onExecuteCommand, required this.getGlobalHistory, required this.getCanvasDimensions, required this.getActiveLayerId, required this.getSnappedWorldPoint, required this.onClearSnapping, required this.camera})
+    : _logger = logger{
     initializeTools();
 
     _inputHandlers = {
@@ -96,8 +106,8 @@ class ToolController extends ChangeNotifier {
         onPanUpdate: (toolInput) => handlePanUpdate(toolInput),
         onPanEnd: (toolInput) => handlePanEnd(toolInput),
         snappedScreenPointConverter: (screenPoint) =>
-            _viewModel.getSnappedWorldPoint(screenPoint),
-        unsnappedScreenPointConverter: (screenPoint) => screenPoint.screenToWorld(_viewModel.camera.transform),
+            getSnappedWorldPoint(screenPoint),
+        unsnappedScreenPointConverter: (screenPoint) => screenPoint.screenToWorld(camera.transform),
       ),
       PointerDeviceKind.touch: TouchInputHandler(
         onToolPress: (p0) => handleToolPressed(p0),
@@ -107,8 +117,8 @@ class ToolController extends ChangeNotifier {
         onPanUpdate: (toolInput) => handlePanUpdate(toolInput),
         onPanEnd: (toolInput) => handlePanEnd(toolInput),
         snappedScreenPointConverter: (screenPoint) =>
-            _viewModel.getSnappedWorldPoint(screenPoint),
-        unsnappedScreenPointConverter: (screenPoint) => screenPoint.screenToWorld(_viewModel.camera.transform),
+            getSnappedWorldPoint(screenPoint),
+        unsnappedScreenPointConverter: (screenPoint) => screenPoint.screenToWorld(camera.transform),
       ),
       PointerDeviceKind.trackpad: TrackpadInputHandler(
         onToolPress: (_) {},
@@ -118,8 +128,8 @@ class ToolController extends ChangeNotifier {
         onPanUpdate: (toolInput) => handlePanUpdate(toolInput),
         onPanEnd: (toolInput) => handlePanEnd(toolInput),
         snappedScreenPointConverter: (screenPoint) =>
-            _viewModel.getSnappedWorldPoint(screenPoint),
-        unsnappedScreenPointConverter: (screenPoint) => screenPoint.screenToWorld(_viewModel.camera.transform),
+            getSnappedWorldPoint(screenPoint),
+        unsnappedScreenPointConverter: (screenPoint) => screenPoint.screenToWorld(camera.transform),
       ),
     };
   }
@@ -136,7 +146,7 @@ class ToolController extends ChangeNotifier {
         _lastDeviceKind != device) {
       inputHandlers[_lastDeviceKind]!.disableInput();
     }
-    inputHandlers[device]!.handleEvent(event, _viewModel.camera.transform);
+    inputHandlers[device]!.handleEvent(event, camera.transform);
     _lastDeviceKind = device;
   }
 
@@ -147,26 +157,26 @@ class ToolController extends ChangeNotifier {
       handlePanStart(input);
       return;
     } else if (input.snappedWorldPoint.dx < 0 ||
-        input.snappedWorldPoint.dx > _viewModel.currentCanvas.currentWidth ||
+        input.snappedWorldPoint.dx > getCanvasDimensions().width ||
         input.snappedWorldPoint.dy < 0 ||
-        input.snappedWorldPoint.dy > _viewModel.currentCanvas.currentHeight) {
-      _viewModel.clearSnappingSession();
+        input.snappedWorldPoint.dy > getCanvasDimensions().height) {
+      onClearSnapping();
       return;
     } else if (!_currentTool.isActive) {
-      _viewModel.clearSnappingSession();
+      onClearSnapping();
     }
 
     if (_currentTool is HistoryConsumer) {
       (_currentTool as HistoryConsumer).setHistorySnapshot(
-        _viewModel.drawHistory,
+        getGlobalHistory(),
       );
     }
 
     _lastDeviceKind = input.kind;
     _currentTool.onToolStart(
       input,
-      _viewModel.activeLayerId,
-      _viewModel.drawHistory.length,
+      getActiveLayerId(),
+      getGlobalHistory().length,
     );
 
     notifyListeners();
@@ -183,14 +193,14 @@ class ToolController extends ChangeNotifier {
     }
 
     _lastDeviceKind = input.kind;
-    _currentTool.onToolUpdate(input, _viewModel.activeLayerId);
+    _currentTool.onToolUpdate(input, getActiveLayerId());
 
     notifyListeners();
   }
 
   void handleToolReleased(ToolReleasedInput input) {
     if (!drawEnabled || !_currentTool.isActive) return;
-    _viewModel.clearSnappingSession();
+    onClearSnapping();
     _endActiveTool();
   }
 
@@ -198,7 +208,7 @@ class ToolController extends ChangeNotifier {
     if (_currentTool.isActive) {
       final command = _currentTool.onToolEnd();
       if (command != null) {
-        _viewModel.executeCommand(command);
+        onExecuteCommand(command);
       }
       notifyListeners();
     }
@@ -211,22 +221,22 @@ class ToolController extends ChangeNotifier {
       CanvasCommand? command = (_currentTool as DrawTool).onPanOverrideStart();
 
       if(command != null){
-        _viewModel.executeCommand(command);
+        onExecuteCommand(command);
         notifyListeners();
       }
     }
 
 
-    _viewModel.camera.focalPointAtStart = input.snappedScreenPoint;
-    _viewModel.camera.scaleStart = _viewModel.camera.currentScale;
-    _viewModel.camera.previousGestureScale = 1.0;
-    _viewModel.camera.worldPivotAtStart = input.snappedWorldPoint;
+    camera.focalPointAtStart = input.snappedScreenPoint;
+    camera.scaleStart = camera.currentScale;
+    camera.previousGestureScale = 1.0;
+    camera.worldPivotAtStart = input.snappedWorldPoint;
 
     _lastDeviceKind = input.kind;
     _panTool.onToolStart(
       input,
-      _viewModel.activeLayerId,
-      _viewModel.drawHistory.length,
+      getActiveLayerId(),
+      getGlobalHistory().length,
     );
     notifyListeners();
   }
@@ -235,8 +245,8 @@ class ToolController extends ChangeNotifier {
     if (!_panTool.isActive) return;
 
     _lastDeviceKind = input.kind;
-    _panTool.onToolUpdate(input, _viewModel.activeLayerId);
-    _viewModel.forceCanvasRefresh();
+    _panTool.onToolUpdate(input, getActiveLayerId());
+    onForceCanvasRefresh();
     notifyListeners();
   }
 
@@ -249,7 +259,7 @@ void handlePanEnd(ToolReleasedInput input) {
   // FIX: Force the snapping tracking variables to wipe clean!
   // This resets '_lastSnappedWorldPoint = null' in your View Model,
   // so the very next mouse movement initializes an accurate base anchor.
-  _viewModel.clearSnappingSession(); 
+  onClearSnapping(); 
   
   if(_currentTool is DrawTool){
    (_currentTool as DrawTool).onPanOverrideEnd();
@@ -273,7 +283,7 @@ void handlePanEnd(ToolReleasedInput input) {
       PanTool: PanTool(
         toolName: 'Pan Tool',
         toolIcon: Icon(Icons.pan_tool),
-        camera: _viewModel.camera,
+        camera: camera,
       ),
       EraseTool: EraseTool(
         toolName: 'Erase Tool',
@@ -348,7 +358,7 @@ void handlePanEnd(ToolReleasedInput input) {
     if (_currentTool.isActive) {
       final finalCommand = _currentTool.onToolEnd();
       if (finalCommand != null) {
-        _viewModel.executeCommand(finalCommand);
+        onExecuteCommand(finalCommand);
       }
 
       //To kill any tools that won't necessarily stop drawing when calling onToolEnd
@@ -364,7 +374,7 @@ void handlePanEnd(ToolReleasedInput input) {
     inputHandlers[lastDeviceKind]?.disableInput();
     if (_currentTool.isActive) {
       final command = _currentTool.onToolEnd();
-      if (command != null) _viewModel.executeCommand(command);
+      if (command != null) onExecuteCommand(command);
     }
 
     // Hard-cancel the active drawing tool context

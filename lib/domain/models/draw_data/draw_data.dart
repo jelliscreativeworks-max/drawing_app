@@ -1,7 +1,7 @@
 import 'dart:math';
 import 'dart:ui';
 
-import 'package:drawing_app/domain/models/property_data/property_data.dart';
+
 import 'package:drawing_app/utils/converters.dart';
 import 'package:drawing_app/utils/extensions.dart';
 import 'package:flutter/material.dart';
