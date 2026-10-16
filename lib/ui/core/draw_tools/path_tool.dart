@@ -1,5 +1,6 @@
 import 'dart:ui';
 import 'package:drawing_app/domain/models/property_data/property_data.dart';
+import 'package:drawing_app/domain/models/property_data/property_type.dart';
 import 'package:drawing_app/domain/models/tool_input_data/tool_input_data.dart';
 import 'package:flutter/material.dart';
 import 'package:drawing_app/domain/models/draw_data/draw_data.dart';
@@ -180,7 +181,7 @@ class PathTool extends DrawTool implements StrokeToolType, FillToolType {
   @override void toggleRenderStroke(bool enabled) => _renderStroke = enabled;
 
     @override
-  List<PropertyData> getToolProperties(VoidCallback onPropertyChanged) {
+  List<PropertyData> getToolProperties(Function(PropertyId) onPropertyChanged) {
     return [
       ...getStrokeProperties(onPropertyChanged),
       ...getFillProperties(onPropertyChanged)

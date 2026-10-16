@@ -1,3 +1,4 @@
+import 'package:drawing_app/domain/models/property_data/property_type.dart';
 import 'package:drawing_app/utils/extensions.dart';
 import 'package:flex_color_picker/flex_color_picker.dart';
 import 'package:flutter/material.dart';
@@ -17,18 +18,22 @@ part 'property_data.freezed.dart';
 //   final ValueChanged<T> onChanged;
 // }
 
+
+
 @freezed
 sealed class PropertyData<T> with _$PropertyData<T> {
   factory PropertyData.color({
     required String displayName,
     required Color value,
     required ValueChanged<Color> onChanged,
+    required PropertyId<Color> id,
   }) = ColorPropertyData<T>;
 
   factory PropertyData.toggle({
     required String displayName,
     required bool value,
     required ValueChanged<bool> onChanged,
+    required PropertyId<bool> id,
   }) = TogglePropertyData<T>;
 
   factory PropertyData.choice({
@@ -36,6 +41,7 @@ sealed class PropertyData<T> with _$PropertyData<T> {
     required T value,
     required Map<Widget, T> options,
     required ValueChanged<T> onChanged,
+    required PropertyId<T> id,
   }) = ChoicePropertyData<T>;
 
   factory PropertyData.double({
@@ -44,6 +50,7 @@ sealed class PropertyData<T> with _$PropertyData<T> {
     required double maxValue,
     required double minValue,
     required ValueChanged<double> onChanged,
+    required PropertyId<double> id
   }) = DoublePropertyData<T>;
 }
 

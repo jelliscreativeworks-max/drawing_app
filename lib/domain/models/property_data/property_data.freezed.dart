@@ -14,7 +14,7 @@ T _$identity<T>(T value) => value;
 /// @nodoc
 mixin _$PropertyData<T> {
 
- String get displayName; Object? get value; void Function(Never) get onChanged;
+ String get displayName; Object? get value; void Function(Never) get onChanged; PropertyId<Object?> get id;
 /// Create a copy of PropertyData
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -25,16 +25,16 @@ $PropertyDataCopyWith<T, PropertyData<T>> get copyWith => _$PropertyDataCopyWith
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is PropertyData<T>&&(identical(other.displayName, displayName) || other.displayName == displayName)&&const DeepCollectionEquality().equals(other.value, value)&&(identical(other.onChanged, onChanged) || other.onChanged == onChanged));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is PropertyData<T>&&(identical(other.displayName, displayName) || other.displayName == displayName)&&const DeepCollectionEquality().equals(other.value, value)&&(identical(other.onChanged, onChanged) || other.onChanged == onChanged)&&(identical(other.id, id) || other.id == id));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,displayName,const DeepCollectionEquality().hash(value),onChanged);
+int get hashCode => Object.hash(runtimeType,displayName,const DeepCollectionEquality().hash(value),onChanged,id);
 
 @override
 String toString() {
-  return 'PropertyData<$T>(displayName: $displayName, value: $value, onChanged: $onChanged)';
+  return 'PropertyData<$T>(displayName: $displayName, value: $value, onChanged: $onChanged, id: $id)';
 }
 
 
@@ -156,13 +156,13 @@ return double(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>({TResult Function( String displayName,  Color value,  ValueChanged<Color> onChanged)?  color,TResult Function( String displayName,  bool value,  ValueChanged<bool> onChanged)?  toggle,TResult Function( String displayName,  T value,  Map<Widget, T> options,  ValueChanged<T> onChanged)?  choice,TResult Function( String displayName,  double value,  double maxValue,  double minValue,  ValueChanged<double> onChanged)?  double,required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>({TResult Function( String displayName,  Color value,  ValueChanged<Color> onChanged,  PropertyId<Color> id)?  color,TResult Function( String displayName,  bool value,  ValueChanged<bool> onChanged,  PropertyId<bool> id)?  toggle,TResult Function( String displayName,  T value,  Map<Widget, T> options,  ValueChanged<T> onChanged,  PropertyId<T> id)?  choice,TResult Function( String displayName,  double value,  double maxValue,  double minValue,  ValueChanged<double> onChanged,  PropertyId<double> id)?  double,required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case ColorPropertyData() when color != null:
-return color(_that.displayName,_that.value,_that.onChanged);case TogglePropertyData() when toggle != null:
-return toggle(_that.displayName,_that.value,_that.onChanged);case ChoicePropertyData() when choice != null:
-return choice(_that.displayName,_that.value,_that.options,_that.onChanged);case DoublePropertyData() when double != null:
-return double(_that.displayName,_that.value,_that.maxValue,_that.minValue,_that.onChanged);case _:
+return color(_that.displayName,_that.value,_that.onChanged,_that.id);case TogglePropertyData() when toggle != null:
+return toggle(_that.displayName,_that.value,_that.onChanged,_that.id);case ChoicePropertyData() when choice != null:
+return choice(_that.displayName,_that.value,_that.options,_that.onChanged,_that.id);case DoublePropertyData() when double != null:
+return double(_that.displayName,_that.value,_that.maxValue,_that.minValue,_that.onChanged,_that.id);case _:
   return orElse();
 
 }
@@ -180,13 +180,13 @@ return double(_that.displayName,_that.value,_that.maxValue,_that.minValue,_that.
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>({required TResult Function( String displayName,  Color value,  ValueChanged<Color> onChanged)  color,required TResult Function( String displayName,  bool value,  ValueChanged<bool> onChanged)  toggle,required TResult Function( String displayName,  T value,  Map<Widget, T> options,  ValueChanged<T> onChanged)  choice,required TResult Function( String displayName,  double value,  double maxValue,  double minValue,  ValueChanged<double> onChanged)  double,}) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>({required TResult Function( String displayName,  Color value,  ValueChanged<Color> onChanged,  PropertyId<Color> id)  color,required TResult Function( String displayName,  bool value,  ValueChanged<bool> onChanged,  PropertyId<bool> id)  toggle,required TResult Function( String displayName,  T value,  Map<Widget, T> options,  ValueChanged<T> onChanged,  PropertyId<T> id)  choice,required TResult Function( String displayName,  double value,  double maxValue,  double minValue,  ValueChanged<double> onChanged,  PropertyId<double> id)  double,}) {final _that = this;
 switch (_that) {
 case ColorPropertyData():
-return color(_that.displayName,_that.value,_that.onChanged);case TogglePropertyData():
-return toggle(_that.displayName,_that.value,_that.onChanged);case ChoicePropertyData():
-return choice(_that.displayName,_that.value,_that.options,_that.onChanged);case DoublePropertyData():
-return double(_that.displayName,_that.value,_that.maxValue,_that.minValue,_that.onChanged);}
+return color(_that.displayName,_that.value,_that.onChanged,_that.id);case TogglePropertyData():
+return toggle(_that.displayName,_that.value,_that.onChanged,_that.id);case ChoicePropertyData():
+return choice(_that.displayName,_that.value,_that.options,_that.onChanged,_that.id);case DoublePropertyData():
+return double(_that.displayName,_that.value,_that.maxValue,_that.minValue,_that.onChanged,_that.id);}
 }
 /// A variant of `when` that fallback to returning `null`
 ///
@@ -200,13 +200,13 @@ return double(_that.displayName,_that.value,_that.maxValue,_that.minValue,_that.
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>({TResult? Function( String displayName,  Color value,  ValueChanged<Color> onChanged)?  color,TResult? Function( String displayName,  bool value,  ValueChanged<bool> onChanged)?  toggle,TResult? Function( String displayName,  T value,  Map<Widget, T> options,  ValueChanged<T> onChanged)?  choice,TResult? Function( String displayName,  double value,  double maxValue,  double minValue,  ValueChanged<double> onChanged)?  double,}) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>({TResult? Function( String displayName,  Color value,  ValueChanged<Color> onChanged,  PropertyId<Color> id)?  color,TResult? Function( String displayName,  bool value,  ValueChanged<bool> onChanged,  PropertyId<bool> id)?  toggle,TResult? Function( String displayName,  T value,  Map<Widget, T> options,  ValueChanged<T> onChanged,  PropertyId<T> id)?  choice,TResult? Function( String displayName,  double value,  double maxValue,  double minValue,  ValueChanged<double> onChanged,  PropertyId<double> id)?  double,}) {final _that = this;
 switch (_that) {
 case ColorPropertyData() when color != null:
-return color(_that.displayName,_that.value,_that.onChanged);case TogglePropertyData() when toggle != null:
-return toggle(_that.displayName,_that.value,_that.onChanged);case ChoicePropertyData() when choice != null:
-return choice(_that.displayName,_that.value,_that.options,_that.onChanged);case DoublePropertyData() when double != null:
-return double(_that.displayName,_that.value,_that.maxValue,_that.minValue,_that.onChanged);case _:
+return color(_that.displayName,_that.value,_that.onChanged,_that.id);case TogglePropertyData() when toggle != null:
+return toggle(_that.displayName,_that.value,_that.onChanged,_that.id);case ChoicePropertyData() when choice != null:
+return choice(_that.displayName,_that.value,_that.options,_that.onChanged,_that.id);case DoublePropertyData() when double != null:
+return double(_that.displayName,_that.value,_that.maxValue,_that.minValue,_that.onChanged,_that.id);case _:
   return null;
 
 }
@@ -218,12 +218,13 @@ return double(_that.displayName,_that.value,_that.maxValue,_that.minValue,_that.
 
 
 class ColorPropertyData<T> implements PropertyData<T> {
-   ColorPropertyData({required this.displayName, required this.value, required this.onChanged});
+   ColorPropertyData({required this.displayName, required this.value, required this.onChanged, required this.id});
   
 
 @override final  String displayName;
 @override final  Color value;
 @override final  ValueChanged<Color> onChanged;
+@override final  PropertyId<Color> id;
 
 /// Create a copy of PropertyData
 /// with the given fields replaced by the non-null parameter values.
@@ -235,16 +236,16 @@ $ColorPropertyDataCopyWith<T, ColorPropertyData<T>> get copyWith => _$ColorPrope
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is ColorPropertyData<T>&&(identical(other.displayName, displayName) || other.displayName == displayName)&&(identical(other.value, value) || other.value == value)&&(identical(other.onChanged, onChanged) || other.onChanged == onChanged));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is ColorPropertyData<T>&&(identical(other.displayName, displayName) || other.displayName == displayName)&&(identical(other.value, value) || other.value == value)&&(identical(other.onChanged, onChanged) || other.onChanged == onChanged)&&(identical(other.id, id) || other.id == id));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,displayName,value,onChanged);
+int get hashCode => Object.hash(runtimeType,displayName,value,onChanged,id);
 
 @override
 String toString() {
-  return 'PropertyData<$T>.color(displayName: $displayName, value: $value, onChanged: $onChanged)';
+  return 'PropertyData<$T>.color(displayName: $displayName, value: $value, onChanged: $onChanged, id: $id)';
 }
 
 
@@ -255,7 +256,7 @@ abstract mixin class $ColorPropertyDataCopyWith<T,$Res> implements $PropertyData
   factory $ColorPropertyDataCopyWith(ColorPropertyData<T> value, $Res Function(ColorPropertyData<T>) _then) = _$ColorPropertyDataCopyWithImpl;
 @override @useResult
 $Res call({
- String displayName, Color value, ValueChanged<Color> onChanged
+ String displayName, Color value, ValueChanged<Color> onChanged, PropertyId<Color> id
 });
 
 
@@ -272,12 +273,13 @@ class _$ColorPropertyDataCopyWithImpl<T,$Res>
 
 /// Create a copy of PropertyData
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? displayName = null,Object? value = null,Object? onChanged = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? displayName = null,Object? value = null,Object? onChanged = null,Object? id = null,}) {
   return _then(ColorPropertyData<T>(
 displayName: null == displayName ? _self.displayName : displayName // ignore: cast_nullable_to_non_nullable
 as String,value: null == value ? _self.value : value // ignore: cast_nullable_to_non_nullable
 as Color,onChanged: null == onChanged ? _self.onChanged : onChanged // ignore: cast_nullable_to_non_nullable
-as ValueChanged<Color>,
+as ValueChanged<Color>,id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
+as PropertyId<Color>,
   ));
 }
 
@@ -288,12 +290,13 @@ as ValueChanged<Color>,
 
 
 class TogglePropertyData<T> implements PropertyData<T> {
-   TogglePropertyData({required this.displayName, required this.value, required this.onChanged});
+   TogglePropertyData({required this.displayName, required this.value, required this.onChanged, required this.id});
   
 
 @override final  String displayName;
 @override final  bool value;
 @override final  ValueChanged<bool> onChanged;
+@override final  PropertyId<bool> id;
 
 /// Create a copy of PropertyData
 /// with the given fields replaced by the non-null parameter values.
@@ -305,16 +308,16 @@ $TogglePropertyDataCopyWith<T, TogglePropertyData<T>> get copyWith => _$TogglePr
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is TogglePropertyData<T>&&(identical(other.displayName, displayName) || other.displayName == displayName)&&(identical(other.value, value) || other.value == value)&&(identical(other.onChanged, onChanged) || other.onChanged == onChanged));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is TogglePropertyData<T>&&(identical(other.displayName, displayName) || other.displayName == displayName)&&(identical(other.value, value) || other.value == value)&&(identical(other.onChanged, onChanged) || other.onChanged == onChanged)&&(identical(other.id, id) || other.id == id));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,displayName,value,onChanged);
+int get hashCode => Object.hash(runtimeType,displayName,value,onChanged,id);
 
 @override
 String toString() {
-  return 'PropertyData<$T>.toggle(displayName: $displayName, value: $value, onChanged: $onChanged)';
+  return 'PropertyData<$T>.toggle(displayName: $displayName, value: $value, onChanged: $onChanged, id: $id)';
 }
 
 
@@ -325,7 +328,7 @@ abstract mixin class $TogglePropertyDataCopyWith<T,$Res> implements $PropertyDat
   factory $TogglePropertyDataCopyWith(TogglePropertyData<T> value, $Res Function(TogglePropertyData<T>) _then) = _$TogglePropertyDataCopyWithImpl;
 @override @useResult
 $Res call({
- String displayName, bool value, ValueChanged<bool> onChanged
+ String displayName, bool value, ValueChanged<bool> onChanged, PropertyId<bool> id
 });
 
 
@@ -342,12 +345,13 @@ class _$TogglePropertyDataCopyWithImpl<T,$Res>
 
 /// Create a copy of PropertyData
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? displayName = null,Object? value = null,Object? onChanged = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? displayName = null,Object? value = null,Object? onChanged = null,Object? id = null,}) {
   return _then(TogglePropertyData<T>(
 displayName: null == displayName ? _self.displayName : displayName // ignore: cast_nullable_to_non_nullable
 as String,value: null == value ? _self.value : value // ignore: cast_nullable_to_non_nullable
 as bool,onChanged: null == onChanged ? _self.onChanged : onChanged // ignore: cast_nullable_to_non_nullable
-as ValueChanged<bool>,
+as ValueChanged<bool>,id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
+as PropertyId<bool>,
   ));
 }
 
@@ -358,7 +362,7 @@ as ValueChanged<bool>,
 
 
 class ChoicePropertyData<T> implements PropertyData<T> {
-   ChoicePropertyData({required this.displayName, required this.value, required final  Map<Widget, T> options, required this.onChanged}): _options = options;
+   ChoicePropertyData({required this.displayName, required this.value, required final  Map<Widget, T> options, required this.onChanged, required this.id}): _options = options;
   
 
 @override final  String displayName;
@@ -371,6 +375,7 @@ class ChoicePropertyData<T> implements PropertyData<T> {
 }
 
 @override final  ValueChanged<T> onChanged;
+@override final  PropertyId<T> id;
 
 /// Create a copy of PropertyData
 /// with the given fields replaced by the non-null parameter values.
@@ -382,16 +387,16 @@ $ChoicePropertyDataCopyWith<T, ChoicePropertyData<T>> get copyWith => _$ChoicePr
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is ChoicePropertyData<T>&&(identical(other.displayName, displayName) || other.displayName == displayName)&&const DeepCollectionEquality().equals(other.value, value)&&const DeepCollectionEquality().equals(other._options, _options)&&(identical(other.onChanged, onChanged) || other.onChanged == onChanged));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is ChoicePropertyData<T>&&(identical(other.displayName, displayName) || other.displayName == displayName)&&const DeepCollectionEquality().equals(other.value, value)&&const DeepCollectionEquality().equals(other._options, _options)&&(identical(other.onChanged, onChanged) || other.onChanged == onChanged)&&(identical(other.id, id) || other.id == id));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,displayName,const DeepCollectionEquality().hash(value),const DeepCollectionEquality().hash(_options),onChanged);
+int get hashCode => Object.hash(runtimeType,displayName,const DeepCollectionEquality().hash(value),const DeepCollectionEquality().hash(_options),onChanged,id);
 
 @override
 String toString() {
-  return 'PropertyData<$T>.choice(displayName: $displayName, value: $value, options: $options, onChanged: $onChanged)';
+  return 'PropertyData<$T>.choice(displayName: $displayName, value: $value, options: $options, onChanged: $onChanged, id: $id)';
 }
 
 
@@ -402,7 +407,7 @@ abstract mixin class $ChoicePropertyDataCopyWith<T,$Res> implements $PropertyDat
   factory $ChoicePropertyDataCopyWith(ChoicePropertyData<T> value, $Res Function(ChoicePropertyData<T>) _then) = _$ChoicePropertyDataCopyWithImpl;
 @override @useResult
 $Res call({
- String displayName, T value, Map<Widget, T> options, ValueChanged<T> onChanged
+ String displayName, T value, Map<Widget, T> options, ValueChanged<T> onChanged, PropertyId<T> id
 });
 
 
@@ -419,13 +424,14 @@ class _$ChoicePropertyDataCopyWithImpl<T,$Res>
 
 /// Create a copy of PropertyData
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? displayName = null,Object? value = freezed,Object? options = null,Object? onChanged = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? displayName = null,Object? value = freezed,Object? options = null,Object? onChanged = null,Object? id = null,}) {
   return _then(ChoicePropertyData<T>(
 displayName: null == displayName ? _self.displayName : displayName // ignore: cast_nullable_to_non_nullable
 as String,value: freezed == value ? _self.value : value // ignore: cast_nullable_to_non_nullable
 as T,options: null == options ? _self._options : options // ignore: cast_nullable_to_non_nullable
 as Map<Widget, T>,onChanged: null == onChanged ? _self.onChanged : onChanged // ignore: cast_nullable_to_non_nullable
-as ValueChanged<T>,
+as ValueChanged<T>,id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
+as PropertyId<T>,
   ));
 }
 
@@ -436,7 +442,7 @@ as ValueChanged<T>,
 
 
 class DoublePropertyData<T> implements PropertyData<T> {
-   DoublePropertyData({required this.displayName, required this.value, required this.maxValue, required this.minValue, required this.onChanged});
+   DoublePropertyData({required this.displayName, required this.value, required this.maxValue, required this.minValue, required this.onChanged, required this.id});
   
 
 @override final  String displayName;
@@ -444,6 +450,7 @@ class DoublePropertyData<T> implements PropertyData<T> {
  final  double maxValue;
  final  double minValue;
 @override final  ValueChanged<double> onChanged;
+@override final  PropertyId<double> id;
 
 /// Create a copy of PropertyData
 /// with the given fields replaced by the non-null parameter values.
@@ -455,16 +462,16 @@ $DoublePropertyDataCopyWith<T, DoublePropertyData<T>> get copyWith => _$DoublePr
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is DoublePropertyData<T>&&(identical(other.displayName, displayName) || other.displayName == displayName)&&(identical(other.value, value) || other.value == value)&&(identical(other.maxValue, maxValue) || other.maxValue == maxValue)&&(identical(other.minValue, minValue) || other.minValue == minValue)&&(identical(other.onChanged, onChanged) || other.onChanged == onChanged));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is DoublePropertyData<T>&&(identical(other.displayName, displayName) || other.displayName == displayName)&&(identical(other.value, value) || other.value == value)&&(identical(other.maxValue, maxValue) || other.maxValue == maxValue)&&(identical(other.minValue, minValue) || other.minValue == minValue)&&(identical(other.onChanged, onChanged) || other.onChanged == onChanged)&&(identical(other.id, id) || other.id == id));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,displayName,value,maxValue,minValue,onChanged);
+int get hashCode => Object.hash(runtimeType,displayName,value,maxValue,minValue,onChanged,id);
 
 @override
 String toString() {
-  return 'PropertyData<$T>.double(displayName: $displayName, value: $value, maxValue: $maxValue, minValue: $minValue, onChanged: $onChanged)';
+  return 'PropertyData<$T>.double(displayName: $displayName, value: $value, maxValue: $maxValue, minValue: $minValue, onChanged: $onChanged, id: $id)';
 }
 
 
@@ -475,7 +482,7 @@ abstract mixin class $DoublePropertyDataCopyWith<T,$Res> implements $PropertyDat
   factory $DoublePropertyDataCopyWith(DoublePropertyData<T> value, $Res Function(DoublePropertyData<T>) _then) = _$DoublePropertyDataCopyWithImpl;
 @override @useResult
 $Res call({
- String displayName, double value, double maxValue, double minValue, ValueChanged<double> onChanged
+ String displayName, double value, double maxValue, double minValue, ValueChanged<double> onChanged, PropertyId<double> id
 });
 
 
@@ -492,14 +499,15 @@ class _$DoublePropertyDataCopyWithImpl<T,$Res>
 
 /// Create a copy of PropertyData
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? displayName = null,Object? value = null,Object? maxValue = null,Object? minValue = null,Object? onChanged = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? displayName = null,Object? value = null,Object? maxValue = null,Object? minValue = null,Object? onChanged = null,Object? id = null,}) {
   return _then(DoublePropertyData<T>(
 displayName: null == displayName ? _self.displayName : displayName // ignore: cast_nullable_to_non_nullable
 as String,value: null == value ? _self.value : value // ignore: cast_nullable_to_non_nullable
 as double,maxValue: null == maxValue ? _self.maxValue : maxValue // ignore: cast_nullable_to_non_nullable
 as double,minValue: null == minValue ? _self.minValue : minValue // ignore: cast_nullable_to_non_nullable
 as double,onChanged: null == onChanged ? _self.onChanged : onChanged // ignore: cast_nullable_to_non_nullable
-as ValueChanged<double>,
+as ValueChanged<double>,id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
+as PropertyId<double>,
   ));
 }
 

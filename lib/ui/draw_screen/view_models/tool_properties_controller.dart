@@ -1,5 +1,5 @@
 import 'package:drawing_app/domain/models/property_data/property_data.dart';
-import 'package:drawing_app/ui/core/draw_tools/draw_tool.dart';
+import 'package:drawing_app/domain/models/property_data/property_type.dart';
 import 'package:drawing_app/ui/draw_screen/view_models/tool_controller.dart';
 import 'package:flutter/material.dart';
 
@@ -7,38 +7,42 @@ class ToolPropertiesController extends ChangeNotifier {
   ToolPropertiesController({required ToolController toolController}) 
       : _toolController = toolController {
     
-    if (_toolController.currentTool case DrawTool initialDrawTool) {
-      _currentTool = initialDrawTool;
-    }
-    
-    _toolController.addListener(_onToolChanged);
+
+    _syncProperties();
+
+    _toolController.addListener(_onToolControllerUpdated);
   }
 
-  DrawTool? _currentTool;
   final ToolController _toolController;
+  List<PropertyData> _cachedProperties = [];
 
-  // 1. Generate the list dynamically on every read/notify step
-  List<PropertyData> get loadedProperties {
-    final tool = _currentTool;
-    if (tool == null) return [];
-    
-    // We pass our controller's notifyListeners directly down to the tool's factories
-    return tool.getToolProperties(notifyListeners);
+  PropertyId? _lastModifiedId;
+
+  PropertyId? get lastModifiedId => _lastModifiedId;
+
+  List<PropertyData> get loadedProperties => _cachedProperties;
+
+  void _onToolControllerUpdated() {
+    _syncProperties();
   }
 
-  void _onToolChanged() {
-    final nextTool = _toolController.currentTool;
+  void _syncProperties() {
+    final tool = _toolController.currentTool;
+    
+    final newProperties = tool.getToolProperties(_onPropertyChanged);
 
-    if (nextTool is DrawTool && nextTool.runtimeType != _currentTool?.runtimeType) {
-      _currentTool = nextTool;
-      notifyListeners(); // This forces the dynamic getter to rebuild with the new tool's properties
-    }
+    _cachedProperties = newProperties;
+    notifyListeners();
+  }
+
+  void _onPropertyChanged(PropertyId id) {
+    _lastModifiedId = id;
+    _syncProperties();
   }
 
   @override
   void dispose() {
-    _toolController.removeListener(_onToolChanged);
+    _toolController.removeListener(_onToolControllerUpdated);
     super.dispose();
   }
 }
-

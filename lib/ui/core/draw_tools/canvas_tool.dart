@@ -1,3 +1,5 @@
+import 'package:drawing_app/domain/models/property_data/property_data.dart';
+import 'package:drawing_app/domain/models/property_data/property_type.dart';
 import 'package:drawing_app/domain/models/tool_input_data/tool_input_data.dart';
 import 'package:drawing_app/ui/core/commands/canvas_command.dart';
 import 'package:flutter/material.dart';
@@ -94,6 +96,8 @@ abstract class CanvasTool {
     bool get isActive;
 
     CanvasTool({required this.toolName, required this.toolIcon});
+
+    List<PropertyData> getToolProperties(Function(PropertyId) onPropertyChanged);
 
     void onToolStart(ToolStartInput toolStartInput, String layerId, int strokeIndex);
     void onToolUpdate(ToolUpdateInput toolUpdateInput, String layerId);

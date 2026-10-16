@@ -1,5 +1,6 @@
 import 'package:drawing_app/domain/models/draw_data/draw_data.dart';
 import 'package:drawing_app/domain/models/property_data/property_data.dart';
+import 'package:drawing_app/domain/models/property_data/property_type.dart';
 import 'package:drawing_app/ui/core/commands/canvas_command.dart';
 import 'package:drawing_app/ui/core/draw_tools/canvas_tool.dart';
 import 'package:drawing_app/utils/widgets/box_icon.dart';
@@ -14,7 +15,7 @@ abstract class DrawTool extends CanvasTool{
 
   List<DrawData> get activePreview => const [];
 
-  List<PropertyData> getToolProperties(VoidCallback onPropertyChanged);
+  
 
   CanvasCommand? onPanOverrideStart(){
     if(isActive){
@@ -49,7 +50,7 @@ abstract class FillToolType{
 
 extension StrokeToolUiExtensions on StrokeToolType {
   /// Generates the standard property control list for managing stroke options
-  List<PropertyData> getStrokeProperties(VoidCallback onPropertyChanged) {
+  List<PropertyData> getStrokeProperties(Function(PropertyId) onPropertyChanged) {
     return [
       PropertyData.double(
         displayName: 'Stroke Size',
@@ -59,8 +60,9 @@ extension StrokeToolUiExtensions on StrokeToolType {
         onChanged: (strokeWidth) {
           final updatedPaint = Paint.from(strokePaint)..strokeWidth = strokeWidth;
           updateStrokePaint(updatedPaint);
-          onPropertyChanged();
+          onPropertyChanged(const StrokeSizeType());
           },
+        id: const StrokeSizeType()
       ),
       PropertyData.color(
         displayName: 'Stroke Color',
@@ -68,8 +70,9 @@ extension StrokeToolUiExtensions on StrokeToolType {
         onChanged: (newColor) {
                     final updatedPaint = Paint.from(strokePaint)..color = newColor;
           updateStrokePaint(updatedPaint);
-          onPropertyChanged();
+          onPropertyChanged(const GenericType());
         },
+        id: const GenericType()
       ),
     ];
   }
@@ -77,7 +80,7 @@ extension StrokeToolUiExtensions on StrokeToolType {
 
 extension FillToolUiExtensions on FillToolType {
   /// Generates the standard property control list for managing fill options
-  List<PropertyData> getFillProperties(VoidCallback onPropertyChanged) {
+  List<PropertyData> getFillProperties(Function(PropertyId) onPropertyChanged) {
     return [
       PropertyData.choice(
         displayName: 'Fill Type',
@@ -88,8 +91,9 @@ extension FillToolUiExtensions on FillToolType {
         },
         onChanged: (renderFill) {
           toggleRenderFill(renderFill);
-          onPropertyChanged();
+          onPropertyChanged(const GenericType());
         },
+        id: const GenericType()
       ),
       PropertyData.color(
         displayName: 'Fill Color',
@@ -97,8 +101,9 @@ extension FillToolUiExtensions on FillToolType {
         onChanged: (newColor) {
           final updatedPaint = Paint.from(fillPaint)..color = newColor;
           updateFillPaint(updatedPaint);
-          onPropertyChanged();
+          onPropertyChanged(const GenericType());
         },
+        id: const GenericType()
       ),
     ];
   }
