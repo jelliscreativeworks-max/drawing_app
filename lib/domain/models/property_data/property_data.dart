@@ -1,5 +1,3 @@
-import 'package:drawing_app/domain/models/property_data/property_type.dart';
-import 'package:drawing_app/utils/extensions.dart';
 import 'package:flex_color_picker/flex_color_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:freezed_annotation/freezed_annotation.dart';

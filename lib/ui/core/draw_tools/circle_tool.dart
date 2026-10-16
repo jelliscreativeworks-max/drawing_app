@@ -6,7 +6,6 @@ import 'package:drawing_app/domain/models/tool_input_data/tool_input_data.dart';
 import 'package:drawing_app/ui/core/commands/canvas_command.dart';
 import 'package:drawing_app/ui/core/commands/draw_command.dart';
 import 'package:drawing_app/ui/core/draw_tools/draw_tool.dart';
-import 'package:drawing_app/utils/widgets/box_icon.dart';
 import 'package:flutter/material.dart';
 
 class CircleTool extends DrawTool implements StrokeToolType, FillToolType {

@@ -11,6 +11,7 @@ import 'package:drawing_app/domain/models/draw_data/draw_data.dart';
 import 'package:drawing_app/domain/models/layer_data/layer_data.dart';
 import 'package:drawing_app/ui/core/commands/delete_layer_command.dart';
 import 'package:drawing_app/ui/core/commands/reorder_layer_command.dart';
+import 'package:drawing_app/ui/draw_screen/view_models/tool_controller.dart';
 import 'package:drawing_app/utils/command.dart';
 import 'package:drawing_app/utils/extensions.dart';
 import 'package:drawing_app/utils/image_conversion.dart';
@@ -27,13 +28,27 @@ class DrawScreenViewModel extends ChangeNotifier {
     required CanvasDataRepository canvasDataRepository,
     required Logger logger
   }) : _layerDataRepository = layerDataRepository,
-       _canvasDataRepository = canvasDataRepository, _logger = logger {
+       _canvasDataRepository = canvasDataRepository, 
+       _logger = logger
+   {
+       
 
     deleteLayer = Command1(_deleteLayer);
     loadProject = Command1(_loadProject);
     // initProject = Command1(_initializeNewProject);
     createLayer = Command0(_createAndAddLayer);
     saveDirtyProgress = Command0(_saveDirtyProgress);
+
+    _toolController = ToolController(
+        logger: logger, 
+        onForceCanvasRefresh: () => forceCanvasRefresh(), 
+        onExecuteCommand: (CanvasCommand command) => executeCommand(command), 
+        getGlobalHistory: () => _drawHistory, 
+        getCanvasDimensions: () => currentCanvas.canvasSize, 
+        getActiveLayerId: () => activeLayerId, 
+        getSnappedWorldPoint: (Offset screenPoint) => getSnappedWorldPoint(screenPoint), 
+        onClearSnapping: () => clearSnappingSession(), 
+        camera: camera);
   }
 
   static const canvasBackgroundColor = Colors.white;
@@ -104,6 +119,10 @@ class DrawScreenViewModel extends ChangeNotifier {
   final ToolMatrixPayload camera = ToolMatrixPayload();
 
   Offset? _lastSnappedWorldPoint;
+
+  late final ToolController _toolController;
+
+  ToolController get toolController => _toolController;
 
   void clearSnappingSession() {
     _lastSnappedWorldPoint = null;
