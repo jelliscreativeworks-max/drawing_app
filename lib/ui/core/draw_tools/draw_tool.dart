@@ -83,7 +83,7 @@ mixin FillTool{
   FillTypeOptions fillTypeOptions = FillTypeOptions.filled;
   
   List<PropertyData> get fillProperties => [
-    PropertyData.color(value: fillPaint.color, id: FillColorId()),
+    PropertyData.color(value: fillPaint.color, id: const FillColorId()),
     PropertyData.choice(value: fillTypeOptions, options: FillTypeOptions.values, id: const FillTypeId())
   ];
 

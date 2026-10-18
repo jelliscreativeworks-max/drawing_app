@@ -162,18 +162,17 @@ class _DrawScreenState extends State<DrawScreen> {
                                       :
                                         // 🌟 REFACTORED HIGH-PERFORMANCE LAYER RENDERER
                                         Selector<
-                                          DrawScreenViewModel,
+                                          ToolController,
                                           Set<String>
                                         >(
                                           // 1. Route the selector to drill down through the ViewModel to fetch hiddenData
-                                          selector: (_, vm) => Set<String>.of(
-                                            vm.toolController.hiddenData,
+                                          selector: (_, controller) => Set<String>.of(
+                                            controller.hiddenData,
                                           ),
 
                                           builder: (context, hiddenData, child) {
-                                            // Local alias cache keeps parameter access clean and fast inside the builder
-                                            final toolController =
-                                                widget.viewModel.toolController;
+            
+    
                                             final activeCanvas =
                                                 widget.viewModel.currentCanvas;
 
@@ -186,7 +185,7 @@ class _DrawScreenState extends State<DrawScreen> {
                                                   painter: MyPainter(
                                                     hiddenData: hiddenData,
                                                     deletionTargets: const {},
-                                                    // 2. Fetch tracking metrics straight from your nested domain manager nodes
+                                     
                                                     deviceKind: toolController
                                                         .lastDeviceKind,
                                                     canvasHeight: activeCanvas
@@ -234,7 +233,7 @@ class _DrawScreenState extends State<DrawScreen> {
                                               .currentCanvas
                                               .currentWidth,
                                           drawHistory:
-                                              overlayData, // 🟢 Clean MVVM pass-through list
+                                              overlayData,
                                           camera: widget.viewModel.camera,
                                           activeTool:
                                               toolController.currentTool,

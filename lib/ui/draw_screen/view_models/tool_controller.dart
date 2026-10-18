@@ -146,14 +146,29 @@ class ToolController extends ChangeNotifier {
 
   List<PropertyData> get loadedProperties => _currentTool.toolProperties;
 
-  ValueNotifier<T> getNotifierForProperty<T>(PropertyId id){
-    return _propertyNotifierCache.putIfAbsent(id, (){
-      final properties = loadedProperties;
-
-      final match = properties.firstWhere((p) => p.id.runtimeType == id.runtimeType);
-      return ValueNotifier<dynamic>(match.value);
-    }) as ValueNotifier<T>;
+  ValueNotifier<T>? getNotifierForProperty<T>(PropertyId id) {
+  if (_propertyNotifierCache.containsKey(id)) {
+    return _propertyNotifierCache[id] as ValueNotifier<T>?;
   }
+
+  final properties = loadedProperties;
+  PropertyData? match;
+  
+  for (final p in properties) {
+    if (p.id == id) {
+      match = p;
+      break;
+    }
+  }
+
+  if (match == null) return null;
+
+  final notifier = ValueNotifier<T>(match.value as T);
+  _propertyNotifierCache[id] = notifier;
+  
+  return notifier;
+}
+
 
   void updateToolProperty(PropertyId id, dynamic newValue){
     if(_propertyNotifierCache.containsKey(id)){
