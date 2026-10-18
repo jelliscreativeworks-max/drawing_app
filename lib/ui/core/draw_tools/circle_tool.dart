@@ -8,51 +8,26 @@ import 'package:drawing_app/ui/core/commands/draw_command.dart';
 import 'package:drawing_app/ui/core/draw_tools/draw_tool.dart';
 import 'package:flutter/material.dart';
 
-class CircleTool extends DrawTool implements StrokeToolType, FillToolType {
+class CircleTool extends DrawTool with StrokeTool, FillTool {
   bool _isDrawing = false;
   CircleData? _circlePreview;
+  
 
-  bool _renderStroke;
-  bool _renderFill;
-
-  Paint _strokePaint;
-  Paint _fillPaint;
 
   CircleTool({
     required super.toolName,
     required super.toolIcon,
-    required defaultStrokePaint,
-    required defaultFillPaint,
-    required bool renderStroke,
-    required renderFill,
-  }) : _strokePaint = defaultStrokePaint,
-       _fillPaint = defaultFillPaint,
-       _renderFill = renderFill,
-       _renderStroke = renderStroke;
+    Paint? strokePaintOverride,
+    Paint? fillPaintOverride,
+    FillTypeOptions? fillTypeOverride,
+    StrokeTypeOptions? strokeTypeOverride
+  });
 
   @override
   List<DrawData> get activePreview =>
       _circlePreview != null ? [_circlePreview!] : const [];
   @override
   bool get isActive => _isDrawing;
-  @override
-  Paint get fillPaint => _fillPaint;
-  @override
-  bool get renderFill => _renderFill;
-  @override
-  bool get renderStroke => _renderStroke;
-  @override
-  Paint get strokePaint => _strokePaint;
-
-  @override
-  void toggleRenderFill(bool enabled) => _renderFill = enabled;
-  @override
-  void toggleRenderStroke(bool enabled) => _renderStroke = enabled;
-  @override
-  void updateFillPaint(Paint updatedFillPaint) => _fillPaint = updatedFillPaint;
-  @override
-  void updateStrokePaint(Paint updatedStrokePaint) =>
-      _strokePaint = updatedStrokePaint;
 
   @override
   void onToolStart(
@@ -63,14 +38,14 @@ class CircleTool extends DrawTool implements StrokeToolType, FillToolType {
     _isDrawing = true;
     _circlePreview = CircleData(
       layerId: layerId,
-      fillPaint: _fillPaint,
-      strokePaint: _strokePaint,
+      fillPaint: Paint.from(fillPaint),
+      strokePaint: Paint.from(strokePaint),
       index: strokeIndex,
       id: uuid.v4(),
       center: toolStartInput.snappedWorldPoint,
       radius: double.minPositive,
-      renderFill: _renderFill,
-      renderStroke: _renderStroke,
+      strokeType: strokeTypeOptions,
+      fillType: fillTypeOptions
     );
   }
 
@@ -95,12 +70,20 @@ class CircleTool extends DrawTool implements StrokeToolType, FillToolType {
   }
 
   @override
-  List<PropertyData> getToolProperties(Function(PropertyId) onPropertyChanged) {
+  List<PropertyData> get toolProperties{
     return [
-      ...getFillProperties(onPropertyChanged),
-      ...getStrokeProperties(onPropertyChanged)
+      ...strokeProperties,
+      ...fillProperties
     ];
   }
+
+  @override
+  void updatePropertyStateValue(PropertyId<dynamic> targetId, newValue) {
+    if(updateStrokeProperty(targetId, newValue)) return;
+    if(updateFillProperties(targetId, newValue)) return;
+  }
+
+
 }
 
 

@@ -2,7 +2,6 @@ import 'package:drawing_app/domain/models/draw_data/draw_data.dart';
 import 'package:drawing_app/domain/models/layer_data/layer_data.dart';
 import 'package:drawing_app/router/routes.dart';
 import 'package:drawing_app/ui/draw_screen/view_models/tool_controller.dart';
-import 'package:drawing_app/ui/draw_screen/view_models/tool_properties_controller.dart';
 import 'package:drawing_app/ui/draw_screen/widgets/tool_properties/tool_properties_menu.dart';
 import 'package:drawing_app/utils/painters/background_painter.dart';
 // import 'package:drawing_app/utils/painters/debug_painter.dart';
@@ -16,16 +15,12 @@ import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
 class DrawScreen extends StatefulWidget {
-  const DrawScreen({
+   const DrawScreen({
     super.key,
     required this.viewModel,
-    required this.toolController,
-    required this.toolPropertiesController,
   });
 
   final DrawScreenViewModel viewModel;
-  final ToolController toolController;
-  final ToolPropertiesController toolPropertiesController;
 
   @override
   State<StatefulWidget> createState() => _DrawScreenState();
@@ -36,6 +31,8 @@ class _DrawScreenState extends State<DrawScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final ToolController toolController = context.read<ToolController>();
+
     return ListenableBuilder(
       // Top-Level Listener: Watches core document states and asynchronous autosave progress
       listenable: Listenable.merge([
@@ -44,8 +41,8 @@ class _DrawScreenState extends State<DrawScreen> {
       ]),
       builder: (context, child) {
         return MouseRegion(
-          onEnter: (event) => widget.toolController.enableDrawing(event),
-          onExit: (event) => widget.toolController.disableDrawing(),
+          onEnter: (event) => toolController.enableDrawing(event),
+          onExit: (event) => toolController.disableDrawing(),
           child: Scaffold(
             backgroundColor: Colors.grey.shade900,
             appBar: AppBar(
@@ -93,38 +90,38 @@ class _DrawScreenState extends State<DrawScreen> {
                   children: [
                     Positioned.fill(
                       child: Listener(
-                        onPointerDown: (event) => widget.toolController
+                        onPointerDown: (event) => toolController
                             .handleEvent(event, event.kind),
-                        onPointerMove: (event) => widget.toolController
+                        onPointerMove: (event) => toolController
                             .handleEvent(event, event.kind),
-                        onPointerUp: (event) => widget.toolController
+                        onPointerUp: (event) => toolController
                             .handleEvent(event, event.kind),
-                        onPointerCancel: (event) => widget.toolController
+                        onPointerCancel: (event) => toolController
                             .handleEvent(event, event.kind),
-                        onPointerPanZoomStart: (event) => widget.toolController
+                        onPointerPanZoomStart: (event) => toolController
                             .handleEvent(event, event.kind),
-                        onPointerPanZoomUpdate: (event) => widget.toolController
+                        onPointerPanZoomUpdate: (event) => toolController
                             .handleEvent(event, event.kind),
-                        onPointerPanZoomEnd: (event) => widget.toolController
+                        onPointerPanZoomEnd: (event) => toolController
                             .handleEvent(event, event.kind),
-                        onPointerSignal: (event) => widget.toolController
+                        onPointerSignal: (event) => toolController
                             .handleEvent(event, event.kind),
                         child: GestureDetector(
                           onScaleStart: (details) =>
-                              widget.toolController.handleEvent(
+                              toolController.handleEvent(
                                 details,
                                 details.kind ??
-                                    widget.toolController.lastDeviceKind,
+                                    toolController.lastDeviceKind,
                               ),
                           onScaleUpdate: (details) =>
-                              widget.toolController.handleEvent(
+                              toolController.handleEvent(
                                 details,
-                                widget.toolController.lastDeviceKind,
+                                toolController.lastDeviceKind,
                               ),
                           onScaleEnd: (details) =>
-                              widget.toolController.handleEvent(
+                              toolController.handleEvent(
                                 details,
-                                widget.toolController.lastDeviceKind,
+                                toolController.lastDeviceKind,
                               ),
 
                           child: ClipRect(
@@ -208,15 +205,14 @@ class _DrawScreenState extends State<DrawScreen> {
                                         );
                                 }),
                                 ListenableBuilder(
-                                  listenable: widget.toolController,
+                                  listenable: toolController,
                                   builder: (context, child) {
                                     final List<DrawData> overlayData =
-                                        widget.toolController.overlayHistory;
+                                        toolController.overlayHistory;
 
                                     // If there is nothing to preview and the tool is at rest, draw nothing
                                     if (overlayData.isEmpty &&
-                                        !widget
-                                            .toolController
+                                        !toolController
                                             .currentTool
                                             .isActive) {
                                       return const SizedBox.shrink();
@@ -225,11 +221,9 @@ class _DrawScreenState extends State<DrawScreen> {
                                     return Positioned.fill(
                                       child: CustomPaint(
                                         painter: MyPainter(
-                                          deletionTargets: widget
-                                              .toolController
+                                          deletionTargets: toolController
                                               .activeDeletionTargets,
-                                          deviceKind: widget
-                                              .toolController
+                                          deviceKind: toolController
                                               .lastDeviceKind,
                                           canvasHeight: widget
                                               .viewModel
@@ -243,7 +237,7 @@ class _DrawScreenState extends State<DrawScreen> {
                                               overlayData, // 🟢 Clean MVVM pass-through list
                                           camera: widget.viewModel.camera,
                                           activeTool:
-                                              widget.toolController.currentTool,
+                                              toolController.currentTool,
                                           hiddenData: {},
                                         ),
                                       ),
@@ -282,10 +276,7 @@ class _DrawScreenState extends State<DrawScreen> {
                     Align(
                       alignment: Alignment.bottomLeft,
                       child: SafeArea(
-                        child: ToolPropertiesMenu(
-                          toolPropertiesController:
-                              widget.toolPropertiesController,
-                        ),
+                        child: ToolPropertiesMenu(),
                       ),
                     ),
                     Align(
@@ -343,7 +334,7 @@ class _DrawScreenState extends State<DrawScreen> {
                         top: 20,
                         child: FloatingLayerPanel(
                           viewModel: widget.viewModel,
-                          toolController: widget.toolController,
+                          toolController: toolController,
                         ),
                       ),
                   ],
@@ -353,7 +344,7 @@ class _DrawScreenState extends State<DrawScreen> {
             bottomNavigationBar: BottomAppBar(
               height: 64.0,
               child: BottomToolBarButtons(
-                toolController: widget.toolController,
+                toolController: toolController,
               ),
             ),
           ),

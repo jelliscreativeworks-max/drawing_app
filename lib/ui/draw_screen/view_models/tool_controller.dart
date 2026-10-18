@@ -1,5 +1,7 @@
 import 'package:drawing_app/domain/models/canvas_camera.dart';
 import 'package:drawing_app/domain/models/draw_data/draw_data.dart';
+import 'package:drawing_app/domain/models/property_data/property_data.dart';
+import 'package:drawing_app/domain/models/property_data/property_type.dart';
 import 'package:drawing_app/domain/models/tool_input_data/tool_input_data.dart';
 import 'package:drawing_app/ui/core/commands/canvas_command.dart';
 import 'package:drawing_app/ui/core/draw_tools/canvas_tool.dart';
@@ -140,6 +142,28 @@ class ToolController extends ChangeNotifier {
 
   CanvasTool get currentTool => _currentTool;
 
+  final Map<PropertyId, ValueNotifier<dynamic>> _propertyNotifierCache = {};
+
+  List<PropertyData> get loadedProperties => _currentTool.toolProperties;
+
+  ValueNotifier<T> getNotifierForProperty<T>(PropertyId id){
+    return _propertyNotifierCache.putIfAbsent(id, (){
+      final properties = loadedProperties;
+
+      final match = properties.firstWhere((p) => p.id.runtimeType == id.runtimeType);
+      return ValueNotifier<dynamic>(match.value);
+    }) as ValueNotifier<T>;
+  }
+
+  void updateToolProperty(PropertyId id, dynamic newValue){
+    if(_propertyNotifierCache.containsKey(id)){
+      _propertyNotifierCache[id]!.value = newValue;
+    }
+
+    _currentTool.updatePropertyStateValue(id, newValue);
+  }
+
+
   void handleEvent<T>(T event, PointerDeviceKind device) {
     if (inputHandlers[device] == null) return; //For unsupported devices
     if (_lastDeviceKind != PointerDeviceKind.unknown &&
@@ -204,17 +228,6 @@ class ToolController extends ChangeNotifier {
     _endActiveTool();
   }
 
-  void _endActiveTool() {
-    if (_currentTool.isActive) {
-      final command = _currentTool.onToolEnd();
-      if (command != null) {
-        onExecuteCommand(command);
-      }
-      notifyListeners();
-    }
-  }
-
-
   void handlePanStart(ToolStartInput input) {
     if (_currentTool is DrawTool) {
       // _endActiveTool();
@@ -250,7 +263,7 @@ class ToolController extends ChangeNotifier {
     notifyListeners();
   }
 
-void handlePanEnd(ToolReleasedInput input) {
+  void handlePanEnd(ToolReleasedInput input) {
   if (!_panTool.isActive) return;
   _lastDeviceKind = input.lastUsedDevice;
   _panTool.onToolEnd();
@@ -268,17 +281,11 @@ void handlePanEnd(ToolReleasedInput input) {
   notifyListeners();
 }
 
-
   void initializeTools({Type? initialTool}) {
     tools = {
       FreehandTool: FreehandTool(
         toolName: 'Freehand Tool',
         toolIcon: Icon(Icons.draw),
-        defaultStrokePaint: Paint()
-          ..strokeCap = StrokeCap.round
-          ..style = PaintingStyle.stroke
-          ..strokeWidth = 5,
-        renderStroke: true,
       ),
       PanTool: PanTool(
         toolName: 'Pan Tool',
@@ -288,52 +295,22 @@ void handlePanEnd(ToolReleasedInput input) {
       EraseTool: EraseTool(
         toolName: 'Erase Tool',
         toolIcon: Icon(Symbols.ink_eraser),
-        defaultStrokePaint: Paint()
-          ..style = PaintingStyle.stroke
-          ..strokeWidth = 20,
       ),
       CircleTool: CircleTool(
         toolIcon: Icon(Icons.circle),
         toolName: 'Circle Tool',
-        defaultStrokePaint: Paint()
-          ..style = PaintingStyle.stroke
-          ..strokeWidth = 5,
-        defaultFillPaint: Paint()..color = Colors.grey,
-        renderStroke: true,
-        renderFill: true,
       ),
       RectangleTool: RectangleTool(
         toolName: 'Rectangle Tool',
         toolIcon: Icon(Icons.square),
-        defaultStrokePaint: Paint()
-          ..color = Colors.black
-          ..strokeWidth = 5
-          ..style = PaintingStyle.stroke,
-        defaultFillPaint: Paint()..color = Colors.grey,
-        renderStroke: true,
-        renderFill: true,
       ),
       LineTool: LineTool(
         toolIcon: Icon(Icons.horizontal_rule),
         toolName: 'Line Tool',
-        defaultStrokePaint: Paint()
-          ..style = PaintingStyle.stroke
-          ..strokeWidth = 5
-          ..color = Colors.black,
-        renderStroke: true,
       ),
       PathTool: PathTool(
         toolIcon: Icon(Icons.polyline),
-        defaultFillPaint: Paint()..color = Colors.blue,
         toolName: 'Path Tool',
-        defaultStrokePaint: Paint()
-          ..strokeWidth = 5
-          ..color = Colors.black
-          ..style = PaintingStyle.stroke
-          ..strokeJoin
-          ..strokeJoin = StrokeJoin.round,
-        renderFill: true,
-        renderStroke: true,
       ),
       SelectTool  :SelectTool(toolName: 'Select Tool', toolIcon: Icon(Icons.near_me))
     };
@@ -348,9 +325,8 @@ void handlePanEnd(ToolReleasedInput input) {
     _panTool = tools[PanTool]! as PanTool;
   }
 
-
-
   void selectTool<T extends CanvasTool>() {
+    
     final targetTool = tools[T];
     if (targetTool == null || targetTool == _currentTool) return;
 
@@ -365,8 +341,19 @@ void handlePanEnd(ToolReleasedInput input) {
       _currentTool.cancel();
     }
 
+    _propertyNotifierCache.clear();
     _currentTool = targetTool;
     notifyListeners();
+  }
+
+  void _endActiveTool() {
+    if (_currentTool.isActive) {
+      final command = _currentTool.onToolEnd();
+      if (command != null) {
+        onExecuteCommand(command);
+      }
+      notifyListeners();
+    }
   }
 
   void disableDrawing() {

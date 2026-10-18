@@ -9,11 +9,8 @@ import 'package:drawing_app/ui/core/commands/draw_command.dart';
 import 'package:drawing_app/ui/core/draw_tools/draw_tool.dart';
 import 'package:drawing_app/utils/extensions.dart';
 
-class PathTool extends DrawTool implements StrokeToolType, FillToolType {
-  Paint _strokePaint;
-  Paint _fillPaint;
-  bool _renderFill;
-  bool _renderStroke;
+class PathTool extends DrawTool with StrokeTool, FillTool {
+
 
 
   bool _isDrawing = false;
@@ -28,22 +25,7 @@ class PathTool extends DrawTool implements StrokeToolType, FillToolType {
   PathTool({
     required super.toolName,
     required super.toolIcon,
-    required Paint defaultStrokePaint,
-    required Paint defaultFillPaint,
-    required bool renderFill,
-    required bool renderStroke,
-  })  : _strokePaint = defaultStrokePaint,
-        _fillPaint = defaultFillPaint,
-        _renderFill = renderFill,
-        _renderStroke = renderStroke;
-
-  @override bool get renderFill => _renderFill;
-  @override bool get renderStroke => _renderStroke;
-  @override Paint get fillPaint => _fillPaint;
-  @override Paint get strokePaint => _strokePaint;
-
-  @override void updateFillPaint(Paint updatedFillPaint) => _fillPaint = updatedFillPaint;
-  @override void updateStrokePaint(Paint updatedStrokePaint) => _strokePaint = updatedStrokePaint;
+  });
 
   @override
   List<DrawData> get activePreview => _activePath != null ? [_activePath!] : const [];
@@ -92,10 +74,10 @@ class PathTool extends DrawTool implements StrokeToolType, FillToolType {
         layerId: layerId,
         index: strokeIndex,
         id: uuid.v4(),
-        strokePaint: strokePaint,
-        fillPaint: fillPaint,
-        renderFill: _renderFill,
-        renderStroke: _renderStroke,
+        strokePaint: Paint.from(strokePaint),
+        fillPaint: Paint.from(fillPaint),
+        strokeType: strokeTypeOptions,
+        fillType: fillTypeOptions,
         points: [toolInputStart.snappedWorldPoint],
       );
     }
@@ -152,13 +134,13 @@ class PathTool extends DrawTool implements StrokeToolType, FillToolType {
   void drawToolOverlay(Canvas canvas, PointerDeviceKind device, double scale) {
     double nodeSize;
     if(device == PointerDeviceKind.touch){
-      if(_strokePaint.strokeWidth < 40){
+      if(strokePaint.strokeWidth < 40){
         nodeSize = 40;
       } else{
-        nodeSize = _strokePaint.strokeWidth;
+        nodeSize = strokePaint.strokeWidth;
       }
     } else{
-      nodeSize = _strokePaint.strokeWidth + 10;
+      nodeSize = strokePaint.strokeWidth + 10;
     }
 
     if(_activePath != null){
@@ -177,14 +159,17 @@ class PathTool extends DrawTool implements StrokeToolType, FillToolType {
     }
   }
 
-  @override void toggleRenderFill(bool enabled) => _renderFill = enabled;
-  @override void toggleRenderStroke(bool enabled) => _renderStroke = enabled;
-
     @override
-  List<PropertyData> getToolProperties(Function(PropertyId) onPropertyChanged) {
+  List<PropertyData> get toolProperties {
     return [
-      ...getStrokeProperties(onPropertyChanged),
-      ...getFillProperties(onPropertyChanged)
+      ...strokeProperties,
+      ...fillProperties
     ];
+  }
+
+  @override
+  void updatePropertyStateValue(PropertyId<dynamic> targetId, newValue) {
+    if(updateStrokeProperty(targetId, newValue)) return;
+    if(updateFillProperties(targetId, newValue)) return;
   }
 }

@@ -1,11 +1,14 @@
 import 'package:drawing_app/domain/models/property_data/property_data.dart';
-import 'package:drawing_app/ui/draw_screen/view_models/tool_properties_controller.dart';
+import 'package:drawing_app/ui/core/draw_tools/canvas_tool.dart';
+import 'package:drawing_app/ui/draw_screen/view_models/draw_screen_view_model.dart';
+import 'package:drawing_app/ui/draw_screen/view_models/tool_controller.dart';
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 
 class ToolPropertiesMenu extends StatefulWidget{
-  const ToolPropertiesMenu({super.key, required ToolPropertiesController toolPropertiesController}) : _toolPropertiesController = toolPropertiesController;
+  const ToolPropertiesMenu({super.key});
 
-  final ToolPropertiesController _toolPropertiesController;
+
 
   @override
   State<ToolPropertiesMenu> createState() => _ToolPropertiesMenuState();
@@ -15,9 +18,16 @@ class _ToolPropertiesMenuState extends State<ToolPropertiesMenu> {
   bool _isOpen = false;
   @override
   Widget build(BuildContext context) {
-    return ListenableBuilder(listenable: widget._toolPropertiesController, builder: (context, child) => widget._toolPropertiesController.loadedProperties.isEmpty ? SizedBox.shrink() : Padding(
-      padding: const EdgeInsets.all(16.0),
-      child: Column(
+    final ToolController toolController = context.read<ToolController>();
+
+    final currentTool = context.select<ToolController, CanvasTool>((controller) => controller.currentTool);
+
+    if(currentTool.toolProperties.isEmpty){
+      _isOpen = false;
+      return SizedBox.shrink();
+    } else{
+
+    return Column(
         mainAxisAlignment: MainAxisAlignment.end,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -37,7 +47,7 @@ class _ToolPropertiesMenuState extends State<ToolPropertiesMenu> {
             child: ListView(
               shrinkWrap: true,
               children: [
-                ...widget._toolPropertiesController.loadedProperties.map((property) => property.toWidget(context))
+                ...toolController.loadedProperties.map((property) => property.toListTileWidget(context, toolController))
               ]) 
             ) : SizedBox.shrink(),
             SizedBox(height: 5,),
@@ -48,30 +58,7 @@ class _ToolPropertiesMenuState extends State<ToolPropertiesMenu> {
                 ),
               child: IconButton(onPressed: () => setState(() => _isOpen = !_isOpen), icon: Icon(Icons.format_paint))),
         ],
-      ),
-    ));
-    
-    // return Container(
-    //   constraints: const BoxConstraints(
-    //     minWidth: 120, 
-    //     maxWidth: 140,
-    //     minHeight: 80, 
-    //     maxHeight: 400, 
-    //   ),
-    //   child: ListView(children: [
-    //     ListTile(
-    //       title: const Text('Property 1'),
-    //       onTap: () {
-    //         // Handle property 1 tap
-    //       },
-    //     ),
-    //     ListTile(
-    //       title: const Text('Property 2'),
-    //       onTap: () {
-    //         // Handle property 2 tap
-    //       },
-    //     ),
-    //     // Add more properties as needed
-    //   ]));
-  }
+      );
+  
+  }}
 }

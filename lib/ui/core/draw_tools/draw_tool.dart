@@ -5,6 +5,7 @@ import 'package:drawing_app/ui/core/commands/canvas_command.dart';
 import 'package:drawing_app/ui/core/draw_tools/canvas_tool.dart';
 import 'package:drawing_app/utils/widgets/box_icon.dart';
 import 'package:flutter/material.dart';
+import 'package:freezed_annotation/freezed_annotation.dart';
 
 import 'package:uuid/uuid.dart';
 
@@ -30,81 +31,72 @@ abstract class DrawTool extends CanvasTool{
 
 }
 
-abstract class StrokeToolType{
-  Paint get strokePaint;
-  bool get renderStroke;
+mixin StrokeTool{
+  Paint strokePaint = Paint()
+    ..style = PaintingStyle.stroke
+    ..strokeWidth = 5.0;
 
-  void updateStrokePaint(Paint updatedStrokePaint);
+  StrokeTypeOptions strokeTypeOptions = StrokeTypeOptions.solid;
 
-  void toggleRenderStroke(bool enabled);
+  List<PropertyData> get strokeProperties => [
+    PropertyData.double(value: strokePaint.strokeWidth, maxValue: 20, minValue: 0, id: const StrokeSizeId()),
+    PropertyData.color(value: strokePaint.color, id: const StrokeColorId())
+  ];
+
+  bool updateStrokeProperty(PropertyId id, newValue){
+    if(id is StrokeColorId){
+      strokePaint = strokePaint..color = newValue as Color;
+      return true;
+    } else if(id is StrokeSizeId){
+      strokePaint = strokePaint..strokeWidth = newValue as double;
+      return true;
+    } else{
+      return false;
+    }
+  }
+
 }
 
-abstract class FillToolType{
-  Paint get fillPaint;
-  bool get renderFill;
+@JsonEnum()
+enum StrokeTypeOptions{
+  @JsonValue(0) noStroke('No Stroke'),
+  @JsonValue(1) solid('Solid');
+
+  const StrokeTypeOptions(this.displayName);
+
+  final String displayName;
+}
+
+@JsonEnum()
+enum FillTypeOptions{
+  @JsonValue(0) noFill('No Fill'),
+  @JsonValue(1) filled('Filled');
+
+  const FillTypeOptions(this.displayName);
+
+  final String displayName;
+}
+
+mixin FillTool{
+  Paint fillPaint = Paint();
+
+  FillTypeOptions fillTypeOptions = FillTypeOptions.filled;
   
+  List<PropertyData> get fillProperties => [
+    PropertyData.color(value: fillPaint.color, id: FillColorId()),
+    PropertyData.choice(value: fillTypeOptions, options: FillTypeOptions.values, id: const FillTypeId())
+  ];
 
-  void updateFillPaint(Paint updatedFillPaint);
-  void toggleRenderFill(bool enabled);
-}
-
-extension StrokeToolUiExtensions on StrokeToolType {
-  /// Generates the standard property control list for managing stroke options
-  List<PropertyData> getStrokeProperties(Function(PropertyId) onPropertyChanged) {
-    return [
-      PropertyData.double(
-        displayName: 'Stroke Size',
-        value: strokePaint.strokeWidth,
-        minValue: 0,
-        maxValue: 20,
-        onChanged: (strokeWidth) {
-          final updatedPaint = Paint.from(strokePaint)..strokeWidth = strokeWidth;
-          updateStrokePaint(updatedPaint);
-          onPropertyChanged(const StrokeSizeType());
-          },
-        id: const StrokeSizeType()
-      ),
-      PropertyData.color(
-        displayName: 'Stroke Color',
-        value: strokePaint.color,
-        onChanged: (newColor) {
-                    final updatedPaint = Paint.from(strokePaint)..color = newColor;
-          updateStrokePaint(updatedPaint);
-          onPropertyChanged(const GenericType());
-        },
-        id: const GenericType()
-      ),
-    ];
+  bool updateFillProperties(PropertyId id, dynamic newValue){
+    if(id is FillColorId){
+      fillPaint.color = newValue as Color;
+      return true;
+    } else if(id is FillTypeId){
+      fillTypeOptions = newValue;
+      return true;
+    } else{
+      return false;
+    }
   }
 }
 
-extension FillToolUiExtensions on FillToolType {
-  /// Generates the standard property control list for managing fill options
-  List<PropertyData> getFillProperties(Function(PropertyId) onPropertyChanged) {
-    return [
-      PropertyData.choice(
-        displayName: 'Fill Type',
-        value: renderFill,
-        options: {
-          BoxIcon(size: 18,color: Colors.transparent, border: Border.all(color: Colors.black, width: 2)): false,
-           BoxIcon(size: 18,color: Colors.black): true,
-        },
-        onChanged: (renderFill) {
-          toggleRenderFill(renderFill);
-          onPropertyChanged(const GenericType());
-        },
-        id: const GenericType()
-      ),
-      PropertyData.color(
-        displayName: 'Fill Color',
-        value: fillPaint.color,
-        onChanged: (newColor) {
-          final updatedPaint = Paint.from(fillPaint)..color = newColor;
-          updateFillPaint(updatedPaint);
-          onPropertyChanged(const GenericType());
-        },
-        id: const GenericType()
-      ),
-    ];
-  }
-}

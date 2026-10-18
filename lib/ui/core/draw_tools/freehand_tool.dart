@@ -7,36 +7,21 @@ import 'package:drawing_app/domain/models/draw_data/draw_data.dart';
 import 'package:drawing_app/ui/core/commands/draw_command.dart';
 import 'package:drawing_app/ui/core/draw_tools/draw_tool.dart';
 
-class FreehandTool extends DrawTool implements StrokeToolType {
-  bool _renderStroke;
+class FreehandTool extends DrawTool with StrokeTool {
   FreehandData? _activeStroke;
   bool _isDrawing = false;
 
-  Paint _strokePaint;
 
   FreehandTool({
     required super.toolName,
     required super.toolIcon,
-    required Paint defaultStrokePaint,
-    required bool renderStroke,
-  }) : _strokePaint = defaultStrokePaint,
-       _renderStroke = renderStroke;
+  });
 
   @override
   bool get isActive => _isDrawing;
   @override
   List<DrawData> get activePreview =>
       _activeStroke != null ? [_activeStroke!] : const [];
-  @override
-  bool get renderStroke => _renderStroke;
-  @override
-  Paint get strokePaint => _strokePaint;
-
-  @override
-  void updateStrokePaint(Paint updatedStrokePaint) =>
-      _strokePaint = updatedStrokePaint;
-  @override
-  void toggleRenderStroke(bool enabled) => _renderStroke = enabled;
 
   @override
   void onToolStart(
@@ -47,11 +32,12 @@ class FreehandTool extends DrawTool implements StrokeToolType {
     _isDrawing = true;
     _activeStroke = FreehandData(
       layerId: layerId,
-      strokePaint: _strokePaint,
+      strokePaint: Paint.from(strokePaint),
       id: uuid.v4(),
       index: strokeIndex,
       points: [toolStartInput.snappedWorldPoint],
-      renderStroke: _renderStroke,
+      strokeType: strokeTypeOptions
+
     );
   }
 
@@ -76,9 +62,16 @@ class FreehandTool extends DrawTool implements StrokeToolType {
   }
 
   @override
-  List<PropertyData> getToolProperties(Function(PropertyId) onPropertyChanged) {
+  List<PropertyData> get toolProperties {
     return [
-     ...getStrokeProperties(onPropertyChanged)
+     ...strokeProperties
     ];
+  }
+
+  @override
+  void updatePropertyStateValue(PropertyId<dynamic> targetId, newValue) {
+    if(updateStrokeProperty(targetId, newValue)) {
+      return;
+      }
   }
 }

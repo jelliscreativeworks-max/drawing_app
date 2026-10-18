@@ -2,6 +2,7 @@ import 'dart:math';
 import 'dart:ui';
 
 
+import 'package:drawing_app/ui/core/draw_tools/draw_tool.dart';
 import 'package:drawing_app/utils/converters.dart';
 import 'package:drawing_app/utils/extensions.dart';
 import 'package:flutter/material.dart';
@@ -23,10 +24,10 @@ sealed class DrawData with _$DrawData{
     required String id,
     @PaintConverter() required Paint strokePaint,
     @PaintConverter() required Paint fillPaint,
-    required bool renderStroke,
-    required bool renderFill,
     @OffsetConverter() required Offset center,
     required double radius,
+    required StrokeTypeOptions strokeType,
+    required FillTypeOptions fillType
 
     
   }) = CircleData;
@@ -36,18 +37,18 @@ sealed class DrawData with _$DrawData{
     required int index,
     required String id,
     @PaintConverter() required Paint strokePaint,
-    required bool renderStroke,
-    @OffsetConverter() required List<Offset> points
+    @OffsetConverter() required List<Offset> points,
+    required StrokeTypeOptions strokeType,
   }) = FreehandData;
 
   const factory DrawData.line({
     required String layerId,
     required int index,
     required String id,
-    required bool renderStroke,
     @PaintConverter() required Paint strokePaint,
     @OffsetConverter() required Offset startPoint,
-    @OffsetConverter() required Offset endPoint
+    @OffsetConverter() required Offset endPoint,
+    required StrokeTypeOptions strokeType,
   }) = LineData;
 
   const factory DrawData.path({
@@ -56,10 +57,10 @@ sealed class DrawData with _$DrawData{
      required String id,
     @PaintConverter() required Paint strokePaint,
     @PaintConverter() required Paint fillPaint,
-    required bool renderStroke,
-    required bool renderFill,
     @Default(false) bool closed,
-    @OffsetConverter() required List<Offset> points
+    @OffsetConverter() required List<Offset> points,
+    required StrokeTypeOptions strokeType,
+    required FillTypeOptions fillType,
   }) = PathData;
 
   const factory DrawData.rectangle({
@@ -68,11 +69,10 @@ sealed class DrawData with _$DrawData{
      required String id,
     @PaintConverter() required Paint strokePaint,
     @PaintConverter() required Paint fillPaint,
-    required bool renderStroke,
-    required bool renderFill,
     @OffsetConverter() required Offset topLeft,
     @OffsetConverter() required Offset botRight,
-
+    required StrokeTypeOptions strokeType,
+    required FillTypeOptions fillType,
   }) = RectData;
 
 

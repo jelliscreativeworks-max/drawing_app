@@ -97,7 +97,9 @@ abstract class CanvasTool {
 
     CanvasTool({required this.toolName, required this.toolIcon});
 
-    List<PropertyData> getToolProperties(Function(PropertyId) onPropertyChanged);
+    List<PropertyData> get toolProperties;
+
+    void updatePropertyStateValue(PropertyId targetId, dynamic newValue);
 
     void onToolStart(ToolStartInput toolStartInput, String layerId, int strokeIndex);
     void onToolUpdate(ToolUpdateInput toolUpdateInput, String layerId);

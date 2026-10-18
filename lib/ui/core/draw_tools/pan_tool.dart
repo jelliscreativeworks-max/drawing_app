@@ -1,5 +1,6 @@
 import 'package:drawing_app/domain/models/canvas_camera.dart';
 import 'package:drawing_app/domain/models/property_data/property_data.dart';
+import 'package:drawing_app/domain/models/property_data/property_type.dart';
 import 'package:drawing_app/domain/models/tool_input_data/tool_input_data.dart';
 import 'package:drawing_app/ui/core/commands/canvas_command.dart';
 import 'package:drawing_app/ui/core/draw_tools/canvas_tool.dart';
@@ -84,34 +85,10 @@ class PanTool extends CanvasTool {
   }
 
   @override
-  List<PropertyData<dynamic>> getToolProperties(_) => []; 
-    //  @override
-  // void onToolUpdate(ToolUpdateInput toolUpdateInput, String layerId) {
-  //   if (!_isPanning) return;
-    
-  //   if (toolFrame.pointerDeviceKind == PointerDeviceKind.trackpad) {
-  //     final bool isZooming = (toolFrame.rawScale - 1.0).abs() > 0.001;
+  List<PropertyData<dynamic>> get toolProperties => [];
 
-  //     if (isZooming) {
-  //       _zoom(toolFrame.rawScale);
-  //     } else if (toolFrame.screenPoint != Offset.zero) {
-  //       _camera.transform = _camera.transform.clone()
-  //         ..translateByVector3(
-  //           vm.Vector3(
-  //             toolFrame.screenPoint.dx / _camera.currentScale,
-  //             toolFrame.screenPoint.dy / _camera.currentScale,
-  //             0.0,
-  //           ),
-  //         );
-  //     }
-  //   } else {
-  //     // Standard mouse, stylus, and touch gestures remain untouched
-  //     _pan(toolFrame.delta);
-  //     if (toolFrame.pointerDeviceKind == PointerDeviceKind.touch) {
-  //       _zoom(toolFrame.rawScale);
-  //     }
-  //   }
-  // }
+  @override
+  void updatePropertyStateValue(_,_){}
 
 
 

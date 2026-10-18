@@ -1,3 +1,5 @@
+
+
 import 'dart:ui';
 
 import 'package:drawing_app/domain/models/draw_data/draw_data.dart';
@@ -8,17 +10,12 @@ import 'package:drawing_app/ui/core/commands/canvas_command.dart';
 import 'package:drawing_app/ui/core/commands/draw_command.dart';
 import 'package:drawing_app/ui/core/draw_tools/draw_tool.dart';
 
-class LineTool extends DrawTool implements StrokeToolType{
-  bool _renderStroke;
+class LineTool extends DrawTool with StrokeTool{
   bool _isDrawing = false;
   LineData? _activeLine;
 
-  Paint _strokePaint;
 
-  @override
-  Paint get strokePaint => _strokePaint;
-
-  LineTool({required super.toolName, required super.toolIcon, required Paint defaultStrokePaint, required bool renderStroke}) : _strokePaint = defaultStrokePaint, _renderStroke = renderStroke;
+  LineTool({required super.toolName, required super.toolIcon});
 
   @override
   List<DrawData> get activePreview => _activeLine != null ? [_activeLine!] : const [];
@@ -44,7 +41,7 @@ class LineTool extends DrawTool implements StrokeToolType{
   @override
   void onToolStart(ToolStartInput toolStartInput, String layerId, int strokeIndex) {
     _isDrawing = true;
-    _activeLine = LineData(layerId: layerId, index: strokeIndex, strokePaint: _strokePaint, id: uuid.v4(), startPoint: toolStartInput.snappedWorldPoint, endPoint: toolStartInput.snappedWorldPoint, renderStroke: _renderStroke);
+    _activeLine = LineData(layerId: layerId, index: strokeIndex, strokePaint: Paint.from(strokePaint), id: uuid.v4(), startPoint: toolStartInput.snappedWorldPoint, endPoint: toolStartInput.snappedWorldPoint, strokeType: strokeTypeOptions);
   }
 
   @override
@@ -54,20 +51,16 @@ class LineTool extends DrawTool implements StrokeToolType{
     _activeLine = _activeLine!.copyWith(endPoint: toolUpdateInput.snappedWorldPoint);
   }
 
-  @override
-  void updateStrokePaint(Paint updatedStrokePaint) =>  _strokePaint = updatedStrokePaint;
-
-  @override
-  bool get renderStroke => _renderStroke;
-  
-  @override
-  void toggleRenderStroke(bool enabled) => _renderStroke = enabled;
-
     @override
-  List<PropertyData> getToolProperties(Function(PropertyId) onPropertyChanged) {
+  List<PropertyData> get toolProperties {
     return [
-      ...getStrokeProperties(onPropertyChanged)
+      ...strokeProperties
     ];
+  }
+
+  @override
+  void updatePropertyStateValue(PropertyId<dynamic> targetId, newValue) {
+    if(updateStrokeProperty(targetId, newValue)) return;
   }
   
   }

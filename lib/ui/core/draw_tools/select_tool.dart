@@ -696,7 +696,10 @@ class SelectTool extends DrawTool implements HistoryConsumer, OverrideDrawn {
   }
 
   @override
-  List<PropertyData> getToolProperties(Function(PropertyId) onPropertyChanged) {
-    return [];
+  List<PropertyData> get toolProperties => [];
+
+  @override
+  void updatePropertyStateValue(PropertyId<dynamic> targetId, newValue) {
+    // TODO: maybe update the selection size
   }
 }

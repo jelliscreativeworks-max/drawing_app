@@ -46,18 +46,18 @@
   }
 
   void _drawCircle(Canvas canvas, CircleData data){
-      if(data.renderFill){
+      if(data.fillType == FillTypeOptions.filled){
         canvas.drawCircle(data.center, data.radius, data.fillPaint);
       }
 
-      if(data.renderStroke){
+      if(data.strokeType == StrokeTypeOptions.solid){
          canvas.drawCircle(data.center, data.radius, data.strokePaint);
       }
   }
 
     void _drawRectangle(Canvas canvas, RectData data){
     final Rect rect = Rect.fromPoints(data.topLeft, data.botRight);
-    if(data.renderStroke) {canvas.drawRect(rect, data.strokePaint);}
-    if(data.renderFill){ canvas.drawRect(rect, data.fillPaint);}
+    if(data.strokeType == StrokeTypeOptions.solid) {canvas.drawRect(rect, data.strokePaint);}
+    if(data.fillType == FillTypeOptions.filled){ canvas.drawRect(rect, data.fillPaint);}
     
   }

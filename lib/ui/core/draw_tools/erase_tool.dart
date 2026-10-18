@@ -9,7 +9,7 @@ import 'package:drawing_app/ui/core/draw_tools/draw_tool.dart';
 import 'package:drawing_app/ui/core/commands/erase_draw_command.dart';
 import 'package:drawing_app/ui/core/draw_tools/history_consumer.dart';
 
-class EraseTool extends DrawTool implements HistoryConsumer, StrokeToolType {
+class EraseTool extends DrawTool implements HistoryConsumer  {
   final List<CanvasHistoryEntry> _erasedDrawData = [];
 
   Set<String> get targetedForDeletion =>
@@ -17,7 +17,8 @@ class EraseTool extends DrawTool implements HistoryConsumer, StrokeToolType {
 
   List<DrawData> _drawHistory = const [];
   String _currentLayerId = '';
-  Paint _strokePaint;
+
+  double _strokeWidth = 5.0;
 
   bool _isErasing = false;
   Offset? _lastActivePoint;
@@ -25,21 +26,12 @@ class EraseTool extends DrawTool implements HistoryConsumer, StrokeToolType {
   EraseTool({
     required super.toolName,
     required super.toolIcon,
-    required Paint defaultStrokePaint,
-  }) : _strokePaint = defaultStrokePaint;
+
+  });
 
   @override
   bool get isActive => _isErasing;
-  @override
-  bool get renderStroke => false;
-  @override
-  Paint get strokePaint => _strokePaint;
 
-  @override
-  void toggleRenderStroke(_) {}
-  @override
-  void updateStrokePaint(Paint updatedStrokePaint) =>
-      _strokePaint = updatedStrokePaint;
   @override
   void setHistorySnapshot(List<DrawData> drawHistory) =>
       _drawHistory = drawHistory;
@@ -97,7 +89,7 @@ class EraseTool extends DrawTool implements HistoryConsumer, StrokeToolType {
   }
 
   void _checkCollisions(Offset p1, Offset p2) {
-    final double eraserRadius = (strokePaint.strokeWidth) / 2.0;
+    final double eraserRadius = (_strokeWidth) / 2.0;
 
     for (int i = 0; i < _drawHistory.length; i++) {
       final data = _drawHistory[i];
@@ -131,19 +123,21 @@ class EraseTool extends DrawTool implements HistoryConsumer, StrokeToolType {
   }
 
   @override
-  List<PropertyData> getToolProperties(Function(PropertyId) onPropertyChanged) {
+  List<PropertyData> get toolProperties {
     return [
       PropertyData.double(
-        displayName: 'Eraser Size',
-        value: _strokePaint.strokeWidth,
+        value: _strokeWidth,
         minValue: 0,
         maxValue: 20,
-        onChanged: (strokeWidth) {
-          _strokePaint = _strokePaint..strokeWidth = strokeWidth;
-          onPropertyChanged(const StrokeSizeType());
-        },
-        id: const StrokeSizeType()
+        id: const StrokeSizeId()
       ),
     ];
+  }
+
+  @override
+  void updatePropertyStateValue(PropertyId<dynamic> targetId, newValue) {
+    if(targetId is StrokeSizeId){
+      _strokeWidth = newValue as double;
+    }
   }
 }

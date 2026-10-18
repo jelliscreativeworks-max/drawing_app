@@ -50,7 +50,7 @@ DrawData _$DrawDataFromJson(
 /// @nodoc
 mixin _$DrawData {
 
- String get layerId; int get index; String get id;@PaintConverter() Paint get strokePaint; bool get renderStroke;
+ String get layerId; int get index; String get id;@PaintConverter() Paint get strokePaint; StrokeTypeOptions get strokeType;
 /// Create a copy of DrawData
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -63,16 +63,16 @@ $DrawDataCopyWith<DrawData> get copyWith => _$DrawDataCopyWithImpl<DrawData>(thi
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is DrawData&&(identical(other.layerId, layerId) || other.layerId == layerId)&&(identical(other.index, index) || other.index == index)&&(identical(other.id, id) || other.id == id)&&(identical(other.strokePaint, strokePaint) || other.strokePaint == strokePaint)&&(identical(other.renderStroke, renderStroke) || other.renderStroke == renderStroke));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is DrawData&&(identical(other.layerId, layerId) || other.layerId == layerId)&&(identical(other.index, index) || other.index == index)&&(identical(other.id, id) || other.id == id)&&(identical(other.strokePaint, strokePaint) || other.strokePaint == strokePaint)&&(identical(other.strokeType, strokeType) || other.strokeType == strokeType));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,layerId,index,id,strokePaint,renderStroke);
+int get hashCode => Object.hash(runtimeType,layerId,index,id,strokePaint,strokeType);
 
 @override
 String toString() {
-  return 'DrawData(layerId: $layerId, index: $index, id: $id, strokePaint: $strokePaint, renderStroke: $renderStroke)';
+  return 'DrawData(layerId: $layerId, index: $index, id: $id, strokePaint: $strokePaint, strokeType: $strokeType)';
 }
 
 
@@ -83,7 +83,7 @@ abstract mixin class $DrawDataCopyWith<$Res>  {
   factory $DrawDataCopyWith(DrawData value, $Res Function(DrawData) _then) = _$DrawDataCopyWithImpl;
 @useResult
 $Res call({
- String layerId, int index, String id,@PaintConverter() Paint strokePaint, bool renderStroke
+ String layerId, int index, String id,@PaintConverter() Paint strokePaint, StrokeTypeOptions strokeType
 });
 
 
@@ -100,14 +100,14 @@ class _$DrawDataCopyWithImpl<$Res>
 
 /// Create a copy of DrawData
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? layerId = null,Object? index = null,Object? id = null,Object? strokePaint = null,Object? renderStroke = null,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? layerId = null,Object? index = null,Object? id = null,Object? strokePaint = null,Object? strokeType = null,}) {
   return _then(_self.copyWith(
 layerId: null == layerId ? _self.layerId : layerId // ignore: cast_nullable_to_non_nullable
 as String,index: null == index ? _self.index : index // ignore: cast_nullable_to_non_nullable
 as int,id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,strokePaint: null == strokePaint ? _self.strokePaint : strokePaint // ignore: cast_nullable_to_non_nullable
-as Paint,renderStroke: null == renderStroke ? _self.renderStroke : renderStroke // ignore: cast_nullable_to_non_nullable
-as bool,
+as Paint,strokeType: null == strokeType ? _self.strokeType : strokeType // ignore: cast_nullable_to_non_nullable
+as StrokeTypeOptions,
   ));
 }
 
@@ -201,14 +201,14 @@ return rectangle(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>({TResult Function( String layerId,  int index,  String id, @PaintConverter()  Paint strokePaint, @PaintConverter()  Paint fillPaint,  bool renderStroke,  bool renderFill, @OffsetConverter()  Offset center,  double radius)?  circle,TResult Function( String layerId,  int index,  String id, @PaintConverter()  Paint strokePaint,  bool renderStroke, @OffsetConverter()  List<Offset> points)?  freehand,TResult Function( String layerId,  int index,  String id,  bool renderStroke, @PaintConverter()  Paint strokePaint, @OffsetConverter()  Offset startPoint, @OffsetConverter()  Offset endPoint)?  line,TResult Function( String layerId,  int index,  String id, @PaintConverter()  Paint strokePaint, @PaintConverter()  Paint fillPaint,  bool renderStroke,  bool renderFill,  bool closed, @OffsetConverter()  List<Offset> points)?  path,TResult Function( String layerId,  int index,  String id, @PaintConverter()  Paint strokePaint, @PaintConverter()  Paint fillPaint,  bool renderStroke,  bool renderFill, @OffsetConverter()  Offset topLeft, @OffsetConverter()  Offset botRight)?  rectangle,required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>({TResult Function( String layerId,  int index,  String id, @PaintConverter()  Paint strokePaint, @PaintConverter()  Paint fillPaint, @OffsetConverter()  Offset center,  double radius,  StrokeTypeOptions strokeType,  FillTypeOptions fillType)?  circle,TResult Function( String layerId,  int index,  String id, @PaintConverter()  Paint strokePaint, @OffsetConverter()  List<Offset> points,  StrokeTypeOptions strokeType)?  freehand,TResult Function( String layerId,  int index,  String id, @PaintConverter()  Paint strokePaint, @OffsetConverter()  Offset startPoint, @OffsetConverter()  Offset endPoint,  StrokeTypeOptions strokeType)?  line,TResult Function( String layerId,  int index,  String id, @PaintConverter()  Paint strokePaint, @PaintConverter()  Paint fillPaint,  bool closed, @OffsetConverter()  List<Offset> points,  StrokeTypeOptions strokeType,  FillTypeOptions fillType)?  path,TResult Function( String layerId,  int index,  String id, @PaintConverter()  Paint strokePaint, @PaintConverter()  Paint fillPaint, @OffsetConverter()  Offset topLeft, @OffsetConverter()  Offset botRight,  StrokeTypeOptions strokeType,  FillTypeOptions fillType)?  rectangle,required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case CircleData() when circle != null:
-return circle(_that.layerId,_that.index,_that.id,_that.strokePaint,_that.fillPaint,_that.renderStroke,_that.renderFill,_that.center,_that.radius);case FreehandData() when freehand != null:
-return freehand(_that.layerId,_that.index,_that.id,_that.strokePaint,_that.renderStroke,_that.points);case LineData() when line != null:
-return line(_that.layerId,_that.index,_that.id,_that.renderStroke,_that.strokePaint,_that.startPoint,_that.endPoint);case PathData() when path != null:
-return path(_that.layerId,_that.index,_that.id,_that.strokePaint,_that.fillPaint,_that.renderStroke,_that.renderFill,_that.closed,_that.points);case RectData() when rectangle != null:
-return rectangle(_that.layerId,_that.index,_that.id,_that.strokePaint,_that.fillPaint,_that.renderStroke,_that.renderFill,_that.topLeft,_that.botRight);case _:
+return circle(_that.layerId,_that.index,_that.id,_that.strokePaint,_that.fillPaint,_that.center,_that.radius,_that.strokeType,_that.fillType);case FreehandData() when freehand != null:
+return freehand(_that.layerId,_that.index,_that.id,_that.strokePaint,_that.points,_that.strokeType);case LineData() when line != null:
+return line(_that.layerId,_that.index,_that.id,_that.strokePaint,_that.startPoint,_that.endPoint,_that.strokeType);case PathData() when path != null:
+return path(_that.layerId,_that.index,_that.id,_that.strokePaint,_that.fillPaint,_that.closed,_that.points,_that.strokeType,_that.fillType);case RectData() when rectangle != null:
+return rectangle(_that.layerId,_that.index,_that.id,_that.strokePaint,_that.fillPaint,_that.topLeft,_that.botRight,_that.strokeType,_that.fillType);case _:
   return orElse();
 
 }
@@ -226,14 +226,14 @@ return rectangle(_that.layerId,_that.index,_that.id,_that.strokePaint,_that.fill
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>({required TResult Function( String layerId,  int index,  String id, @PaintConverter()  Paint strokePaint, @PaintConverter()  Paint fillPaint,  bool renderStroke,  bool renderFill, @OffsetConverter()  Offset center,  double radius)  circle,required TResult Function( String layerId,  int index,  String id, @PaintConverter()  Paint strokePaint,  bool renderStroke, @OffsetConverter()  List<Offset> points)  freehand,required TResult Function( String layerId,  int index,  String id,  bool renderStroke, @PaintConverter()  Paint strokePaint, @OffsetConverter()  Offset startPoint, @OffsetConverter()  Offset endPoint)  line,required TResult Function( String layerId,  int index,  String id, @PaintConverter()  Paint strokePaint, @PaintConverter()  Paint fillPaint,  bool renderStroke,  bool renderFill,  bool closed, @OffsetConverter()  List<Offset> points)  path,required TResult Function( String layerId,  int index,  String id, @PaintConverter()  Paint strokePaint, @PaintConverter()  Paint fillPaint,  bool renderStroke,  bool renderFill, @OffsetConverter()  Offset topLeft, @OffsetConverter()  Offset botRight)  rectangle,}) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>({required TResult Function( String layerId,  int index,  String id, @PaintConverter()  Paint strokePaint, @PaintConverter()  Paint fillPaint, @OffsetConverter()  Offset center,  double radius,  StrokeTypeOptions strokeType,  FillTypeOptions fillType)  circle,required TResult Function( String layerId,  int index,  String id, @PaintConverter()  Paint strokePaint, @OffsetConverter()  List<Offset> points,  StrokeTypeOptions strokeType)  freehand,required TResult Function( String layerId,  int index,  String id, @PaintConverter()  Paint strokePaint, @OffsetConverter()  Offset startPoint, @OffsetConverter()  Offset endPoint,  StrokeTypeOptions strokeType)  line,required TResult Function( String layerId,  int index,  String id, @PaintConverter()  Paint strokePaint, @PaintConverter()  Paint fillPaint,  bool closed, @OffsetConverter()  List<Offset> points,  StrokeTypeOptions strokeType,  FillTypeOptions fillType)  path,required TResult Function( String layerId,  int index,  String id, @PaintConverter()  Paint strokePaint, @PaintConverter()  Paint fillPaint, @OffsetConverter()  Offset topLeft, @OffsetConverter()  Offset botRight,  StrokeTypeOptions strokeType,  FillTypeOptions fillType)  rectangle,}) {final _that = this;
 switch (_that) {
 case CircleData():
-return circle(_that.layerId,_that.index,_that.id,_that.strokePaint,_that.fillPaint,_that.renderStroke,_that.renderFill,_that.center,_that.radius);case FreehandData():
-return freehand(_that.layerId,_that.index,_that.id,_that.strokePaint,_that.renderStroke,_that.points);case LineData():
-return line(_that.layerId,_that.index,_that.id,_that.renderStroke,_that.strokePaint,_that.startPoint,_that.endPoint);case PathData():
-return path(_that.layerId,_that.index,_that.id,_that.strokePaint,_that.fillPaint,_that.renderStroke,_that.renderFill,_that.closed,_that.points);case RectData():
-return rectangle(_that.layerId,_that.index,_that.id,_that.strokePaint,_that.fillPaint,_that.renderStroke,_that.renderFill,_that.topLeft,_that.botRight);}
+return circle(_that.layerId,_that.index,_that.id,_that.strokePaint,_that.fillPaint,_that.center,_that.radius,_that.strokeType,_that.fillType);case FreehandData():
+return freehand(_that.layerId,_that.index,_that.id,_that.strokePaint,_that.points,_that.strokeType);case LineData():
+return line(_that.layerId,_that.index,_that.id,_that.strokePaint,_that.startPoint,_that.endPoint,_that.strokeType);case PathData():
+return path(_that.layerId,_that.index,_that.id,_that.strokePaint,_that.fillPaint,_that.closed,_that.points,_that.strokeType,_that.fillType);case RectData():
+return rectangle(_that.layerId,_that.index,_that.id,_that.strokePaint,_that.fillPaint,_that.topLeft,_that.botRight,_that.strokeType,_that.fillType);}
 }
 /// A variant of `when` that fallback to returning `null`
 ///
@@ -247,14 +247,14 @@ return rectangle(_that.layerId,_that.index,_that.id,_that.strokePaint,_that.fill
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>({TResult? Function( String layerId,  int index,  String id, @PaintConverter()  Paint strokePaint, @PaintConverter()  Paint fillPaint,  bool renderStroke,  bool renderFill, @OffsetConverter()  Offset center,  double radius)?  circle,TResult? Function( String layerId,  int index,  String id, @PaintConverter()  Paint strokePaint,  bool renderStroke, @OffsetConverter()  List<Offset> points)?  freehand,TResult? Function( String layerId,  int index,  String id,  bool renderStroke, @PaintConverter()  Paint strokePaint, @OffsetConverter()  Offset startPoint, @OffsetConverter()  Offset endPoint)?  line,TResult? Function( String layerId,  int index,  String id, @PaintConverter()  Paint strokePaint, @PaintConverter()  Paint fillPaint,  bool renderStroke,  bool renderFill,  bool closed, @OffsetConverter()  List<Offset> points)?  path,TResult? Function( String layerId,  int index,  String id, @PaintConverter()  Paint strokePaint, @PaintConverter()  Paint fillPaint,  bool renderStroke,  bool renderFill, @OffsetConverter()  Offset topLeft, @OffsetConverter()  Offset botRight)?  rectangle,}) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>({TResult? Function( String layerId,  int index,  String id, @PaintConverter()  Paint strokePaint, @PaintConverter()  Paint fillPaint, @OffsetConverter()  Offset center,  double radius,  StrokeTypeOptions strokeType,  FillTypeOptions fillType)?  circle,TResult? Function( String layerId,  int index,  String id, @PaintConverter()  Paint strokePaint, @OffsetConverter()  List<Offset> points,  StrokeTypeOptions strokeType)?  freehand,TResult? Function( String layerId,  int index,  String id, @PaintConverter()  Paint strokePaint, @OffsetConverter()  Offset startPoint, @OffsetConverter()  Offset endPoint,  StrokeTypeOptions strokeType)?  line,TResult? Function( String layerId,  int index,  String id, @PaintConverter()  Paint strokePaint, @PaintConverter()  Paint fillPaint,  bool closed, @OffsetConverter()  List<Offset> points,  StrokeTypeOptions strokeType,  FillTypeOptions fillType)?  path,TResult? Function( String layerId,  int index,  String id, @PaintConverter()  Paint strokePaint, @PaintConverter()  Paint fillPaint, @OffsetConverter()  Offset topLeft, @OffsetConverter()  Offset botRight,  StrokeTypeOptions strokeType,  FillTypeOptions fillType)?  rectangle,}) {final _that = this;
 switch (_that) {
 case CircleData() when circle != null:
-return circle(_that.layerId,_that.index,_that.id,_that.strokePaint,_that.fillPaint,_that.renderStroke,_that.renderFill,_that.center,_that.radius);case FreehandData() when freehand != null:
-return freehand(_that.layerId,_that.index,_that.id,_that.strokePaint,_that.renderStroke,_that.points);case LineData() when line != null:
-return line(_that.layerId,_that.index,_that.id,_that.renderStroke,_that.strokePaint,_that.startPoint,_that.endPoint);case PathData() when path != null:
-return path(_that.layerId,_that.index,_that.id,_that.strokePaint,_that.fillPaint,_that.renderStroke,_that.renderFill,_that.closed,_that.points);case RectData() when rectangle != null:
-return rectangle(_that.layerId,_that.index,_that.id,_that.strokePaint,_that.fillPaint,_that.renderStroke,_that.renderFill,_that.topLeft,_that.botRight);case _:
+return circle(_that.layerId,_that.index,_that.id,_that.strokePaint,_that.fillPaint,_that.center,_that.radius,_that.strokeType,_that.fillType);case FreehandData() when freehand != null:
+return freehand(_that.layerId,_that.index,_that.id,_that.strokePaint,_that.points,_that.strokeType);case LineData() when line != null:
+return line(_that.layerId,_that.index,_that.id,_that.strokePaint,_that.startPoint,_that.endPoint,_that.strokeType);case PathData() when path != null:
+return path(_that.layerId,_that.index,_that.id,_that.strokePaint,_that.fillPaint,_that.closed,_that.points,_that.strokeType,_that.fillType);case RectData() when rectangle != null:
+return rectangle(_that.layerId,_that.index,_that.id,_that.strokePaint,_that.fillPaint,_that.topLeft,_that.botRight,_that.strokeType,_that.fillType);case _:
   return null;
 
 }
@@ -266,7 +266,7 @@ return rectangle(_that.layerId,_that.index,_that.id,_that.strokePaint,_that.fill
 @JsonSerializable()
 
 class CircleData implements DrawData {
-  const CircleData({required this.layerId, required this.index, required this.id, @PaintConverter() required this.strokePaint, @PaintConverter() required this.fillPaint, required this.renderStroke, required this.renderFill, @OffsetConverter() required this.center, required this.radius, final  String? $type}): $type = $type ?? 'circle';
+  const CircleData({required this.layerId, required this.index, required this.id, @PaintConverter() required this.strokePaint, @PaintConverter() required this.fillPaint, @OffsetConverter() required this.center, required this.radius, required this.strokeType, required this.fillType, final  String? $type}): $type = $type ?? 'circle';
   factory CircleData.fromJson(Map<String, dynamic> json) => _$CircleDataFromJson(json);
 
 @override final  String layerId;
@@ -274,10 +274,10 @@ class CircleData implements DrawData {
 @override final  String id;
 @override@PaintConverter() final  Paint strokePaint;
 @PaintConverter() final  Paint fillPaint;
-@override final  bool renderStroke;
- final  bool renderFill;
 @OffsetConverter() final  Offset center;
  final  double radius;
+@override final  StrokeTypeOptions strokeType;
+ final  FillTypeOptions fillType;
 
 @JsonKey(name: 'runtimeType')
 final String $type;
@@ -296,16 +296,16 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is CircleData&&(identical(other.layerId, layerId) || other.layerId == layerId)&&(identical(other.index, index) || other.index == index)&&(identical(other.id, id) || other.id == id)&&(identical(other.strokePaint, strokePaint) || other.strokePaint == strokePaint)&&(identical(other.fillPaint, fillPaint) || other.fillPaint == fillPaint)&&(identical(other.renderStroke, renderStroke) || other.renderStroke == renderStroke)&&(identical(other.renderFill, renderFill) || other.renderFill == renderFill)&&(identical(other.center, center) || other.center == center)&&(identical(other.radius, radius) || other.radius == radius));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is CircleData&&(identical(other.layerId, layerId) || other.layerId == layerId)&&(identical(other.index, index) || other.index == index)&&(identical(other.id, id) || other.id == id)&&(identical(other.strokePaint, strokePaint) || other.strokePaint == strokePaint)&&(identical(other.fillPaint, fillPaint) || other.fillPaint == fillPaint)&&(identical(other.center, center) || other.center == center)&&(identical(other.radius, radius) || other.radius == radius)&&(identical(other.strokeType, strokeType) || other.strokeType == strokeType)&&(identical(other.fillType, fillType) || other.fillType == fillType));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,layerId,index,id,strokePaint,fillPaint,renderStroke,renderFill,center,radius);
+int get hashCode => Object.hash(runtimeType,layerId,index,id,strokePaint,fillPaint,center,radius,strokeType,fillType);
 
 @override
 String toString() {
-  return 'DrawData.circle(layerId: $layerId, index: $index, id: $id, strokePaint: $strokePaint, fillPaint: $fillPaint, renderStroke: $renderStroke, renderFill: $renderFill, center: $center, radius: $radius)';
+  return 'DrawData.circle(layerId: $layerId, index: $index, id: $id, strokePaint: $strokePaint, fillPaint: $fillPaint, center: $center, radius: $radius, strokeType: $strokeType, fillType: $fillType)';
 }
 
 
@@ -316,7 +316,7 @@ abstract mixin class $CircleDataCopyWith<$Res> implements $DrawDataCopyWith<$Res
   factory $CircleDataCopyWith(CircleData value, $Res Function(CircleData) _then) = _$CircleDataCopyWithImpl;
 @override @useResult
 $Res call({
- String layerId, int index, String id,@PaintConverter() Paint strokePaint,@PaintConverter() Paint fillPaint, bool renderStroke, bool renderFill,@OffsetConverter() Offset center, double radius
+ String layerId, int index, String id,@PaintConverter() Paint strokePaint,@PaintConverter() Paint fillPaint,@OffsetConverter() Offset center, double radius, StrokeTypeOptions strokeType, FillTypeOptions fillType
 });
 
 
@@ -333,18 +333,18 @@ class _$CircleDataCopyWithImpl<$Res>
 
 /// Create a copy of DrawData
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? layerId = null,Object? index = null,Object? id = null,Object? strokePaint = null,Object? fillPaint = null,Object? renderStroke = null,Object? renderFill = null,Object? center = null,Object? radius = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? layerId = null,Object? index = null,Object? id = null,Object? strokePaint = null,Object? fillPaint = null,Object? center = null,Object? radius = null,Object? strokeType = null,Object? fillType = null,}) {
   return _then(CircleData(
 layerId: null == layerId ? _self.layerId : layerId // ignore: cast_nullable_to_non_nullable
 as String,index: null == index ? _self.index : index // ignore: cast_nullable_to_non_nullable
 as int,id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,strokePaint: null == strokePaint ? _self.strokePaint : strokePaint // ignore: cast_nullable_to_non_nullable
 as Paint,fillPaint: null == fillPaint ? _self.fillPaint : fillPaint // ignore: cast_nullable_to_non_nullable
-as Paint,renderStroke: null == renderStroke ? _self.renderStroke : renderStroke // ignore: cast_nullable_to_non_nullable
-as bool,renderFill: null == renderFill ? _self.renderFill : renderFill // ignore: cast_nullable_to_non_nullable
-as bool,center: null == center ? _self.center : center // ignore: cast_nullable_to_non_nullable
+as Paint,center: null == center ? _self.center : center // ignore: cast_nullable_to_non_nullable
 as Offset,radius: null == radius ? _self.radius : radius // ignore: cast_nullable_to_non_nullable
-as double,
+as double,strokeType: null == strokeType ? _self.strokeType : strokeType // ignore: cast_nullable_to_non_nullable
+as StrokeTypeOptions,fillType: null == fillType ? _self.fillType : fillType // ignore: cast_nullable_to_non_nullable
+as FillTypeOptions,
   ));
 }
 
@@ -355,14 +355,13 @@ as double,
 @JsonSerializable()
 
 class FreehandData implements DrawData {
-  const FreehandData({required this.layerId, required this.index, required this.id, @PaintConverter() required this.strokePaint, required this.renderStroke, @OffsetConverter() required final  List<Offset> points, final  String? $type}): _points = points,$type = $type ?? 'freehand';
+  const FreehandData({required this.layerId, required this.index, required this.id, @PaintConverter() required this.strokePaint, @OffsetConverter() required final  List<Offset> points, required this.strokeType, final  String? $type}): _points = points,$type = $type ?? 'freehand';
   factory FreehandData.fromJson(Map<String, dynamic> json) => _$FreehandDataFromJson(json);
 
 @override final  String layerId;
 @override final  int index;
 @override final  String id;
 @override@PaintConverter() final  Paint strokePaint;
-@override final  bool renderStroke;
  final  List<Offset> _points;
 @OffsetConverter() List<Offset> get points {
   if (_points is EqualUnmodifiableListView) return _points;
@@ -370,6 +369,7 @@ class FreehandData implements DrawData {
   return EqualUnmodifiableListView(_points);
 }
 
+@override final  StrokeTypeOptions strokeType;
 
 @JsonKey(name: 'runtimeType')
 final String $type;
@@ -388,16 +388,16 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is FreehandData&&(identical(other.layerId, layerId) || other.layerId == layerId)&&(identical(other.index, index) || other.index == index)&&(identical(other.id, id) || other.id == id)&&(identical(other.strokePaint, strokePaint) || other.strokePaint == strokePaint)&&(identical(other.renderStroke, renderStroke) || other.renderStroke == renderStroke)&&const DeepCollectionEquality().equals(other._points, _points));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is FreehandData&&(identical(other.layerId, layerId) || other.layerId == layerId)&&(identical(other.index, index) || other.index == index)&&(identical(other.id, id) || other.id == id)&&(identical(other.strokePaint, strokePaint) || other.strokePaint == strokePaint)&&const DeepCollectionEquality().equals(other._points, _points)&&(identical(other.strokeType, strokeType) || other.strokeType == strokeType));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,layerId,index,id,strokePaint,renderStroke,const DeepCollectionEquality().hash(_points));
+int get hashCode => Object.hash(runtimeType,layerId,index,id,strokePaint,const DeepCollectionEquality().hash(_points),strokeType);
 
 @override
 String toString() {
-  return 'DrawData.freehand(layerId: $layerId, index: $index, id: $id, strokePaint: $strokePaint, renderStroke: $renderStroke, points: $points)';
+  return 'DrawData.freehand(layerId: $layerId, index: $index, id: $id, strokePaint: $strokePaint, points: $points, strokeType: $strokeType)';
 }
 
 
@@ -408,7 +408,7 @@ abstract mixin class $FreehandDataCopyWith<$Res> implements $DrawDataCopyWith<$R
   factory $FreehandDataCopyWith(FreehandData value, $Res Function(FreehandData) _then) = _$FreehandDataCopyWithImpl;
 @override @useResult
 $Res call({
- String layerId, int index, String id,@PaintConverter() Paint strokePaint, bool renderStroke,@OffsetConverter() List<Offset> points
+ String layerId, int index, String id,@PaintConverter() Paint strokePaint,@OffsetConverter() List<Offset> points, StrokeTypeOptions strokeType
 });
 
 
@@ -425,15 +425,15 @@ class _$FreehandDataCopyWithImpl<$Res>
 
 /// Create a copy of DrawData
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? layerId = null,Object? index = null,Object? id = null,Object? strokePaint = null,Object? renderStroke = null,Object? points = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? layerId = null,Object? index = null,Object? id = null,Object? strokePaint = null,Object? points = null,Object? strokeType = null,}) {
   return _then(FreehandData(
 layerId: null == layerId ? _self.layerId : layerId // ignore: cast_nullable_to_non_nullable
 as String,index: null == index ? _self.index : index // ignore: cast_nullable_to_non_nullable
 as int,id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,strokePaint: null == strokePaint ? _self.strokePaint : strokePaint // ignore: cast_nullable_to_non_nullable
-as Paint,renderStroke: null == renderStroke ? _self.renderStroke : renderStroke // ignore: cast_nullable_to_non_nullable
-as bool,points: null == points ? _self._points : points // ignore: cast_nullable_to_non_nullable
-as List<Offset>,
+as Paint,points: null == points ? _self._points : points // ignore: cast_nullable_to_non_nullable
+as List<Offset>,strokeType: null == strokeType ? _self.strokeType : strokeType // ignore: cast_nullable_to_non_nullable
+as StrokeTypeOptions,
   ));
 }
 
@@ -444,16 +444,16 @@ as List<Offset>,
 @JsonSerializable()
 
 class LineData implements DrawData {
-  const LineData({required this.layerId, required this.index, required this.id, required this.renderStroke, @PaintConverter() required this.strokePaint, @OffsetConverter() required this.startPoint, @OffsetConverter() required this.endPoint, final  String? $type}): $type = $type ?? 'line';
+  const LineData({required this.layerId, required this.index, required this.id, @PaintConverter() required this.strokePaint, @OffsetConverter() required this.startPoint, @OffsetConverter() required this.endPoint, required this.strokeType, final  String? $type}): $type = $type ?? 'line';
   factory LineData.fromJson(Map<String, dynamic> json) => _$LineDataFromJson(json);
 
 @override final  String layerId;
 @override final  int index;
 @override final  String id;
-@override final  bool renderStroke;
 @override@PaintConverter() final  Paint strokePaint;
 @OffsetConverter() final  Offset startPoint;
 @OffsetConverter() final  Offset endPoint;
+@override final  StrokeTypeOptions strokeType;
 
 @JsonKey(name: 'runtimeType')
 final String $type;
@@ -472,16 +472,16 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is LineData&&(identical(other.layerId, layerId) || other.layerId == layerId)&&(identical(other.index, index) || other.index == index)&&(identical(other.id, id) || other.id == id)&&(identical(other.renderStroke, renderStroke) || other.renderStroke == renderStroke)&&(identical(other.strokePaint, strokePaint) || other.strokePaint == strokePaint)&&(identical(other.startPoint, startPoint) || other.startPoint == startPoint)&&(identical(other.endPoint, endPoint) || other.endPoint == endPoint));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is LineData&&(identical(other.layerId, layerId) || other.layerId == layerId)&&(identical(other.index, index) || other.index == index)&&(identical(other.id, id) || other.id == id)&&(identical(other.strokePaint, strokePaint) || other.strokePaint == strokePaint)&&(identical(other.startPoint, startPoint) || other.startPoint == startPoint)&&(identical(other.endPoint, endPoint) || other.endPoint == endPoint)&&(identical(other.strokeType, strokeType) || other.strokeType == strokeType));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,layerId,index,id,renderStroke,strokePaint,startPoint,endPoint);
+int get hashCode => Object.hash(runtimeType,layerId,index,id,strokePaint,startPoint,endPoint,strokeType);
 
 @override
 String toString() {
-  return 'DrawData.line(layerId: $layerId, index: $index, id: $id, renderStroke: $renderStroke, strokePaint: $strokePaint, startPoint: $startPoint, endPoint: $endPoint)';
+  return 'DrawData.line(layerId: $layerId, index: $index, id: $id, strokePaint: $strokePaint, startPoint: $startPoint, endPoint: $endPoint, strokeType: $strokeType)';
 }
 
 
@@ -492,7 +492,7 @@ abstract mixin class $LineDataCopyWith<$Res> implements $DrawDataCopyWith<$Res> 
   factory $LineDataCopyWith(LineData value, $Res Function(LineData) _then) = _$LineDataCopyWithImpl;
 @override @useResult
 $Res call({
- String layerId, int index, String id, bool renderStroke,@PaintConverter() Paint strokePaint,@OffsetConverter() Offset startPoint,@OffsetConverter() Offset endPoint
+ String layerId, int index, String id,@PaintConverter() Paint strokePaint,@OffsetConverter() Offset startPoint,@OffsetConverter() Offset endPoint, StrokeTypeOptions strokeType
 });
 
 
@@ -509,16 +509,16 @@ class _$LineDataCopyWithImpl<$Res>
 
 /// Create a copy of DrawData
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? layerId = null,Object? index = null,Object? id = null,Object? renderStroke = null,Object? strokePaint = null,Object? startPoint = null,Object? endPoint = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? layerId = null,Object? index = null,Object? id = null,Object? strokePaint = null,Object? startPoint = null,Object? endPoint = null,Object? strokeType = null,}) {
   return _then(LineData(
 layerId: null == layerId ? _self.layerId : layerId // ignore: cast_nullable_to_non_nullable
 as String,index: null == index ? _self.index : index // ignore: cast_nullable_to_non_nullable
 as int,id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
-as String,renderStroke: null == renderStroke ? _self.renderStroke : renderStroke // ignore: cast_nullable_to_non_nullable
-as bool,strokePaint: null == strokePaint ? _self.strokePaint : strokePaint // ignore: cast_nullable_to_non_nullable
+as String,strokePaint: null == strokePaint ? _self.strokePaint : strokePaint // ignore: cast_nullable_to_non_nullable
 as Paint,startPoint: null == startPoint ? _self.startPoint : startPoint // ignore: cast_nullable_to_non_nullable
 as Offset,endPoint: null == endPoint ? _self.endPoint : endPoint // ignore: cast_nullable_to_non_nullable
-as Offset,
+as Offset,strokeType: null == strokeType ? _self.strokeType : strokeType // ignore: cast_nullable_to_non_nullable
+as StrokeTypeOptions,
   ));
 }
 
@@ -529,7 +529,7 @@ as Offset,
 @JsonSerializable()
 
 class PathData implements DrawData {
-  const PathData({required this.layerId, required this.index, required this.id, @PaintConverter() required this.strokePaint, @PaintConverter() required this.fillPaint, required this.renderStroke, required this.renderFill, this.closed = false, @OffsetConverter() required final  List<Offset> points, final  String? $type}): _points = points,$type = $type ?? 'path';
+  const PathData({required this.layerId, required this.index, required this.id, @PaintConverter() required this.strokePaint, @PaintConverter() required this.fillPaint, this.closed = false, @OffsetConverter() required final  List<Offset> points, required this.strokeType, required this.fillType, final  String? $type}): _points = points,$type = $type ?? 'path';
   factory PathData.fromJson(Map<String, dynamic> json) => _$PathDataFromJson(json);
 
 @override final  String layerId;
@@ -537,8 +537,6 @@ class PathData implements DrawData {
 @override final  String id;
 @override@PaintConverter() final  Paint strokePaint;
 @PaintConverter() final  Paint fillPaint;
-@override final  bool renderStroke;
- final  bool renderFill;
 @JsonKey() final  bool closed;
  final  List<Offset> _points;
 @OffsetConverter() List<Offset> get points {
@@ -547,6 +545,8 @@ class PathData implements DrawData {
   return EqualUnmodifiableListView(_points);
 }
 
+@override final  StrokeTypeOptions strokeType;
+ final  FillTypeOptions fillType;
 
 @JsonKey(name: 'runtimeType')
 final String $type;
@@ -565,16 +565,16 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is PathData&&(identical(other.layerId, layerId) || other.layerId == layerId)&&(identical(other.index, index) || other.index == index)&&(identical(other.id, id) || other.id == id)&&(identical(other.strokePaint, strokePaint) || other.strokePaint == strokePaint)&&(identical(other.fillPaint, fillPaint) || other.fillPaint == fillPaint)&&(identical(other.renderStroke, renderStroke) || other.renderStroke == renderStroke)&&(identical(other.renderFill, renderFill) || other.renderFill == renderFill)&&(identical(other.closed, closed) || other.closed == closed)&&const DeepCollectionEquality().equals(other._points, _points));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is PathData&&(identical(other.layerId, layerId) || other.layerId == layerId)&&(identical(other.index, index) || other.index == index)&&(identical(other.id, id) || other.id == id)&&(identical(other.strokePaint, strokePaint) || other.strokePaint == strokePaint)&&(identical(other.fillPaint, fillPaint) || other.fillPaint == fillPaint)&&(identical(other.closed, closed) || other.closed == closed)&&const DeepCollectionEquality().equals(other._points, _points)&&(identical(other.strokeType, strokeType) || other.strokeType == strokeType)&&(identical(other.fillType, fillType) || other.fillType == fillType));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,layerId,index,id,strokePaint,fillPaint,renderStroke,renderFill,closed,const DeepCollectionEquality().hash(_points));
+int get hashCode => Object.hash(runtimeType,layerId,index,id,strokePaint,fillPaint,closed,const DeepCollectionEquality().hash(_points),strokeType,fillType);
 
 @override
 String toString() {
-  return 'DrawData.path(layerId: $layerId, index: $index, id: $id, strokePaint: $strokePaint, fillPaint: $fillPaint, renderStroke: $renderStroke, renderFill: $renderFill, closed: $closed, points: $points)';
+  return 'DrawData.path(layerId: $layerId, index: $index, id: $id, strokePaint: $strokePaint, fillPaint: $fillPaint, closed: $closed, points: $points, strokeType: $strokeType, fillType: $fillType)';
 }
 
 
@@ -585,7 +585,7 @@ abstract mixin class $PathDataCopyWith<$Res> implements $DrawDataCopyWith<$Res> 
   factory $PathDataCopyWith(PathData value, $Res Function(PathData) _then) = _$PathDataCopyWithImpl;
 @override @useResult
 $Res call({
- String layerId, int index, String id,@PaintConverter() Paint strokePaint,@PaintConverter() Paint fillPaint, bool renderStroke, bool renderFill, bool closed,@OffsetConverter() List<Offset> points
+ String layerId, int index, String id,@PaintConverter() Paint strokePaint,@PaintConverter() Paint fillPaint, bool closed,@OffsetConverter() List<Offset> points, StrokeTypeOptions strokeType, FillTypeOptions fillType
 });
 
 
@@ -602,18 +602,18 @@ class _$PathDataCopyWithImpl<$Res>
 
 /// Create a copy of DrawData
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? layerId = null,Object? index = null,Object? id = null,Object? strokePaint = null,Object? fillPaint = null,Object? renderStroke = null,Object? renderFill = null,Object? closed = null,Object? points = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? layerId = null,Object? index = null,Object? id = null,Object? strokePaint = null,Object? fillPaint = null,Object? closed = null,Object? points = null,Object? strokeType = null,Object? fillType = null,}) {
   return _then(PathData(
 layerId: null == layerId ? _self.layerId : layerId // ignore: cast_nullable_to_non_nullable
 as String,index: null == index ? _self.index : index // ignore: cast_nullable_to_non_nullable
 as int,id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,strokePaint: null == strokePaint ? _self.strokePaint : strokePaint // ignore: cast_nullable_to_non_nullable
 as Paint,fillPaint: null == fillPaint ? _self.fillPaint : fillPaint // ignore: cast_nullable_to_non_nullable
-as Paint,renderStroke: null == renderStroke ? _self.renderStroke : renderStroke // ignore: cast_nullable_to_non_nullable
-as bool,renderFill: null == renderFill ? _self.renderFill : renderFill // ignore: cast_nullable_to_non_nullable
-as bool,closed: null == closed ? _self.closed : closed // ignore: cast_nullable_to_non_nullable
+as Paint,closed: null == closed ? _self.closed : closed // ignore: cast_nullable_to_non_nullable
 as bool,points: null == points ? _self._points : points // ignore: cast_nullable_to_non_nullable
-as List<Offset>,
+as List<Offset>,strokeType: null == strokeType ? _self.strokeType : strokeType // ignore: cast_nullable_to_non_nullable
+as StrokeTypeOptions,fillType: null == fillType ? _self.fillType : fillType // ignore: cast_nullable_to_non_nullable
+as FillTypeOptions,
   ));
 }
 
@@ -624,7 +624,7 @@ as List<Offset>,
 @JsonSerializable()
 
 class RectData implements DrawData {
-  const RectData({required this.layerId, required this.index, required this.id, @PaintConverter() required this.strokePaint, @PaintConverter() required this.fillPaint, required this.renderStroke, required this.renderFill, @OffsetConverter() required this.topLeft, @OffsetConverter() required this.botRight, final  String? $type}): $type = $type ?? 'rectangle';
+  const RectData({required this.layerId, required this.index, required this.id, @PaintConverter() required this.strokePaint, @PaintConverter() required this.fillPaint, @OffsetConverter() required this.topLeft, @OffsetConverter() required this.botRight, required this.strokeType, required this.fillType, final  String? $type}): $type = $type ?? 'rectangle';
   factory RectData.fromJson(Map<String, dynamic> json) => _$RectDataFromJson(json);
 
 @override final  String layerId;
@@ -632,10 +632,10 @@ class RectData implements DrawData {
 @override final  String id;
 @override@PaintConverter() final  Paint strokePaint;
 @PaintConverter() final  Paint fillPaint;
-@override final  bool renderStroke;
- final  bool renderFill;
 @OffsetConverter() final  Offset topLeft;
 @OffsetConverter() final  Offset botRight;
+@override final  StrokeTypeOptions strokeType;
+ final  FillTypeOptions fillType;
 
 @JsonKey(name: 'runtimeType')
 final String $type;
@@ -654,16 +654,16 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is RectData&&(identical(other.layerId, layerId) || other.layerId == layerId)&&(identical(other.index, index) || other.index == index)&&(identical(other.id, id) || other.id == id)&&(identical(other.strokePaint, strokePaint) || other.strokePaint == strokePaint)&&(identical(other.fillPaint, fillPaint) || other.fillPaint == fillPaint)&&(identical(other.renderStroke, renderStroke) || other.renderStroke == renderStroke)&&(identical(other.renderFill, renderFill) || other.renderFill == renderFill)&&(identical(other.topLeft, topLeft) || other.topLeft == topLeft)&&(identical(other.botRight, botRight) || other.botRight == botRight));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is RectData&&(identical(other.layerId, layerId) || other.layerId == layerId)&&(identical(other.index, index) || other.index == index)&&(identical(other.id, id) || other.id == id)&&(identical(other.strokePaint, strokePaint) || other.strokePaint == strokePaint)&&(identical(other.fillPaint, fillPaint) || other.fillPaint == fillPaint)&&(identical(other.topLeft, topLeft) || other.topLeft == topLeft)&&(identical(other.botRight, botRight) || other.botRight == botRight)&&(identical(other.strokeType, strokeType) || other.strokeType == strokeType)&&(identical(other.fillType, fillType) || other.fillType == fillType));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,layerId,index,id,strokePaint,fillPaint,renderStroke,renderFill,topLeft,botRight);
+int get hashCode => Object.hash(runtimeType,layerId,index,id,strokePaint,fillPaint,topLeft,botRight,strokeType,fillType);
 
 @override
 String toString() {
-  return 'DrawData.rectangle(layerId: $layerId, index: $index, id: $id, strokePaint: $strokePaint, fillPaint: $fillPaint, renderStroke: $renderStroke, renderFill: $renderFill, topLeft: $topLeft, botRight: $botRight)';
+  return 'DrawData.rectangle(layerId: $layerId, index: $index, id: $id, strokePaint: $strokePaint, fillPaint: $fillPaint, topLeft: $topLeft, botRight: $botRight, strokeType: $strokeType, fillType: $fillType)';
 }
 
 
@@ -674,7 +674,7 @@ abstract mixin class $RectDataCopyWith<$Res> implements $DrawDataCopyWith<$Res> 
   factory $RectDataCopyWith(RectData value, $Res Function(RectData) _then) = _$RectDataCopyWithImpl;
 @override @useResult
 $Res call({
- String layerId, int index, String id,@PaintConverter() Paint strokePaint,@PaintConverter() Paint fillPaint, bool renderStroke, bool renderFill,@OffsetConverter() Offset topLeft,@OffsetConverter() Offset botRight
+ String layerId, int index, String id,@PaintConverter() Paint strokePaint,@PaintConverter() Paint fillPaint,@OffsetConverter() Offset topLeft,@OffsetConverter() Offset botRight, StrokeTypeOptions strokeType, FillTypeOptions fillType
 });
 
 
@@ -691,18 +691,18 @@ class _$RectDataCopyWithImpl<$Res>
 
 /// Create a copy of DrawData
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? layerId = null,Object? index = null,Object? id = null,Object? strokePaint = null,Object? fillPaint = null,Object? renderStroke = null,Object? renderFill = null,Object? topLeft = null,Object? botRight = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? layerId = null,Object? index = null,Object? id = null,Object? strokePaint = null,Object? fillPaint = null,Object? topLeft = null,Object? botRight = null,Object? strokeType = null,Object? fillType = null,}) {
   return _then(RectData(
 layerId: null == layerId ? _self.layerId : layerId // ignore: cast_nullable_to_non_nullable
 as String,index: null == index ? _self.index : index // ignore: cast_nullable_to_non_nullable
 as int,id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,strokePaint: null == strokePaint ? _self.strokePaint : strokePaint // ignore: cast_nullable_to_non_nullable
 as Paint,fillPaint: null == fillPaint ? _self.fillPaint : fillPaint // ignore: cast_nullable_to_non_nullable
-as Paint,renderStroke: null == renderStroke ? _self.renderStroke : renderStroke // ignore: cast_nullable_to_non_nullable
-as bool,renderFill: null == renderFill ? _self.renderFill : renderFill // ignore: cast_nullable_to_non_nullable
-as bool,topLeft: null == topLeft ? _self.topLeft : topLeft // ignore: cast_nullable_to_non_nullable
+as Paint,topLeft: null == topLeft ? _self.topLeft : topLeft // ignore: cast_nullable_to_non_nullable
 as Offset,botRight: null == botRight ? _self.botRight : botRight // ignore: cast_nullable_to_non_nullable
-as Offset,
+as Offset,strokeType: null == strokeType ? _self.strokeType : strokeType // ignore: cast_nullable_to_non_nullable
+as StrokeTypeOptions,fillType: null == fillType ? _self.fillType : fillType // ignore: cast_nullable_to_non_nullable
+as FillTypeOptions,
   ));
 }
 

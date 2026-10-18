@@ -1,3 +1,5 @@
+
+
 import 'dart:ui';
 
 import 'package:drawing_app/domain/models/draw_data/draw_data.dart';
@@ -9,44 +11,22 @@ import 'package:drawing_app/ui/core/commands/draw_command.dart';
 import 'package:drawing_app/ui/core/draw_tools/draw_tool.dart';
 
 
-class RectangleTool extends DrawTool implements StrokeToolType, FillToolType {
-  Paint _strokePaint;
-  Paint _fillPaint;
-
-  bool _renderStroke;
-  bool _renderFill;
+class RectangleTool extends DrawTool with StrokeTool, FillTool {
 
   bool _isDrawing = false;
   RectData? _activeRect;
 
-  RectangleTool({required super.toolName, required super.toolIcon, required Paint defaultStrokePaint, required Paint defaultFillPaint, required bool renderStroke, required bool renderFill}) : _renderFill = renderFill, _renderStroke = renderStroke, _fillPaint = defaultFillPaint, _strokePaint = defaultStrokePaint;
+  RectangleTool({required super.toolName, required super.toolIcon});
 
   @override
   List<DrawData> get activePreview => _activeRect != null ? [_activeRect!] : const [];
   @override
   bool get isActive => _isDrawing;
-  @override
-  Paint get fillPaint => _fillPaint;
-    @override
-  bool get renderFill => _renderFill;
-  @override
-  bool get renderStroke => _renderStroke;
-  @override
-  Paint get strokePaint => _strokePaint;
-
-  @override
-  void toggleRenderFill(bool enabled) => _renderFill = enabled;
-  @override
-  void toggleRenderStroke(bool enabled) => _renderStroke = enabled;
-  @override
-  void updateFillPaint(Paint updatedFillPaint) => _fillPaint = updatedFillPaint;
-  @override
-  void updateStrokePaint(Paint updatedStrokePaint) => _strokePaint = updatedStrokePaint;
 
   @override
   void onToolStart(ToolStartInput toolStartInput, String layerId, int strokeIndex) {
     _isDrawing = true;
-    _activeRect = RectData(layerId: layerId, index: strokeIndex, fillPaint: fillPaint, strokePaint: strokePaint, id: uuid.v4(), topLeft: toolStartInput.snappedWorldPoint, botRight: toolStartInput.snappedWorldPoint, renderFill: _renderFill, renderStroke: _renderStroke);
+    _activeRect = RectData(layerId: layerId, index: strokeIndex, fillPaint: Paint.from(fillPaint), strokePaint: Paint.from(strokePaint), id: uuid.v4(), topLeft: toolStartInput.snappedWorldPoint, botRight: toolStartInput.snappedWorldPoint, strokeType: strokeTypeOptions, fillType: fillTypeOptions);
   }
 
   @override
@@ -69,10 +49,16 @@ class RectangleTool extends DrawTool implements StrokeToolType, FillToolType {
 
   
     @override
-  List<PropertyData> getToolProperties(Function(PropertyId) onPropertyChanged) {
+  List<PropertyData> get toolProperties{
     return [
-      ...getStrokeProperties(onPropertyChanged),
-      ...getFillProperties(onPropertyChanged)
+      ...strokeProperties,
+      ...fillProperties
     ];
+  }
+
+  @override
+  void updatePropertyStateValue(PropertyId<dynamic> targetId, newValue) {
+    if(updateFillProperties(targetId, newValue)) return;
+    if(updateStrokeProperty(targetId, newValue)) return;
   }
 }

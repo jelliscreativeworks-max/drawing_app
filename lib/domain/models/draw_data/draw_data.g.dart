@@ -16,12 +16,12 @@ CircleData _$CircleDataFromJson(Map<String, dynamic> json) => CircleData(
   fillPaint: const PaintConverter().fromJson(
     json['fillPaint'] as Map<String, dynamic>,
   ),
-  renderStroke: json['renderStroke'] as bool,
-  renderFill: json['renderFill'] as bool,
   center: const OffsetConverter().fromJson(
     json['center'] as Map<String, dynamic>,
   ),
   radius: (json['radius'] as num).toDouble(),
+  strokeType: $enumDecode(_$StrokeTypeOptionsEnumMap, json['strokeType']),
+  fillType: $enumDecode(_$FillTypeOptionsEnumMap, json['fillType']),
   $type: json['runtimeType'] as String?,
 );
 
@@ -32,12 +32,22 @@ Map<String, dynamic> _$CircleDataToJson(CircleData instance) =>
       'id': instance.id,
       'strokePaint': const PaintConverter().toJson(instance.strokePaint),
       'fillPaint': const PaintConverter().toJson(instance.fillPaint),
-      'renderStroke': instance.renderStroke,
-      'renderFill': instance.renderFill,
       'center': const OffsetConverter().toJson(instance.center),
       'radius': instance.radius,
+      'strokeType': _$StrokeTypeOptionsEnumMap[instance.strokeType]!,
+      'fillType': _$FillTypeOptionsEnumMap[instance.fillType]!,
       'runtimeType': instance.$type,
     };
+
+const _$StrokeTypeOptionsEnumMap = {
+  StrokeTypeOptions.noStroke: 0,
+  StrokeTypeOptions.solid: 1,
+};
+
+const _$FillTypeOptionsEnumMap = {
+  FillTypeOptions.noFill: 0,
+  FillTypeOptions.filled: 1,
+};
 
 FreehandData _$FreehandDataFromJson(Map<String, dynamic> json) => FreehandData(
   layerId: json['layerId'] as String,
@@ -46,10 +56,10 @@ FreehandData _$FreehandDataFromJson(Map<String, dynamic> json) => FreehandData(
   strokePaint: const PaintConverter().fromJson(
     json['strokePaint'] as Map<String, dynamic>,
   ),
-  renderStroke: json['renderStroke'] as bool,
   points: (json['points'] as List<dynamic>)
       .map((e) => const OffsetConverter().fromJson(e as Map<String, dynamic>))
       .toList(),
+  strokeType: $enumDecode(_$StrokeTypeOptionsEnumMap, json['strokeType']),
   $type: json['runtimeType'] as String?,
 );
 
@@ -59,8 +69,8 @@ Map<String, dynamic> _$FreehandDataToJson(FreehandData instance) =>
       'index': instance.index,
       'id': instance.id,
       'strokePaint': const PaintConverter().toJson(instance.strokePaint),
-      'renderStroke': instance.renderStroke,
       'points': instance.points.map(const OffsetConverter().toJson).toList(),
+      'strokeType': _$StrokeTypeOptionsEnumMap[instance.strokeType]!,
       'runtimeType': instance.$type,
     };
 
@@ -68,7 +78,6 @@ LineData _$LineDataFromJson(Map<String, dynamic> json) => LineData(
   layerId: json['layerId'] as String,
   index: (json['index'] as num).toInt(),
   id: json['id'] as String,
-  renderStroke: json['renderStroke'] as bool,
   strokePaint: const PaintConverter().fromJson(
     json['strokePaint'] as Map<String, dynamic>,
   ),
@@ -78,6 +87,7 @@ LineData _$LineDataFromJson(Map<String, dynamic> json) => LineData(
   endPoint: const OffsetConverter().fromJson(
     json['endPoint'] as Map<String, dynamic>,
   ),
+  strokeType: $enumDecode(_$StrokeTypeOptionsEnumMap, json['strokeType']),
   $type: json['runtimeType'] as String?,
 );
 
@@ -85,10 +95,10 @@ Map<String, dynamic> _$LineDataToJson(LineData instance) => <String, dynamic>{
   'layerId': instance.layerId,
   'index': instance.index,
   'id': instance.id,
-  'renderStroke': instance.renderStroke,
   'strokePaint': const PaintConverter().toJson(instance.strokePaint),
   'startPoint': const OffsetConverter().toJson(instance.startPoint),
   'endPoint': const OffsetConverter().toJson(instance.endPoint),
+  'strokeType': _$StrokeTypeOptionsEnumMap[instance.strokeType]!,
   'runtimeType': instance.$type,
 };
 
@@ -102,12 +112,12 @@ PathData _$PathDataFromJson(Map<String, dynamic> json) => PathData(
   fillPaint: const PaintConverter().fromJson(
     json['fillPaint'] as Map<String, dynamic>,
   ),
-  renderStroke: json['renderStroke'] as bool,
-  renderFill: json['renderFill'] as bool,
   closed: json['closed'] as bool? ?? false,
   points: (json['points'] as List<dynamic>)
       .map((e) => const OffsetConverter().fromJson(e as Map<String, dynamic>))
       .toList(),
+  strokeType: $enumDecode(_$StrokeTypeOptionsEnumMap, json['strokeType']),
+  fillType: $enumDecode(_$FillTypeOptionsEnumMap, json['fillType']),
   $type: json['runtimeType'] as String?,
 );
 
@@ -117,10 +127,10 @@ Map<String, dynamic> _$PathDataToJson(PathData instance) => <String, dynamic>{
   'id': instance.id,
   'strokePaint': const PaintConverter().toJson(instance.strokePaint),
   'fillPaint': const PaintConverter().toJson(instance.fillPaint),
-  'renderStroke': instance.renderStroke,
-  'renderFill': instance.renderFill,
   'closed': instance.closed,
   'points': instance.points.map(const OffsetConverter().toJson).toList(),
+  'strokeType': _$StrokeTypeOptionsEnumMap[instance.strokeType]!,
+  'fillType': _$FillTypeOptionsEnumMap[instance.fillType]!,
   'runtimeType': instance.$type,
 };
 
@@ -134,14 +144,14 @@ RectData _$RectDataFromJson(Map<String, dynamic> json) => RectData(
   fillPaint: const PaintConverter().fromJson(
     json['fillPaint'] as Map<String, dynamic>,
   ),
-  renderStroke: json['renderStroke'] as bool,
-  renderFill: json['renderFill'] as bool,
   topLeft: const OffsetConverter().fromJson(
     json['topLeft'] as Map<String, dynamic>,
   ),
   botRight: const OffsetConverter().fromJson(
     json['botRight'] as Map<String, dynamic>,
   ),
+  strokeType: $enumDecode(_$StrokeTypeOptionsEnumMap, json['strokeType']),
+  fillType: $enumDecode(_$FillTypeOptionsEnumMap, json['fillType']),
   $type: json['runtimeType'] as String?,
 );
 
@@ -151,9 +161,9 @@ Map<String, dynamic> _$RectDataToJson(RectData instance) => <String, dynamic>{
   'id': instance.id,
   'strokePaint': const PaintConverter().toJson(instance.strokePaint),
   'fillPaint': const PaintConverter().toJson(instance.fillPaint),
-  'renderStroke': instance.renderStroke,
-  'renderFill': instance.renderFill,
   'topLeft': const OffsetConverter().toJson(instance.topLeft),
   'botRight': const OffsetConverter().toJson(instance.botRight),
+  'strokeType': _$StrokeTypeOptionsEnumMap[instance.strokeType]!,
+  'fillType': _$FillTypeOptionsEnumMap[instance.fillType]!,
   'runtimeType': instance.$type,
 };

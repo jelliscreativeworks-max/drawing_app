@@ -452,7 +452,7 @@ DrawData applyNodeTransformation((int index, Offset nodePosition) activeNode, Of
 
     
     return map(
-      circle: (data) => _isPointInsideCircle(center: data.center, radius: data.radius, targetLineRadius: data.strokePaint.strokeWidth, filled: data.renderFill, stroked: data.renderStroke, otherRadius: otherRadius, otherPosition: toPoint), 
+      circle: (data) => _isPointInsideCircle(center: data.center, radius: data.radius, targetLineRadius: data.strokePaint.strokeWidth, filled: data.fillType != FillTypeOptions.noFill, stroked: data.strokeType != StrokeTypeOptions.noStroke, otherRadius: otherRadius, otherPosition: toPoint), 
       freehand: (data) => data._points.length == 1 ? 
           _isPointInsidePoint(targetPoint: data._points[0], targetRadius: data.strokePaint.strokeWidth / 2, otherRadius: otherRadius, fromPoint: fromPoint, toPoint: toPoint) :
           _isPointInsideLine(borderPoints: data._points, targetLineRadius: data.strokePaint.strokeWidth / 2, otherRadius: otherRadius, fromPoint: fromPoint, toPoint: toPoint), 
@@ -463,16 +463,17 @@ DrawData applyNodeTransformation((int index, Offset nodePosition) activeNode, Of
 
         bool isHit = false;
 
+
         // 2. Check the Solid Interior Fill Zone
         // If the shape is filled (or explicitly un-stroked), run your ray-caster math
-        if (data.renderFill || !data.renderStroke) {
+        if (data.fillType != FillTypeOptions.noFill || data.strokeType == StrokeTypeOptions.noStroke) {
           isHit = _isPointInsidePolygon(toPoint, data._points);
         }
 
         // 3. Check the Outer Line Boundary (Stroke thickness)
         // If the interior didn't hit but the shape renders an outline stroke,
         // run the line segment swipe check to see if the brush crossed the border line!
-        if (!isHit && data.renderStroke) {
+        if (!isHit && data.strokeType != StrokeTypeOptions.noStroke) {
           isHit = _isPointInsideLine(
             borderPoints: data._points,
             targetLineRadius: data.strokePaint.strokeWidth / 2,
@@ -489,10 +490,10 @@ DrawData applyNodeTransformation((int index, Offset nodePosition) activeNode, Of
           final RectVertices rectPoints = data.vertices;
           
           bool isHit = false;
-          if (data.renderFill || !data.renderStroke) {
+          if (data.fillType != FillTypeOptions.noFill || data.strokeType == StrokeTypeOptions.noStroke) {
             isHit = _isPointInsideRectPolygon(toPoint, rectPoints);
           }
-          if (!isHit && data.renderStroke) {
+          if (!isHit && data.strokeType != StrokeTypeOptions.noStroke) {
             isHit = _isPointOnRectStroke(
               rectPoints,
               data.strokePaint.strokeWidth / 2,

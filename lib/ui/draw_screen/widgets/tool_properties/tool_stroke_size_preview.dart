@@ -1,12 +1,10 @@
-import 'package:drawing_app/domain/models/property_data/property_data.dart';
-import 'package:drawing_app/domain/models/property_data/property_type.dart';
-import 'package:drawing_app/ui/draw_screen/view_models/tool_properties_controller.dart';
+
 import 'package:flutter/material.dart';
 
 class ToolStrokeSizePreview extends StatefulWidget {
-  const ToolStrokeSizePreview({super.key, required ToolPropertiesController toolPropertiesController}) : _toolPropertiesController = toolPropertiesController; 
+  const ToolStrokeSizePreview({super.key}); 
 
-  final ToolPropertiesController _toolPropertiesController;
+  // final ToolPropertiesController _toolPropertiesController;
 
   @override
   State<ToolStrokeSizePreview> createState() => _ToolStrokeSizePreviewState();
