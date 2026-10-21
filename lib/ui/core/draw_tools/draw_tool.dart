@@ -3,7 +3,6 @@ import 'package:drawing_app/domain/models/property_data/property_data.dart';
 import 'package:drawing_app/domain/models/property_data/property_type.dart';
 import 'package:drawing_app/ui/core/commands/canvas_command.dart';
 import 'package:drawing_app/ui/core/draw_tools/canvas_tool.dart';
-import 'package:drawing_app/utils/widgets/box_icon.dart';
 import 'package:flutter/material.dart';
 import 'package:freezed_annotation/freezed_annotation.dart';
 
@@ -84,7 +83,10 @@ mixin FillTool{
   
   List<PropertyData> get fillProperties => [
     PropertyData.color(value: fillPaint.color, id: const FillColorId()),
-    PropertyData.choice(value: fillTypeOptions, options: FillTypeOptions.values, id: const FillTypeId())
+    PropertyData.choice(
+      value: fillTypeOptions, 
+      options: FillTypeOptions.values.map((val) => ChoiceOption(value: val, label: val.displayName)).toList(), 
+      id: const FillTypeId())
   ];
 
   bool updateFillProperties(PropertyId id, dynamic newValue){

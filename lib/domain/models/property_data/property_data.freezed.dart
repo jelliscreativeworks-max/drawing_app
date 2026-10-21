@@ -128,7 +128,7 @@ return double(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>({TResult Function( Color value,  PropertyId<Color> id)?  color,TResult Function( bool value,  PropertyId<bool> id)?  toggle,TResult Function( T value,  List<T> options,  PropertyId id)?  choice,TResult Function( String value,  PropertyId<String> id)?  string,TResult Function( double value,  double maxValue,  double minValue,  PropertyId<double> id)?  double,required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>({TResult Function( Color value,  PropertyId<Color> id)?  color,TResult Function( bool value,  PropertyId<bool> id)?  toggle,TResult Function( T value,  List<ChoiceOption> options,  PropertyId id)?  choice,TResult Function( String value,  PropertyId<String> id)?  string,TResult Function( double value,  double maxValue,  double minValue,  PropertyId<double> id)?  double,required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case ColorPropertyData() when color != null:
 return color(_that.value,_that.id);case TogglePropertyData() when toggle != null:
@@ -153,7 +153,7 @@ return double(_that.value,_that.maxValue,_that.minValue,_that.id);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>({required TResult Function( Color value,  PropertyId<Color> id)  color,required TResult Function( bool value,  PropertyId<bool> id)  toggle,required TResult Function( T value,  List<T> options,  PropertyId id)  choice,required TResult Function( String value,  PropertyId<String> id)  string,required TResult Function( double value,  double maxValue,  double minValue,  PropertyId<double> id)  double,}) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>({required TResult Function( Color value,  PropertyId<Color> id)  color,required TResult Function( bool value,  PropertyId<bool> id)  toggle,required TResult Function( T value,  List<ChoiceOption> options,  PropertyId id)  choice,required TResult Function( String value,  PropertyId<String> id)  string,required TResult Function( double value,  double maxValue,  double minValue,  PropertyId<double> id)  double,}) {final _that = this;
 switch (_that) {
 case ColorPropertyData():
 return color(_that.value,_that.id);case TogglePropertyData():
@@ -174,7 +174,7 @@ return double(_that.value,_that.maxValue,_that.minValue,_that.id);}
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>({TResult? Function( Color value,  PropertyId<Color> id)?  color,TResult? Function( bool value,  PropertyId<bool> id)?  toggle,TResult? Function( T value,  List<T> options,  PropertyId id)?  choice,TResult? Function( String value,  PropertyId<String> id)?  string,TResult? Function( double value,  double maxValue,  double minValue,  PropertyId<double> id)?  double,}) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>({TResult? Function( Color value,  PropertyId<Color> id)?  color,TResult? Function( bool value,  PropertyId<bool> id)?  toggle,TResult? Function( T value,  List<ChoiceOption> options,  PropertyId id)?  choice,TResult? Function( String value,  PropertyId<String> id)?  string,TResult? Function( double value,  double maxValue,  double minValue,  PropertyId<double> id)?  double,}) {final _that = this;
 switch (_that) {
 case ColorPropertyData() when color != null:
 return color(_that.value,_that.id);case TogglePropertyData() when toggle != null:
@@ -329,12 +329,12 @@ as PropertyId<bool>,
 
 
 class ChoicePropertyData<T> extends PropertyData<T> {
-   ChoicePropertyData({required this.value, required final  List<T> options, required this.id}): _options = options,super._();
+   ChoicePropertyData({required this.value, required final  List<ChoiceOption> options, required this.id}): _options = options,super._();
   
 
 @override final  T value;
- final  List<T> _options;
- List<T> get options {
+ final  List<ChoiceOption> _options;
+ List<ChoiceOption> get options {
   if (_options is EqualUnmodifiableListView) return _options;
   // ignore: implicit_dynamic_type
   return EqualUnmodifiableListView(_options);
@@ -372,7 +372,7 @@ abstract mixin class $ChoicePropertyDataCopyWith<T,$Res> implements $PropertyDat
   factory $ChoicePropertyDataCopyWith(ChoicePropertyData<T> value, $Res Function(ChoicePropertyData<T>) _then) = _$ChoicePropertyDataCopyWithImpl;
 @useResult
 $Res call({
- T value, List<T> options, PropertyId id
+ T value, List<ChoiceOption> options, PropertyId id
 });
 
 
@@ -393,7 +393,7 @@ class _$ChoicePropertyDataCopyWithImpl<T,$Res>
   return _then(ChoicePropertyData<T>(
 value: freezed == value ? _self.value : value // ignore: cast_nullable_to_non_nullable
 as T,options: null == options ? _self._options : options // ignore: cast_nullable_to_non_nullable
-as List<T>,id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
+as List<ChoiceOption>,id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as PropertyId,
   ));
 }

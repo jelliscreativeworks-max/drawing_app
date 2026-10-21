@@ -36,7 +36,7 @@ sealed class PropertyData<T> with _$PropertyData<T> {
 
   factory PropertyData.choice({
     required T value,
-    required List<T> options,
+    required List<ChoiceOption> options,
     required PropertyId id,
   }) = ChoicePropertyData<T>;
 
@@ -56,4 +56,21 @@ sealed class PropertyData<T> with _$PropertyData<T> {
 }
 
 
+class ChoiceOption<T>{
+  final T value; 
+  final String label;
 
+  const ChoiceOption({
+    required this.value,
+    required this.label
+  });
+
+  @override
+  bool operator ==(Object other) {
+    return identical(this, other) || other is ChoiceOption && runtimeType == other.runtimeType && value == other.value;
+  }
+
+  @override
+  int get hashCode => value.hashCode;
+
+}

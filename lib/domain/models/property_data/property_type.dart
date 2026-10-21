@@ -1,5 +1,6 @@
 import 'dart:ui';
 
+
 abstract class PropertyId<T> {
   String get displayName;
   const PropertyId();}
@@ -19,7 +20,11 @@ class FillColorId extends PropertyId<Color>{const FillColorId();
   @override String get displayName => 'Fill Color';
 }
 
-class FillTypeId extends PropertyId{
+class FillTypeId extends ChoiceTypeId{
   const FillTypeId();
   @override String get displayName => 'Fill Type';
+}
+
+abstract class ChoiceTypeId<T extends Enum> extends PropertyId{
+  const ChoiceTypeId();
 }
