@@ -1,12 +1,12 @@
 import 'package:drawing_app/domain/models/property_data/property_data.dart';
-import 'package:drawing_app/ui/core/draw_tools/canvas_tool.dart';
-import 'package:drawing_app/ui/draw_screen/view_models/draw_screen_view_model.dart';
 import 'package:drawing_app/ui/draw_screen/view_models/tool_controller.dart';
 import 'package:drawing_app/ui/draw_screen/widgets/tool_properties/property_list_tile.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 class ToolPropertiesMenu extends StatefulWidget {
-  const ToolPropertiesMenu({super.key});
+  const ToolPropertiesMenu({super.key, required BoxConstraints constraints}) : _constraints = constraints;
+
+  final BoxConstraints _constraints;
 
   @override
   State<ToolPropertiesMenu> createState() => _ToolPropertiesMenuState();
@@ -41,12 +41,7 @@ class _ToolPropertiesMenuState extends State<ToolPropertiesMenu> {
               color: Colors.white.withValues(alpha: 0.8),
               borderRadius: BorderRadius.circular(20),
             ),
-            constraints: const BoxConstraints(
-              minWidth: 120,
-              maxWidth: 180,
-              minHeight: 80,
-              maxHeight: 400,
-            ),
+            constraints: widget._constraints,
             child: ListView.builder(
               shrinkWrap: true,
               padding: const EdgeInsets.symmetric(vertical: 8),

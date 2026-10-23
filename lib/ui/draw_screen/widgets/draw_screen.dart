@@ -9,7 +9,7 @@ import 'package:drawing_app/ui/core/painters/background_painter.dart';
 import 'package:drawing_app/ui/core/painters/gridline_painter.dart';
 import 'package:drawing_app/ui/core/painters/painter.dart';
 import 'package:drawing_app/ui/draw_screen/widgets/bottom_tool_bar_buttons.dart';
-import 'package:drawing_app/ui/draw_screen/widgets/layer_menu_anchor_view.dart';
+import 'package:drawing_app/ui/draw_screen/widgets/floating_layer_panel.dart';
 import 'package:drawing_app/ui/draw_screen/view_models/draw_screen_view_model.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
@@ -74,6 +74,7 @@ class _DrawScreenState extends State<DrawScreen> {
             ),
             body: LayoutBuilder(
               builder: (context, constraints) {
+         
                 final Size currentViewport = Size(
                   constraints.maxWidth,
                   constraints.maxHeight,
@@ -273,50 +274,58 @@ class _DrawScreenState extends State<DrawScreen> {
                         ),
                       ),
                     ),
-                    Align(
-                      
-                      alignment: AlignmentGeometry.center,
-                      child: ToolStrokeSizePreview(alwaysActive: false,),
-                    ),
+                    // Align(
+                    
+                    //   alignment: currentViewport.width >= 430 ? AlignmentGeometry.center : AlignmentGeometry.topCenter,
+                    //   child: ToolStrokeSizePreview(alwaysActive: false,),
+                    // ),
                     Align(
                       alignment: Alignment.bottomLeft,
-                      child: SafeArea(
-                        child: ToolPropertiesMenu(),
+                      child: Padding(
+                        padding: const EdgeInsets.only(left: 8, bottom: 8),
+                        child: ToolPropertiesMenu(
+                          constraints: const BoxConstraints(
+                            minWidth: 120,
+                            maxWidth: 180,
+                            minHeight: 80,
+                            maxHeight: 400,
+                          ),
+                        ),
                       ),
                     ),
                     Align(
                       alignment: Alignment.bottomRight,
                       child: SafeArea(
-                        child: Container(
-                          margin: const EdgeInsets.all(16),
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 8,
-                            vertical: 4,
-                          ),
-                          decoration: BoxDecoration(
-                            color: Colors.white.withValues(alpha: 0.9),
-                            borderRadius: BorderRadius.circular(20),
-                          ),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              IconButton(
-                                onPressed: widget.viewModel.canUndo
-                                    ? widget.viewModel.undo
-                                    : null,
-                                icon: const Icon(Icons.undo),
-                                color: Colors.black87,
+                        child: Column(
+             
+                          mainAxisAlignment: MainAxisAlignment.end,
+                          children: [
+                            // TODO: should probable change the position on bigger screens or not show it and have it shown on the cursor
+                            ToolStrokeSizePreview(alwaysActive: false, backgroundSize: const Size(60,60),),
+                            Padding(
+                              padding: const EdgeInsets.all(8.0),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  IconButton(
+                                    onPressed: widget.viewModel.canUndo
+                                        ? widget.viewModel.undo
+                                        : null,
+                                    icon: const Icon(Icons.undo),
+                                    color: Colors.black87,
+                                  ),
+                                  const SizedBox(width: 8),
+                                  IconButton(
+                                    onPressed: widget.viewModel.canRedo
+                                        ? widget.viewModel.redo
+                                        : null,
+                                    icon: const Icon(Icons.redo),
+                                    color: Colors.black87,
+                                  ),
+                                ],
                               ),
-                              const SizedBox(width: 8),
-                              IconButton(
-                                onPressed: widget.viewModel.canRedo
-                                    ? widget.viewModel.redo
-                                    : null,
-                                icon: const Icon(Icons.redo),
-                                color: Colors.black87,
-                              ),
-                            ],
-                          ),
+                            ),
+                          ],
                         ),
                       ),
                     ),

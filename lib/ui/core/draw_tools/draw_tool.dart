@@ -38,7 +38,7 @@ mixin StrokeTool{
   StrokeTypeOptions strokeTypeOptions = StrokeTypeOptions.solid;
 
   List<PropertyData> get strokeProperties => [
-    PropertyData.double(value: strokePaint.strokeWidth, maxValue: 20, minValue: 0, id: const StrokeSizeId()),
+    PropertyData.double(value: strokePaint.strokeWidth, maxValue: 20, minValue: 1, id: const StrokeSizeId()),
     PropertyData.color(value: strokePaint.color, id: const StrokeColorId())
   ];
 

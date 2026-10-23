@@ -20,7 +20,7 @@
 //   static List<Widget> build(
 //     List<MenuEntry> selections, [
 //     Duration hoverOpenDelay = .zero,
-//   ]) {
+//   ]) { 
 //     Widget buildSelection(MenuEntry selection) {
 //       if (selection.children != null) {
 //         return SubmenuButton(

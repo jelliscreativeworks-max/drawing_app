@@ -9,11 +9,17 @@ class ToolStrokeSizePreview extends StatefulWidget {
   const ToolStrokeSizePreview({
     super.key, 
     bool alwaysActive = true, 
-    int autoCloseTimer = 2
-  }) : _alwaysActive = alwaysActive, _autoCloseTimer = autoCloseTimer;
+    int autoCloseTimer = 2,
+    BoxShape shape = BoxShape.circle,
+    Size backgroundSize = const Size(40,40),
+
+  }) : _alwaysActive = alwaysActive, _autoCloseTimer = autoCloseTimer, _shape = shape, _backgroundSize = backgroundSize;
 
   final bool _alwaysActive;
   final int _autoCloseTimer;
+  final BoxShape _shape;
+  final Size _backgroundSize;
+
 
   @override
   State<ToolStrokeSizePreview> createState() => _ToolStrokeSizePreviewState();
@@ -76,51 +82,46 @@ class _ToolStrokeSizePreviewState extends State<ToolStrokeSizePreview> {
     final isVisible = _active || widget._alwaysActive;
 
 
-    return AnimatedOpacity(
-      duration: const Duration(milliseconds: 150),
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 150), 
       curve: Curves.easeOutCubic,
-      opacity: isVisible ? 1.0 : 0.0,
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 150), 
-        curve: Curves.easeOutCubic,
-        width: isVisible ? 62 : 0,
-        height: isVisible ? 62 : 0,
-        alignment: Alignment.center,
-        decoration: BoxDecoration(
-          shape: BoxShape.circle,
-          color: const Color.fromARGB(181, 255, 255, 255),
-          boxShadow: isVisible ? [
-            BoxShadow(color: Colors.black.withValues(alpha: 0.1), blurRadius: 8),
-          ] : null,
-        ),
-        child: ClipRect(
-          child: OverflowBox(
-            minWidth: 62,
-            maxWidth: 62,
-            minHeight: 62,
-            maxHeight: 62,
-            child: ValueListenableBuilder<double>(
-              valueListenable: strokeSizeNotifier,
-              builder: (context, currentSize, child) {
-                return Stack(
-                  alignment: AlignmentGeometry.center,
-                  children: [
-                    CustomPaint(
-                    size: const Size(50, 50),
-                    painter: _StrokeDotPainter(
-                      radius: (currentSize / 2).clamp(1.0, 22.5),
-                    ),
+      width: isVisible ? widget._backgroundSize.width : 0,
+      height: isVisible ? widget._backgroundSize.height : 0,
+      alignment: Alignment.center,
+      decoration: BoxDecoration(
+        shape: widget._shape,
+        color: const Color.fromARGB(181, 255, 255, 255),
+        boxShadow: isVisible ? [
+          BoxShadow(color: Colors.black.withValues(alpha: 0.1), blurRadius: 8),
+        ] : null,
+      ),
+      child: ClipRect(
+        child: OverflowBox(
+          minWidth: widget._backgroundSize.width,
+          maxWidth: widget._backgroundSize.height,
+          minHeight: widget._backgroundSize.width,
+          maxHeight: widget._backgroundSize.height,
+          child: ValueListenableBuilder<double>(
+            valueListenable: strokeSizeNotifier,
+            builder: (context, currentSize, child) {
+              return Stack(
+                alignment: AlignmentGeometry.center,
+                children: [
+                  CustomPaint(
+                  size: widget._backgroundSize,
+                  painter: _StrokeDotPainter(
+                    radius: (currentSize / 2),
                   ),
-                  Align(
-                    alignment: AlignmentGeometry.bottomCenter,
-                    child: Padding(
-                      padding: const EdgeInsets.only(bottom: 5),
-                      child: Text(style: Theme.of(context).textTheme.labelSmall,(currentSize).toStringAsFixed(0)),
-                    ))
-                ]
-                );
-              },
-            ),
+                ),
+                Align(
+                  alignment: Alignment.bottomCenter,
+                  child: Padding(
+                    padding: const EdgeInsets.only(bottom: 4),
+                    child: Text(currentSize.toStringAsFixed(0) ,style: Theme.of(context).textTheme.labelSmall,),
+                  ),)
+              ]
+              );
+            },
           ),
         ),
       ),

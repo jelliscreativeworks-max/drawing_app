@@ -6,12 +6,10 @@ import 'package:drawing_app/ui/core/draw_tools/rectangle_tool.dart';
 import 'package:drawing_app/ui/core/draw_tools/select_tool.dart';
 import 'package:flutter/material.dart';
 import 'package:drawing_app/ui/draw_screen/view_models/tool_controller.dart';
-import 'package:drawing_app/ui/core/draw_tools/freehand_tool.dart'; // Assumed concrete file paths
-import 'package:drawing_app/ui/core/draw_tools/pan_tool.dart';      // Assumed concrete file paths
+import 'package:drawing_app/ui/core/draw_tools/freehand_tool.dart'; 
+import 'package:drawing_app/ui/core/draw_tools/pan_tool.dart';      
 
 class BottomToolBarButtons extends StatelessWidget {
-  /// 🟢 NEW INJECTION: Inject your interaction configurations View Model.
-  /// Following decoupled rules, tool selections are managed entirely here.
   final ToolController toolController;
 
   const BottomToolBarButtons({
@@ -21,8 +19,7 @@ class BottomToolBarButtons extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Local Builder: Rebuilds ONLY when a user taps an icon profile,
-    // leaving your heavy custom paint background artwork layers completely frozen.
+    // TODO: Remove listenable builder. not needed
     return ListenableBuilder(
       listenable: toolController,
       builder: (context, child) {
@@ -48,6 +45,15 @@ class BottomToolBarButtons extends StatelessWidget {
                 color: toolController.currentTool is PanTool ? Colors.blueAccent : Colors.black87,
               ),
 
+                           if(selectToolInstance != null)
+              IconButton(
+                splashRadius: 24,
+                icon: selectToolInstance.toolIcon,
+                tooltip: selectToolInstance.toolName,
+                onPressed: () => toolController.selectTool<SelectTool>(),
+                color: toolController.currentTool is SelectTool ? Colors.blueAccent : Colors.black87,
+              ),
+
             if (freehandToolInstance != null)
               IconButton(
                 splashRadius: 24,
@@ -57,23 +63,24 @@ class BottomToolBarButtons extends StatelessWidget {
                 color: toolController.currentTool is FreehandTool ? Colors.blueAccent : Colors.black87,
               ),
 
-              if (rectangleToolInstance != null)
-              IconButton(
-                splashRadius: 24,
-                icon: rectangleToolInstance.toolIcon,
-                tooltip: rectangleToolInstance.toolName,
-                onPressed: () => toolController.selectTool<RectangleTool>(),
-                color: toolController.currentTool is RectangleTool ? Colors.blueAccent : Colors.black87,
-              ),
+              // if (rectangleToolInstance != null)
+              // IconButton(
+              //   splashRadius: 24,
+              //   icon: rectangleToolInstance.toolIcon,
+              //   tooltip: rectangleToolInstance.toolName,
+              //   onPressed: () => toolController.selectTool<RectangleTool>(),
+              //   color: toolController.currentTool is RectangleTool ? Colors.blueAccent : Colors.black87,
+              // ),
 
-                if (circleToolInstance != null)
-              IconButton(
-                splashRadius: 24,
-                icon: circleToolInstance.toolIcon,
-                tooltip: circleToolInstance.toolName,
-                onPressed: () => toolController.selectTool<CircleTool>(),
-                color: toolController.currentTool is CircleTool ? Colors.blueAccent : Colors.black87,
-              ),
+              //   if (circleToolInstance != null)
+              // IconButton(
+              //   splashRadius: 24,
+              //   icon: circleToolInstance.toolIcon,
+              //   tooltip: circleToolInstance.toolName,
+              //   onPressed: () => toolController.selectTool<CircleTool>(),
+              //   color: toolController.currentTool is CircleTool ? Colors.blueAccent : Colors.black87,
+              // ),
+              
 
                 if (eraserToolInstance != null)
               IconButton(
@@ -93,23 +100,16 @@ class BottomToolBarButtons extends StatelessWidget {
                 color: toolController.currentTool is PathTool ? Colors.blueAccent : Colors.black87,
               ),
 
-            if (lineToolInstance != null)
-              IconButton(
-                splashRadius: 24,
-                icon: lineToolInstance.toolIcon,
-                tooltip: lineToolInstance.toolName,
-                onPressed: () => toolController.selectTool<LineTool>(),
-                color: toolController.currentTool is LineTool ? Colors.blueAccent : Colors.black87,
-              ),
+            // if (lineToolInstance != null)
+            //   IconButton(
+            //     splashRadius: 24,
+            //     icon: lineToolInstance.toolIcon,
+            //     tooltip: lineToolInstance.toolName,
+            //     onPressed: () => toolController.selectTool<LineTool>(),
+            //     color: toolController.currentTool is LineTool ? Colors.blueAccent : Colors.black87,
+            //   ),
 
-              if(selectToolInstance != null)
-              IconButton(
-                splashRadius: 24,
-                icon: selectToolInstance.toolIcon,
-                tooltip: selectToolInstance.toolName,
-                onPressed: () => toolController.selectTool<SelectTool>(),
-                color: toolController.currentTool is SelectTool ? Colors.blueAccent : Colors.black87,
-              ),
+ 
           ],
         );
       },
