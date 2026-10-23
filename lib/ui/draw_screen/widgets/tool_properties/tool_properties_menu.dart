@@ -43,7 +43,7 @@ class _ToolPropertiesMenuState extends State<ToolPropertiesMenu> {
             ),
             constraints: const BoxConstraints(
               minWidth: 120,
-              maxWidth: 200,
+              maxWidth: 180,
               minHeight: 80,
               maxHeight: 400,
             ),

@@ -2,7 +2,6 @@ import 'package:drawing_app/domain/models/property_data/property_data.dart';
 import 'package:drawing_app/domain/models/property_data/property_type.dart';
 import 'package:drawing_app/ui/draw_screen/view_models/tool_controller.dart';
 import 'package:drawing_app/ui/ui_extensions/property_data_extensions.dart';
-import 'package:drawing_app/utils/widgets/box_icon.dart';
 import 'package:flex_color_picker/flex_color_picker.dart';
 import 'package:flutter/material.dart';
 
