@@ -1,4 +1,4 @@
-import 'package:drawing_app/ui/core/commands/canvas_command.dart';
+import 'package:drawing_app/domain/models/canvas_commands/canvas_command.dart';
 
 class ReorderLayerCommand extends CanvasCommand {
   final int oldIndex;

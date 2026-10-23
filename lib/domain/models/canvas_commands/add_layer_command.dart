@@ -1,5 +1,5 @@
 import 'package:drawing_app/domain/models/layer_data/layer_data.dart';
-import 'package:drawing_app/ui/core/commands/canvas_command.dart';
+import 'package:drawing_app/domain/models/canvas_commands/canvas_command.dart';
 
 class AddLayerCommand extends CanvasCommand {
   final LayerData layerData;

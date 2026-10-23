@@ -1,5 +1,5 @@
 import 'package:drawing_app/domain/models/draw_data/draw_data.dart';
-import 'package:drawing_app/ui/core/commands/canvas_command.dart';
+import 'package:drawing_app/domain/models/canvas_commands/canvas_command.dart';
 
 class DrawCommand extends CanvasCommand{
   final DrawData drawData;

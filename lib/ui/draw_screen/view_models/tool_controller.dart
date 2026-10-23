@@ -3,7 +3,7 @@ import 'package:drawing_app/domain/models/draw_data/draw_data.dart';
 import 'package:drawing_app/domain/models/property_data/property_data.dart';
 import 'package:drawing_app/domain/models/property_data/property_type.dart';
 import 'package:drawing_app/domain/models/tool_input_data/tool_input_data.dart';
-import 'package:drawing_app/ui/core/commands/canvas_command.dart';
+import 'package:drawing_app/domain/models/canvas_commands/canvas_command.dart';
 import 'package:drawing_app/ui/core/draw_tools/canvas_tool.dart';
 import 'package:drawing_app/ui/core/draw_tools/circle_tool.dart';
 import 'package:drawing_app/ui/core/draw_tools/draw_tool.dart';
