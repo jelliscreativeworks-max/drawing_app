@@ -1,6 +1,7 @@
 import 'package:drawing_app/domain/models/draw_data/draw_data.dart';
 import 'package:drawing_app/domain/models/layer_data/layer_data.dart';
 import 'package:drawing_app/router/routes.dart';
+import 'package:drawing_app/ui/core/foldout_menu.dart';
 import 'package:drawing_app/ui/draw_screen/view_models/tool_controller.dart';
 import 'package:drawing_app/ui/draw_screen/widgets/tool_properties/tool_properties_menu.dart';
 import 'package:drawing_app/ui/draw_screen/widgets/tool_properties/tool_stroke_size_preview.dart';
@@ -281,55 +282,52 @@ class _DrawScreenState extends State<DrawScreen> {
                     // ),
                     Align(
                       alignment: Alignment.bottomLeft,
-                      child: Padding(
-                        padding: const EdgeInsets.only(left: 8, bottom: 8),
-                        child: ToolPropertiesMenu(
-                          constraints: const BoxConstraints(
-                            minWidth: 120,
-                            maxWidth: 180,
-                            minHeight: 80,
-                            maxHeight: 400,
+                      child: SafeArea(
+                        child: Padding(
+                          padding: const EdgeInsets.all(8.0),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            crossAxisAlignment: CrossAxisAlignment.end,
+                            children: [
+                              ToolPropertiesMenu(),
+                              FoldoutMenu(),
+                              Spacer(),
+                              Column(
+                                mainAxisSize: MainAxisSize.min,
+                                mainAxisAlignment: MainAxisAlignment.end,
+                                children: [
+                                  ToolStrokeSizePreview(alwaysActive: false, backgroundSize: const Size(60,60),),
+                                  Card(
+                                    child: Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        IconButton(
+                                          onPressed: widget.viewModel.canUndo
+                                              ? widget.viewModel.undo
+                                              : null,
+                                          icon: const Icon(Icons.undo),
+                                          color: Colors.black87,
+                                        ),
+                                        const SizedBox(width: 8),
+                                        IconButton(
+                                          onPressed: widget.viewModel.canRedo
+                                              ? widget.viewModel.redo
+                                              : null,
+                                          icon: const Icon(Icons.redo),
+                                          color: Colors.black87,
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ],
                           ),
                         ),
                       ),
                     ),
-                    Align(
-                      alignment: Alignment.bottomRight,
-                      child: SafeArea(
-                        child: Column(
-             
-                          mainAxisAlignment: MainAxisAlignment.end,
-                          children: [
-                            // TODO: should probable change the position on bigger screens or not show it and have it shown on the cursor
-                            ToolStrokeSizePreview(alwaysActive: false, backgroundSize: const Size(60,60),),
-                            Padding(
-                              padding: const EdgeInsets.all(8.0),
-                              child: Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  IconButton(
-                                    onPressed: widget.viewModel.canUndo
-                                        ? widget.viewModel.undo
-                                        : null,
-                                    icon: const Icon(Icons.undo),
-                                    color: Colors.black87,
-                                  ),
-                                  const SizedBox(width: 8),
-                                  IconButton(
-                                    onPressed: widget.viewModel.canRedo
-                                        ? widget.viewModel.redo
-                                        : null,
-                                    icon: const Icon(Icons.redo),
-                                    color: Colors.black87,
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-
+                    
+    
                     // // Fullscreen Initial Loading Blocker
                     // if (widget.viewModel.loadProject.running)
                     //   Positioned.fill(

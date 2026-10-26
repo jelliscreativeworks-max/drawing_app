@@ -3,22 +3,95 @@ import 'package:drawing_app/ui/draw_screen/view_models/tool_controller.dart';
 import 'package:drawing_app/ui/draw_screen/widgets/tool_properties/property_list_tile.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-class ToolPropertiesMenu extends StatefulWidget {
-  const ToolPropertiesMenu({super.key, required BoxConstraints constraints}) : _constraints = constraints;
 
-  final BoxConstraints _constraints;
+class ToolPropertiesMenu extends StatefulWidget {
+  const ToolPropertiesMenu({super.key,});
+
 
   @override
   State<ToolPropertiesMenu> createState() => _ToolPropertiesMenuState();
 }
 
 class _ToolPropertiesMenuState extends State<ToolPropertiesMenu> {
+  final LayerLink _layerLink = LayerLink();
+  OverlayEntry? _overlayEntry;
   bool _isOpen = false;
+
+  void _toggleMenu() {
+    if (_isOpen) {
+      _overlayEntry?.remove();
+    } else {
+      _overlayEntry = _createOverlayEntry(context);
+      Overlay.of(context).insert(_overlayEntry!);
+    }
+
+    setState(() {
+      _isOpen = !_isOpen;
+    });
+  }
+
+  OverlayEntry _createOverlayEntry(BuildContext originalContext) {
+
+    final toolController = originalContext.read<ToolController>();
+
+    return OverlayEntry(
+      builder: (overlayContext) {
+        return ChangeNotifierProvider<ToolController>.value(
+          value: toolController,
+          child: Consumer<ToolController>( 
+            builder: (context, controller, child) {
+              final propertiesList = controller.loadedProperties;
+
+              return Positioned(
+                width: 180,
+                child: CompositedTransformFollower(
+                  targetAnchor: Alignment.topLeft,
+                  followerAnchor: Alignment.bottomLeft,
+                  offset: Offset(0, -15),
+                  link: _layerLink,
+                  showWhenUnlinked: false,
+                  child: Material(
+                    elevation: 4,
+                    borderRadius: BorderRadius.circular(8),
+                    child: ListView.builder(
+                      shrinkWrap: true,
+                      padding: const EdgeInsets.symmetric(vertical: 8),
+                      itemCount: propertiesList.length,
+                      itemBuilder: (context, index) {
+                        final property = propertiesList[index];
+                        return PropertyListTile(
+                          property: property,
+                          toolController: controller,
+                        );
+                      },
+                    ),
+                  ),
+                ),
+              );
+            },
+          ),
+        );
+      },
+    );
+  }
+
+  @override
+  void deactivate() {
+    if (_isOpen) {
+      _overlayEntry?.remove();
+      _isOpen = false;
+    }
+    super.deactivate();
+  }
+
+  @override
+  void dispose() {
+    _overlayEntry?.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
-    final toolController = context.read<ToolController>();
-
     final hasProperties = context.select<ToolController, bool>(
       (controller) => controller.loadedProperties.isNotEmpty,
     );
@@ -27,46 +100,12 @@ class _ToolPropertiesMenuState extends State<ToolPropertiesMenu> {
       return const SizedBox.shrink();
     }
 
-    final propertiesList = context.select<ToolController, List<PropertyData>>(
-      (controller) => controller.loadedProperties,
-    );
-
-    return Column(
-      mainAxisAlignment: MainAxisAlignment.end,
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        if (_isOpen)
-          Container(
-            decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.8),
-              borderRadius: BorderRadius.circular(20),
-            ),
-            constraints: widget._constraints,
-            child: ListView.builder(
-              shrinkWrap: true,
-              padding: const EdgeInsets.symmetric(vertical: 8),
-              itemCount: propertiesList.length,
-              itemBuilder: (context, index) {
-                final property = propertiesList[index];
-                return PropertyListTile(
-                  property: property,
-                  toolController: toolController,
-                );
-              },
-            ),
-          ),
-        const SizedBox(height: 5),
-        Container(
-          decoration: BoxDecoration(
-            color: Colors.white.withValues(alpha: 0.9),
-            borderRadius: BorderRadius.circular(360),
-          ),
-          child: IconButton(
-            onPressed: () => setState(() => _isOpen = !_isOpen),
-            icon: const Icon(Icons.format_paint),
-          ),
-        ),
-      ],
+    return CompositedTransformTarget(
+      link: _layerLink,
+      child: IconButton(
+        onPressed: _toggleMenu,
+        icon: const Icon(Icons.piano_sharp),
+      ),
     );
   }
 }
