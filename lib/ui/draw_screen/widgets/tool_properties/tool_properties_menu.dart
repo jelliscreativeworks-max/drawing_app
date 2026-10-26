@@ -14,6 +14,7 @@ class ToolPropertiesMenu extends StatefulWidget {
 
 class _ToolPropertiesMenuState extends State<ToolPropertiesMenu> {
   final LayerLink _layerLink = LayerLink();
+      final buttonStateController = WidgetStatesController();
   OverlayEntry? _overlayEntry;
   bool _isOpen = false;
 
@@ -33,6 +34,7 @@ class _ToolPropertiesMenuState extends State<ToolPropertiesMenu> {
   OverlayEntry _createOverlayEntry(BuildContext originalContext) {
 
     final toolController = originalContext.read<ToolController>();
+
 
     return OverlayEntry(
       builder: (overlayContext) {
@@ -102,9 +104,10 @@ class _ToolPropertiesMenuState extends State<ToolPropertiesMenu> {
 
     return CompositedTransformTarget(
       link: _layerLink,
-      child: IconButton(
+      child: IconButton.filled(
+        isSelected: _isOpen,
         onPressed: _toggleMenu,
-        icon: const Icon(Icons.piano_sharp),
+        icon: const Icon(Icons.format_paint),
       ),
     );
   }

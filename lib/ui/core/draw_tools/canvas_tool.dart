@@ -99,6 +99,8 @@ abstract class CanvasTool {
 
     List<PropertyData> get toolProperties;
 
+    
+
     void updatePropertyStateValue(PropertyId targetId, dynamic newValue);
 
     void onToolStart(ToolStartInput toolStartInput, String layerId, int strokeIndex);
