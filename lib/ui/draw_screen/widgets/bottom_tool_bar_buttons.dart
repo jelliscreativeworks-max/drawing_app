@@ -4,6 +4,7 @@ import 'package:drawing_app/ui/core/draw_tools/line_tool.dart';
 import 'package:drawing_app/ui/core/draw_tools/path_tool.dart';
 import 'package:drawing_app/ui/core/draw_tools/rectangle_tool.dart';
 import 'package:drawing_app/ui/core/draw_tools/select_tool.dart';
+import 'package:drawing_app/ui/core/icon_button_anchor.dart';
 import 'package:flutter/material.dart';
 import 'package:drawing_app/ui/draw_screen/view_models/tool_controller.dart';
 import 'package:drawing_app/ui/core/draw_tools/freehand_tool.dart'; 
@@ -23,7 +24,7 @@ class BottomToolBarButtons extends StatelessWidget {
     return ListenableBuilder(
       listenable: toolController,
       builder: (context, child) {
-        // Extract the live active instances out of your controller registry
+        // Extract the live active instances out of controller registry
         final panToolInstance = toolController.tools[PanTool];
         final freehandToolInstance = toolController.tools[FreehandTool];
         final eraserToolInstance = toolController.tools[EraseTool];
@@ -41,26 +42,28 @@ class BottomToolBarButtons extends StatelessWidget {
                 splashRadius: 24,
                 icon: panToolInstance.toolIcon,
                 tooltip: panToolInstance.toolName,
-                onPressed: () => toolController.selectTool<PanTool>(),
-                color: toolController.currentTool is PanTool ? Colors.blueAccent : Colors.black87,
-              ),
+                onPressed: () => toolController.selectTool(panToolInstance),
+                isSelected: toolController.currentTool == panToolInstance,
+                ),
 
-                           if(selectToolInstance != null)
+            if(selectToolInstance != null)
               IconButton(
                 splashRadius: 24,
                 icon: selectToolInstance.toolIcon,
                 tooltip: selectToolInstance.toolName,
-                onPressed: () => toolController.selectTool<SelectTool>(),
-                color: toolController.currentTool is SelectTool ? Colors.blueAccent : Colors.black87,
+                onPressed: () => toolController.selectTool(selectToolInstance),
+                isSelected: toolController.currentTool == selectToolInstance,
               ),
+
+          
 
             if (freehandToolInstance != null)
               IconButton(
                 splashRadius: 24,
                 icon: freehandToolInstance.toolIcon,
                 tooltip: freehandToolInstance.toolName,
-                onPressed: () => toolController.selectTool<FreehandTool>(),
-                color: toolController.currentTool is FreehandTool ? Colors.blueAccent : Colors.black87,
+                onPressed: () => toolController.selectTool(freehandToolInstance),
+                isSelected: toolController.currentTool == freehandToolInstance,
               ),
 
               // if (rectangleToolInstance != null)
@@ -87,8 +90,8 @@ class BottomToolBarButtons extends StatelessWidget {
                 splashRadius: 24,
                 icon: eraserToolInstance.toolIcon,
                 tooltip: eraserToolInstance.toolName,
-                onPressed: () => toolController.selectTool<EraseTool>(),
-                color: toolController.currentTool is EraseTool ? Colors.blueAccent : Colors.black87,
+                onPressed: () => toolController.selectTool(eraserToolInstance),
+                isSelected: toolController.currentTool == eraserToolInstance,
               ),
 
                     if (pathToolInstance != null)
@@ -96,8 +99,8 @@ class BottomToolBarButtons extends StatelessWidget {
                 splashRadius: 24,
                 icon: pathToolInstance.toolIcon,
                 tooltip: pathToolInstance.toolName,
-                onPressed: () => toolController.selectTool<PathTool>(),
-                color: toolController.currentTool is PathTool ? Colors.blueAccent : Colors.black87,
+                onPressed: () => toolController.selectTool(pathToolInstance),
+                isSelected: toolController.currentTool == pathToolInstance,
               ),
 
             // if (lineToolInstance != null)

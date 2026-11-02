@@ -314,6 +314,7 @@ class ToolController extends ChangeNotifier {
       CircleTool: CircleTool(
         toolIcon: Icon(Icons.circle),
         toolName: 'Circle Tool',
+        
       ),
       RectangleTool: RectangleTool(
         toolName: 'Rectangle Tool',
@@ -340,15 +341,38 @@ class ToolController extends ChangeNotifier {
     _panTool = tools[PanTool]! as PanTool;
   }
 
-  void selectTool<T extends CanvasTool>() {
+  // void selectTool<T extends CanvasTool>() {
     
-    final targetTool = tools[T];
-    if (targetTool == null || targetTool == _currentTool) return;
+  //   final targetTool = tools[T];
+  //   if (targetTool == null || targetTool == _currentTool) return;
 
-    // clear its caches, and emit any final transformation commands before swapping
-    if (_currentTool.isActive) {
+  //   // clear its caches, and emit any final transformation commands before swapping
+  //   if (_currentTool.isActive) {
+  //     final finalCommand = _currentTool.onToolEnd();
+  //     if (finalCommand != null) {
+  //       onExecuteCommand(finalCommand);
+  //     }
+
+  //     //To kill any tools that won't necessarily stop drawing when calling onToolEnd
+  //     _currentTool.cancel();
+  //   }
+
+  //   _propertyNotifierCache.clear();
+  //   _currentTool = targetTool;
+  //   notifyListeners();
+  // }
+
+
+  void selectTool(CanvasTool tool) {
+    final registeredTool = tools[tool.runtimeType];
+    if (registeredTool == null || registeredTool != tool) return;
+
+    if(_currentTool == tool) return;
+
+    //To kill any tools that won't necessarily stop drawing when calling onToolEnd
+    if(_currentTool.isActive){
       final finalCommand = _currentTool.onToolEnd();
-      if (finalCommand != null) {
+      if(finalCommand != null){
         onExecuteCommand(finalCommand);
       }
 
@@ -356,8 +380,9 @@ class ToolController extends ChangeNotifier {
       _currentTool.cancel();
     }
 
+    // TODO: Might need to unsubscribe from property notifiers before clearing them
     _propertyNotifierCache.clear();
-    _currentTool = targetTool;
+    _currentTool = tool;
     notifyListeners();
   }
 

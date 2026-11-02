@@ -20,7 +20,7 @@ class CircleTool extends DrawTool with StrokeTool, FillTool {
     Paint? strokePaintOverride,
     Paint? fillPaintOverride,
     FillTypeOptions? fillTypeOverride,
-    StrokeTypeOptions? strokeTypeOverride
+    StrokeTypeOptions? strokeTypeOverride,
   });
 
   @override

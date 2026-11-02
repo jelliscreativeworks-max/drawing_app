@@ -93,9 +93,12 @@ class ToolUpdateFrame {
 abstract class CanvasTool {
     final String toolName;
     final Icon toolIcon;
+    final String? groupKey;
+    final String? groupName;
+
     bool get isActive;
 
-    CanvasTool({required this.toolName, required this.toolIcon});
+    CanvasTool({required this.toolName, required this.toolIcon, this.groupKey, this.groupName});
 
     List<PropertyData> get toolProperties;
 
